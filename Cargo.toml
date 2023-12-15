@@ -1,0 +1,13 @@
+[package]
+name = "rss-funnel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+erased-serde = "0.4.1"
+js-sandbox = "0.1.6"
+serde = { version = "1.0.193", features = ["derive"] }
+time = { version = "0.3.30", features = ["parsing", "formatting", "serde"] }
