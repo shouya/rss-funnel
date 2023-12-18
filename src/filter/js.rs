@@ -1,8 +1,10 @@
-use js_sandbox::Script;
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
-use crate::feed::Feed;
-use crate::util::Result;
+use crate::feed::{Feed, Post};
+use crate::js::{Globals, Runtime};
+use crate::util::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig};
 
@@ -14,6 +16,7 @@ pub struct JsConfig {
 
 pub struct JsFilter {
   code: String,
+  runtime: Runtime,
 }
 
 #[async_trait::async_trait]
@@ -21,8 +24,10 @@ impl FeedFilterConfig for JsConfig {
   type Filter = JsFilter;
 
   async fn build(&self) -> Result<Self::Filter> {
+    let runtime = Runtime::new().await?;
     Ok(Self::Filter {
       code: self.code.clone(),
+      runtime,
     })
   }
 }
@@ -30,17 +35,17 @@ impl FeedFilterConfig for JsConfig {
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    let mut script = Script::from_string(&self.code)?;
-
-    // can't use retain because try operator doesn't work inside closure.
     let mut posts = Vec::new();
+
     for post in feed.posts.iter() {
-      if script.call("filter", post)? {
+      let mut globals = Globals::new();
+      globals.set("post", post);
+      if self.runtime.eval(&self.code, globals).await? {
         posts.push(post.clone());
       }
     }
-    feed.posts = posts;
 
+    feed.posts = posts;
     Ok(())
   }
 }

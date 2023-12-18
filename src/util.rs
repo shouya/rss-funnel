@@ -1,3 +1,5 @@
+use std::error::Error as StdError;
+
 pub type DateTime = time::OffsetDateTime;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -29,6 +31,12 @@ pub enum Error {
 
   #[error("Feed parsing error {0:?}")]
   FeedParse(&'static str),
+
+  #[error("Js execution error {0:?}")]
+  Js(#[from] rquickjs::Error),
+
+  #[error("Js exception {0}")]
+  JsException(String),
 
   #[error("{0}")]
   Message(String),

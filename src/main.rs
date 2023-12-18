@@ -1,6 +1,7 @@
 mod cli;
 mod feed;
 mod filter;
+mod js;
 mod server;
 mod util;
 

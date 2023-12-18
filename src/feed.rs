@@ -90,10 +90,11 @@ impl TryFrom<rss::Item> for Post {
   type Error = Error;
 
   fn try_from(item: rss::Item) -> Result<Self> {
+    let link = item.link.ok_or_else(|| Error::FeedParse("link in item"))?;
     let guid = item
       .guid
       .map(|guid| guid.value)
-      .ok_or_else(|| Error::FeedParse("guid in item"))?;
+      .unwrap_or_else(|| link.clone());
 
     let title = item
       .title
@@ -104,7 +105,6 @@ impl TryFrom<rss::Item> for Post {
       .ok_or_else(|| Error::FeedParse("description in item"))?;
 
     let authors = item.author.into_iter().collect();
-    let link = item.link.ok_or_else(|| Error::FeedParse("link in item"))?;
 
     let pub_date = item.pub_date;
     let extra = HashMap::new();
