@@ -6,6 +6,7 @@ use std::sync::Arc;
 use axum::body::Body;
 use axum::response::IntoResponse;
 use http_body_util::BodyExt;
+use hyper_tls::HttpsConnector;
 use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::client::legacy::Client;
 use serde::{Deserialize, Serialize};
@@ -39,11 +40,49 @@ pub struct EndpointServiceConfig {
   filters: Vec<FilterConfig>,
 }
 
+enum HttpClient {
+  Http(Client<HttpConnector, Body>),
+  Https(Client<HttpsConnector<HttpConnector>, Body>),
+}
+
+impl HttpClient {
+  fn new(source: &str) -> Self {
+    let executor = hyper_util::rt::TokioExecutor::new();
+
+    if source.starts_with("http://") {
+      let http_client = Client::builder(executor).build_http();
+      Self::Http(http_client)
+    } else if source.starts_with("https://") {
+      let tls = hyper_tls::HttpsConnector::new();
+      let https_client = Client::builder(executor).build(tls);
+      Self::Https(https_client)
+    } else {
+      panic!(
+        "invalid source: {}, must start with http:// or https://",
+        source
+      );
+    }
+  }
+
+  async fn request(&self, request: Request) -> Result<Response> {
+    match self {
+      Self::Http(client) => {
+        let resp: Response = client.request(request).await?.into_response();
+        Ok(resp)
+      }
+      Self::Https(client) => {
+        let resp: Response = client.request(request).await?.into_response();
+        Ok(resp)
+      }
+    }
+  }
+}
+
 #[derive(Clone)]
 pub struct EndpointService {
   source: String,
   filters: Arc<Vec<BoxedFilter>>,
-  client: Arc<Client<HttpConnector, Body>>,
+  client: Arc<HttpClient>,
 }
 
 impl Service<Request> for EndpointService {
@@ -62,7 +101,8 @@ impl Service<Request> for EndpointService {
   fn call(&mut self, req: Request) -> Self::Future {
     let this = self.clone();
     let fut = async { this.call_internal(req).await };
-    let fut = async { fut.await.map_err(|_| unreachable!()) };
+    let fut =
+      async { fut.await.or_else(|e| Ok(e.to_string().into_response())) };
     Box::pin(fut)
   }
 }
@@ -75,8 +115,7 @@ impl EndpointService {
       filters.push(filter);
     }
 
-    let executor = hyper_util::rt::TokioExecutor::new();
-    let client = Client::builder(executor).build_http();
+    let client = HttpClient::new(&config.source);
 
     Ok(Self {
       source: config.source,
@@ -111,11 +150,17 @@ impl EndpointService {
     let content = body.collect().await?.to_bytes();
 
     let headers = &parts.headers;
-    let feed = match headers.get("Content-Type").map(|x| x.as_ref()) {
-      Some(b"text/html") => todo!(),
-      Some(b"application/xml") => Feed::from_rss_content(&content)?,
+    let content_type = headers
+      .get("Content-Type")
+      .and_then(|x| x.to_str().ok())
+      // remove anything after ";"
+      .and_then(|x| x.split(';').next());
+
+    let feed = match content_type {
+      Some("text/html") => todo!(),
+      Some("application/xml") => Feed::from_rss_content(&content)?,
       // todo: atom handling, etc.
-      _ => todo!(),
+      x => todo!("{:?}", x),
     };
 
     Ok(feed)

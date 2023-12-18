@@ -15,6 +15,7 @@ erased-serde = "0.4.1"
 http = "1.0.0"
 http-body-util = "0.1.0"
 hyper = { version = "1.0.1", features = ["client"] }
+hyper-tls = "0.6.0"
 hyper-util = { version = "0.1.1", features = ["client", "tokio", "client-legacy"] }
 js-sandbox = "0.1.6"
 rss = "2.0.6"

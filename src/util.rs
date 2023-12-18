@@ -12,7 +12,7 @@ pub enum Error {
   #[error("HTTP error")]
   Http(#[from] http::Error),
 
-  #[error("Hyper client error")]
+  #[error("Hyper client error: {0:?}")]
   HyperClient(#[from] hyper_util::client::legacy::Error),
 
   #[error("Axum error")]
@@ -27,7 +27,7 @@ pub enum Error {
   #[error("Feed error")]
   Rss(#[from] rss::Error),
 
-  #[error("Feed parsing error")]
+  #[error("Feed parsing error {0:?}")]
   FeedParse(&'static str),
 
   #[error("{0}")]
