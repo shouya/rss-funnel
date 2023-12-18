@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::feed::Feed;
-use crate::js::{Globals, Runtime};
+use crate::js::{AsJson, Runtime};
 use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig};
@@ -13,7 +13,6 @@ pub struct JsConfig {
 }
 
 pub struct JsFilter {
-  code: String,
   runtime: Runtime,
 }
 
@@ -23,10 +22,9 @@ impl FeedFilterConfig for JsConfig {
 
   async fn build(&self) -> Result<Self::Filter> {
     let runtime = Runtime::new().await?;
-    Ok(Self::Filter {
-      code: self.code.clone(),
-      runtime,
-    })
+    runtime.eval(&self.code).await?;
+
+    Ok(Self::Filter { runtime })
   }
 }
 
@@ -36,10 +34,7 @@ impl FeedFilter for JsFilter {
     let mut posts = Vec::new();
 
     for post in feed.posts.iter() {
-      let mut globals = Globals::new();
-      globals.set("post", post);
-
-      if self.runtime.eval(&self.code, globals).await? {
+      if self.runtime.call_fn("keep_post", (AsJson(post),)).await? {
         posts.push(post.clone());
       }
     }

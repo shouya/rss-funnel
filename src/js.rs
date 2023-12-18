@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
 use rquickjs::class::Trace;
 use rquickjs::markers::ParallelSend;
-use rquickjs::{AsyncContext, Class, Ctx, FromJs};
+use rquickjs::prelude::IntoArgs;
+use rquickjs::{AsyncContext, Class, Ctx, FromJs, Function, IntoJs, Value};
 
 use crate::util::{Error, Result};
 
@@ -10,32 +9,15 @@ pub struct Runtime {
   context: rquickjs::AsyncContext,
 }
 
-pub struct Globals {
-  values: HashMap<String, String>,
-}
+pub struct AsJson<T>(pub T);
 
-impl Globals {
-  pub fn new() -> Self {
-    Self {
-      values: HashMap::new(),
-    }
-  }
-
-  pub fn set<T>(&mut self, key: &str, value: T)
-  where
-    T: serde::Serialize,
-  {
-    let json = serde_json::to_string(&value).unwrap();
-    self.values.insert(key.to_string(), json);
-  }
-
-  fn set_ctx(self, ctx: &rquickjs::Ctx) -> Result<()> {
-    for (key, value) in self.values {
-      let val = ctx.json_parse(value)?;
-      ctx.globals().set(key, val)?;
-    }
-
-    Ok(())
+impl<'js, T> IntoJs<'js> for AsJson<T>
+where
+  T: serde::Serialize,
+{
+  fn into_js(self, ctx: &Ctx<'js>) -> rquickjs::Result<Value<'js>> {
+    let json = serde_json::to_string(&self.0).unwrap();
+    ctx.json_parse(json)
   }
 }
 
@@ -53,7 +35,20 @@ impl Runtime {
     Ok(Self { context })
   }
 
-  pub async fn eval<V>(&self, code: &str, globals: Globals) -> Result<V>
+  pub async fn set_global<T>(&self, key: &str, value: T)
+  where
+    T: for<'js> IntoJs<'js> + ParallelSend,
+  {
+    self
+      .context
+      .with(|ctx| {
+        let val = value.into_js(&ctx).unwrap();
+        ctx.globals().set(key, val).unwrap();
+      })
+      .await
+  }
+
+  pub async fn eval<V>(&self, code: &str) -> Result<V>
   where
     V: for<'js> FromJs<'js> + ParallelSend,
   {
@@ -61,9 +56,48 @@ impl Runtime {
     self
       .context
       .with(|ctx: Ctx<'_>| -> Result<V> {
-        globals.set_ctx(&ctx)?;
-
         let res = ctx.eval(code);
+
+        if let Err(rquickjs::Error::Exception) = res {
+          let exception = ctx.catch();
+          let exception_repr =
+            format!("{:?}", exception.as_exception().unwrap());
+          return Err(Error::JsException(exception_repr));
+        }
+
+        Ok(res?)
+      })
+      .await
+  }
+
+  pub async fn fn_exists(&self, name: &str) -> bool {
+    self
+      .context
+      .with(|ctx| -> bool {
+        let value: Result<Function<'_>, _> = ctx.globals().get(name);
+        value.is_ok()
+      })
+      .await
+  }
+
+  pub async fn call_fn<V, Args>(&self, name: &str, args: Args) -> Result<V>
+  where
+    V: for<'js> FromJs<'js> + ParallelSend,
+    Args: for<'js> IntoArgs<'js> + ParallelSend,
+  {
+    self
+      .context
+      .with(|ctx| -> Result<V> {
+        let value: Result<Function<'_>, _> = ctx.globals().get(name);
+        let Ok(fun) = value else {
+          return Err(Error::JsException(format!(
+            "function {} not found",
+            name
+          )));
+        };
+
+        let res = fun.call(args);
+
         if let Err(rquickjs::Error::Exception) = res {
           let exception = ctx.catch();
           let exception_repr =
