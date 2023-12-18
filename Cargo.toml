@@ -7,7 +7,16 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+async-trait = "0.1.74"
+axum = "0.7.2"
+clap = { version = "4.4.11", features = ["derive"] }
 erased-serde = "0.4.1"
+http = "1.0.0"
+hyper = { version = "1.0.1", features = ["client"] }
+hyper-util = { version = "0.1.1", features = ["client", "tokio", "client-legacy"] }
 js-sandbox = "0.1.6"
 serde = { version = "1.0.193", features = ["derive"] }
+serde_yaml = "0.9.27"
 time = { version = "0.3.30", features = ["parsing", "formatting", "serde"] }
+tokio = { version = "1.35.0", features = ["macros", "net", "rt-multi-thread"] }
+tower = "0.4.13"

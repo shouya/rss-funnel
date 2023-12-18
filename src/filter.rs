@@ -1,22 +1,20 @@
-mod composite;
-mod js_filter;
+mod config;
+mod js;
 
-use erased_serde::Serialize;
+use serde::de::DeserializeOwned;
 
-use crate::{
-  feed::{Feed, Post},
-  util::Error,
-};
+use crate::{feed::Feed, util::Result};
 
-trait FeedFilter: Serialize {
-  fn keep_post(&mut self, feed: &Feed, post: &Post) -> Result<bool, Error>;
+pub use config::FilterConfig;
+
+#[async_trait::async_trait]
+pub trait FeedFilter {
+  async fn run(&mut self, feed: &mut Feed) -> Result<()>;
 }
 
-impl serde::Serialize for Box<dyn FeedFilter> {
-  fn serialize<S: serde::Serializer>(
-    &self,
-    serializer: S,
-  ) -> Result<S::Ok, S::Error> {
-    erased_serde::serialize(self, serializer)
-  }
+#[async_trait::async_trait]
+pub trait FeedFilterConfig: DeserializeOwned {
+  type Filter: FeedFilter;
+
+  async fn build(&self) -> Result<Self::Filter>;
 }

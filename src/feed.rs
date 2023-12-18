@@ -25,6 +25,7 @@ pub struct Post {
   pub authors: Vec<String>,
   pub link: String,
   pub extra: HashMap<String, String>,
+  #[serde(with = "time::serde::iso8601")]
   pub pub_date: DateTime,
 }
 
