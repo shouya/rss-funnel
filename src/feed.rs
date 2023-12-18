@@ -1,14 +1,15 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use anyhow::anyhow;
+use axum::response::IntoResponse;
+use http::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
-use time::format_description::well_known::Iso8601;
 
-use crate::util::{DateTime, Result};
+use crate::util::Error;
+use crate::util::Result;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Feed {
   pub title: String,
   pub link: String,
@@ -17,7 +18,64 @@ pub struct Feed {
   pub posts: Vec<Post>,
 }
 
-#[derive(Serialize, Deserialize)]
+impl Feed {
+  pub fn from_rss_content(bytes: &[u8]) -> Result<Self> {
+    let channel = rss::Channel::read_from(bytes)?;
+    let feed = Self::try_from(channel)?;
+    Ok(feed)
+  }
+
+  pub fn into_resp(self) -> Result<impl IntoResponse> {
+    let headers = [(http::header::CONTENT_TYPE, "application/rss+xml")];
+    let body = rss::Channel::from(self).to_string();
+
+    Ok((StatusCode::OK, headers, body))
+  }
+}
+
+impl TryFrom<rss::Channel> for Feed {
+  type Error = Error;
+  fn try_from(channel: rss::Channel) -> Result<Self> {
+    let title = channel.title;
+    let link = channel.link;
+    let description = channel.description;
+    let extra = HashMap::new();
+
+    let posts = channel
+      .items
+      .into_iter()
+      .map(Post::try_from)
+      .collect::<Result<Vec<_>>>()?;
+
+    Ok(Self {
+      title,
+      link,
+      description,
+      extra,
+      posts,
+    })
+  }
+}
+
+impl From<Feed> for rss::Channel {
+  fn from(feed: Feed) -> Self {
+    let title = feed.title;
+    let link = feed.link;
+    let description = feed.description;
+
+    let items = feed.posts.into_iter().map(rss::Item::from).collect();
+
+    Self {
+      title,
+      link,
+      description,
+      items,
+      ..Default::default()
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Post {
   pub guid: String,
   pub title: String,
@@ -25,27 +83,77 @@ pub struct Post {
   pub authors: Vec<String>,
   pub link: String,
   pub extra: HashMap<String, String>,
-  #[serde(with = "time::serde::iso8601")]
-  pub pub_date: DateTime,
+  pub pub_date: Option<String>,
+}
+
+impl TryFrom<rss::Item> for Post {
+  type Error = Error;
+
+  fn try_from(item: rss::Item) -> Result<Self> {
+    let guid = item
+      .guid
+      .map(|guid| guid.value)
+      .ok_or_else(|| Error::FeedParse("guid in item"))?;
+
+    let title = item
+      .title
+      .ok_or_else(|| Error::FeedParse("title in item"))?;
+
+    let description = item
+      .description
+      .ok_or_else(|| Error::FeedParse("description in item"))?;
+
+    let authors = item.author.into_iter().collect();
+    let link = item.link.ok_or_else(|| Error::FeedParse("link in item"))?;
+
+    let pub_date = item.pub_date;
+    let extra = HashMap::new();
+
+    Ok(Self {
+      guid,
+      title,
+      description,
+      authors,
+      link,
+      extra,
+      pub_date,
+    })
+  }
+}
+
+impl From<Post> for rss::Item {
+  fn from(post: Post) -> Self {
+    let guid = Some(rss::Guid {
+      value: post.guid,
+      ..Default::default()
+    });
+    let title = Some(post.title);
+    let description = Some(post.description);
+    let author = Some(post.authors.join(","));
+    let link = Some(post.link);
+    let pub_date = post.pub_date;
+
+    Self {
+      guid,
+      title,
+      description,
+      author,
+      link,
+      pub_date,
+      ..Default::default()
+    }
+  }
 }
 
 impl Post {
-  pub fn get_field(&self, field: &str) -> Result<Cow<str>> {
+  pub fn get_field(&self, field: &str) -> Option<Cow<str>> {
     match field {
-      "guid" => Ok(Cow::from(&self.guid)),
-      "title" => Ok(Cow::from(&self.title)),
-      "description" => Ok(Cow::from(&self.description)),
-      "link" => Ok(Cow::from(&self.link)),
-      "pub_date" => self
-        .pub_date
-        .format(&Iso8601::DEFAULT)
-        .map(|d| Cow::Owned(d.to_string()))
-        .map_err(|e| e.into()),
-      _ => self
-        .extra
-        .get(field)
-        .map(|x| Cow::from(x))
-        .ok_or_else(|| anyhow!("Post does not have field '{}'", field)),
+      "guid" => Some(Cow::from(&self.guid)),
+      "title" => Some(Cow::from(&self.title)),
+      "description" => Some(Cow::from(&self.description)),
+      "link" => Some(Cow::from(&self.link)),
+      "pub_date" => self.pub_date.as_ref().map(Cow::from),
+      _ => self.extra.get(field).map(|x| Cow::from(x)),
     }
   }
 }

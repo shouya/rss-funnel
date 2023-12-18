@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::Result;
 
-use super::{js::JsConfig, FeedFilter, FeedFilterConfig};
+use super::{js::JsConfig, BoxedFilter, FeedFilterConfig};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -15,7 +15,7 @@ macro_rules! build_configs {
     match $self {
       $(FilterConfig::$variant(config) => {
         let filter = config.build().await?;
-        Ok(Box::new(filter) as Box<dyn FeedFilter>)
+        Ok(BoxedFilter::from(filter))
       })*
     }
   };
@@ -23,7 +23,7 @@ macro_rules! build_configs {
 }
 
 impl FilterConfig {
-  pub async fn build(&self) -> Result<Box<dyn FeedFilter>> {
+  pub async fn build(&self) -> Result<BoxedFilter> {
     build_configs!(self; Js)
   }
 }

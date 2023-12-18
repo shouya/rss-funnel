@@ -1,3 +1,4 @@
+use js_sandbox::Script;
 use serde::{Deserialize, Serialize};
 
 use crate::feed::Feed;
@@ -28,7 +29,18 @@ impl FeedFilterConfig for JsConfig {
 
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
-  async fn run(&mut self, _feed: &mut Feed) -> Result<()> {
+  async fn run(&self, feed: &mut Feed) -> Result<()> {
+    let mut script = Script::from_string(&self.code)?;
+
+    // can't use retain because try operator doesn't work inside closure.
+    let mut posts = Vec::new();
+    for post in feed.posts.iter() {
+      if script.call("filter", post)? {
+        posts.push(post.clone());
+      }
+    }
+    feed.posts = posts;
+
     Ok(())
   }
 }

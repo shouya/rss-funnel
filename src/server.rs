@@ -1,5 +1,4 @@
 mod endpoint;
-mod feed_service;
 
 use axum::Router;
 use clap::Parser;
@@ -20,7 +19,7 @@ pub async fn serve(
   let mut app = Router::new();
 
   for endpoint_config in feed_definition.endpoints {
-    let endpoint_route = endpoint_config.into_route();
+    let endpoint_route = endpoint_config.into_route().await?;
     app = app.merge(endpoint_route);
   }
 
