@@ -1,10 +1,8 @@
-use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 
-use crate::feed::{Feed, Post};
+use crate::feed::Feed;
 use crate::js::{Globals, Runtime};
-use crate::util::{Error, Result};
+use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig};
 
@@ -40,6 +38,7 @@ impl FeedFilter for JsFilter {
     for post in feed.posts.iter() {
       let mut globals = Globals::new();
       globals.set("post", post);
+
       if self.runtime.eval(&self.code, globals).await? {
         posts.push(post.clone());
       }

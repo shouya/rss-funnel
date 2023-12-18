@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use rquickjs::{AsyncContext, Ctx, IntoJs};
+use rquickjs::class::Trace;
+use rquickjs::markers::ParallelSend;
+use rquickjs::{AsyncContext, Class, Ctx, FromJs};
 
-use crate::feed::{Feed, Post};
 use crate::util::{Error, Result};
 
 pub struct Runtime {
@@ -47,13 +48,14 @@ impl Runtime {
     runtime.set_max_stack_size(1024 * 1024).await;
 
     let context = AsyncContext::full(&runtime).await?;
+    context.with(|ctx| register_global_classes(&ctx)).await?;
 
     Ok(Self { context })
   }
 
   pub async fn eval<V>(&self, code: &str, globals: Globals) -> Result<V>
   where
-    V: for<'js> rquickjs::FromJs<'js> + rquickjs::markers::ParallelSend,
+    V: for<'js> FromJs<'js> + ParallelSend,
   {
     let code = code.to_string();
     self
@@ -64,12 +66,32 @@ impl Runtime {
         let res = ctx.eval(code);
         if let Err(rquickjs::Error::Exception) = res {
           let exception = ctx.catch();
-          let exception_repr = format!("{:?}", exception);
+          let exception_repr =
+            format!("{:?}", exception.as_exception().unwrap());
           return Err(Error::JsException(exception_repr));
         }
 
         Ok(res?)
       })
       .await
+  }
+}
+
+fn register_global_classes(ctx: &Ctx) -> Result<()> {
+  ctx
+    .globals()
+    .set("console", Class::instance(ctx.clone(), Console {})?)?;
+
+  Ok(())
+}
+
+#[derive(Trace)]
+#[rquickjs::class]
+struct Console {}
+
+#[rquickjs::methods]
+impl Console {
+  fn log(msg: String) {
+    println!("[console.log] {}", msg);
   }
 }
