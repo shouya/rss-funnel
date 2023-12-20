@@ -1478,8 +1478,9 @@ dependencies = [
 
 [[package]]
 name = "readability"
-version = "0.2.0"
-source = "git+https://github.com/Kerollmops/readability.git?branch=update-the-project#d2ffdcb2e278a3ddd3540d00e1f04ddd50dd2249"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e56596e20a6d3cf715182d9b6829220621e6e985cec04d00410cee29821b4220"
 dependencies = [
  "html5ever",
  "lazy_static",
