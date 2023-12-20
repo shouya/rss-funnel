@@ -4,14 +4,13 @@ use std::fs;
 use std::path::PathBuf;
 
 use blake2s_simd::blake2s;
-use rquickjs::class::Trace;
 use rquickjs::loader::{
   BuiltinLoader, BuiltinResolver, FileResolver, Loader, Resolver, ScriptLoader,
 };
 use rquickjs::markers::ParallelSend;
 use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
-use rquickjs::{Class, Context, Ctx, FromJs, Function, IntoJs, Module, Value};
+use rquickjs::{Context, Ctx, FromJs, Function, IntoJs, Module, Value};
 
 use crate::util::{Error, Result};
 
@@ -59,6 +58,7 @@ impl Runtime {
     Ok(Self { context })
   }
 
+  #[allow(unused)]
   pub async fn set_global<T>(&self, key: &str, value: T)
   where
     T: for<'js> IntoJs<'js> + ParallelSend,
@@ -139,11 +139,6 @@ impl Runtime {
     Args: for<'js> IntoArgs<'js> + ParallelSend,
   {
     self.context.runtime().execute_pending_job().ok();
-    self.context.with(|ctx| {
-      for k in ctx.globals().keys::<rquickjs::String<'_>>() {
-        dbg!(k);
-      }
-    });
 
     self.context.with(|ctx| -> Result<V> {
       let value: Result<Function<'_>, _> = ctx.globals().get(name);
@@ -167,9 +162,9 @@ impl Runtime {
 struct RemoteResolver;
 
 impl Resolver for RemoteResolver {
-  fn resolve<'js>(
+  fn resolve(
     &mut self,
-    _ctx: &Ctx<'js>,
+    _ctx: &Ctx,
     base: &str,
     name: &str,
   ) -> rquickjs::Result<String> {
@@ -224,7 +219,7 @@ impl RemoteLoader {
       .unwrap_or("")
       .to_string();
     uri.set_extension("");
-    let digest = blake2s(&uri.to_string_lossy().as_bytes()).to_hex();
+    let digest = blake2s(uri.to_string_lossy().as_bytes()).to_hex();
     let Some(cache_dir) = self.cache_dir.as_ref() else {
       panic!("cache_file_name assumes cache_dir is set");
     };
@@ -272,11 +267,7 @@ impl RemoteLoader {
 }
 
 impl Loader for RemoteLoader {
-  fn load<'js>(
-    &mut self,
-    _ctx: &Ctx<'js>,
-    name: &str,
-  ) -> rquickjs::Result<ModuleData> {
+  fn load(&mut self, _ctx: &Ctx, name: &str) -> rquickjs::Result<ModuleData> {
     dbg!(name);
     let err = rquickjs::Error::new_loading(name);
     if !self.name_valid(name) {

@@ -153,7 +153,7 @@ impl Post {
       "description" => Some(Cow::from(&self.description)),
       "link" => Some(Cow::from(&self.link)),
       "pub_date" => self.pub_date.as_ref().map(Cow::from),
-      _ => self.extra.get(field).map(|x| Cow::from(x)),
+      _ => self.extra.get(field).map(Cow::from),
     }
   }
 }

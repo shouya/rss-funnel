@@ -22,7 +22,7 @@ impl FeedFilterConfig for JsConfig {
 
   async fn build(&self) -> Result<Self::Filter> {
     let runtime = Runtime::new().await?;
-    dbg!(runtime.eval_module("main", &self.code).await?);
+    runtime.eval(&self.code).await?;
 
     Ok(Self::Filter { runtime })
   }
