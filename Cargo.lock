@@ -1655,6 +1655,7 @@ dependencies = [
  "axum",
  "blake2s_simd",
  "clap",
+ "ego-tree",
  "erased-serde",
  "futures",
  "http 1.0.0",

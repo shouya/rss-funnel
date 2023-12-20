@@ -70,5 +70,6 @@ define_filters!(
   FullText => full_text::FullTextConfig;
   SimplifyHtml => simplify_html::SimplifyHtmlConfig;
   RemoveElement => html::RemoveElementConfig;
+  KeepElement => html::KeepElementConfig;
   Sanitize => sanitize::SanitizeConfig;
 );

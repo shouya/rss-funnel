@@ -12,6 +12,7 @@ atom_syndication = "0.12.2"
 axum = "0.7.2"
 blake2s_simd = "1.0.2"
 clap = { version = "4.4.11", features = ["derive"] }
+ego-tree = "0.6.2"
 erased-serde = "0.4.1"
 futures = "0.3.29"
 http = "1.0.0"
