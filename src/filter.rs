@@ -1,4 +1,5 @@
 mod config;
+mod full_text;
 mod js;
 
 use std::sync::Arc;

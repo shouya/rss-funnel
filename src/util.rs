@@ -1,3 +1,6 @@
+pub const USER_AGENT: &str =
+  concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
 // pub type DateTime = time::OffsetDateTime;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -29,6 +32,9 @@ pub enum Error {
 
   #[error("Feed parsing error {0:?}")]
   FeedParse(&'static str),
+
+  #[error("Reqwest client error {0:?}")]
+  Reqwest(#[from] reqwest::Error),
 
   #[error("Js execution error {0:?}")]
   Js(#[from] rquickjs::Error),

@@ -138,7 +138,7 @@ impl EndpointService {
   async fn fetch_feed(&self) -> Result<Feed> {
     let req = http::Request::builder()
       .uri(&self.source)
-      .header("User-Agent", Self::user_agent())
+      .header("User-Agent", crate::util::USER_AGENT)
       .header("Accept", "text/html,application/xml")
       .body(Body::empty())?;
 
@@ -165,9 +165,5 @@ impl EndpointService {
     };
 
     Ok(feed)
-  }
-
-  fn user_agent() -> &'static str {
-    concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"))
   }
 }

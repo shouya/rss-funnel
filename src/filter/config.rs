@@ -2,12 +2,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::Result;
 
-use super::{js::JsConfig, BoxedFilter, FeedFilterConfig};
+use super::{
+  full_text::FullTextConfig, js::JsConfig, BoxedFilter, FeedFilterConfig,
+};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum FilterConfig {
   Js(JsConfig),
+  FullText(FullTextConfig),
 }
 
 macro_rules! build_configs {
@@ -24,6 +27,6 @@ macro_rules! build_configs {
 
 impl FilterConfig {
   pub async fn build(&self) -> Result<BoxedFilter> {
-    build_configs!(self; Js)
+    build_configs!(self; Js, FullText)
   }
 }

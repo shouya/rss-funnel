@@ -100,9 +100,7 @@ impl TryFrom<rss::Item> for Post {
       .title
       .ok_or_else(|| Error::FeedParse("title in item"))?;
 
-    let description = item
-      .description
-      .ok_or_else(|| Error::FeedParse("description in item"))?;
+    let description = item.description.unwrap_or("".to_string());
 
     let authors = item.author.into_iter().collect();
 
