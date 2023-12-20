@@ -1,14 +1,13 @@
-mod config;
 mod full_text;
 mod js;
+mod simplify_html;
 
 use std::sync::Arc;
 
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 use crate::{feed::Feed, util::Result};
-
-pub use config::FilterConfig;
 
 #[async_trait::async_trait]
 pub trait FeedFilter {
@@ -40,3 +39,32 @@ impl BoxedFilter {
     Self(Arc::new(filter))
   }
 }
+
+macro_rules! define_filters {
+  ($($variant:ident => $config:ty),*) => {
+    #[derive(Serialize, Deserialize)]
+    #[serde(tag = "type", rename_all = "snake_case")]
+    pub enum FilterConfig {
+      $(
+        $variant($config),
+      )*
+    }
+
+    impl FilterConfig {
+      pub async fn build(&self) -> Result<BoxedFilter> {
+        match self {
+          $(FilterConfig::$variant(config) => {
+            let filter = config.build().await?;
+            Ok(BoxedFilter::from(filter))
+          })*
+        }
+      }
+    }
+  }
+}
+
+define_filters!(
+  Js => js::JsConfig,
+  FullText => full_text::FullTextConfig,
+  SimplifyHtml => simplify_html::SimplifyHtmlConfig
+);

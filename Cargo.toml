@@ -19,6 +19,7 @@ http-body-util = "0.1.0"
 hyper = { version = "1.0.1", features = ["client"] }
 hyper-tls = "0.6.0"
 hyper-util = { version = "0.1.1", features = ["client", "tokio", "client-legacy"] }
+readability = { git = "https://github.com/Kerollmops/readability.git", branch = "update-the-project", default-features = false }
 reqwest = "0.11.23"
 rquickjs = { version = "0.4.0", features = ["loader", "parallel", "macro", "futures", "exports"] }
 rss = "2.0.6"
