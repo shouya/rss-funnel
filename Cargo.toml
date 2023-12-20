@@ -10,6 +10,7 @@ anyhow = "1.0.75"
 async-trait = "0.1.74"
 atom_syndication = "0.12.2"
 axum = "0.7.2"
+blake2s_simd = "1.0.2"
 clap = { version = "4.4.11", features = ["derive"] }
 erased-serde = "0.4.1"
 http = "1.0.0"
@@ -17,7 +18,7 @@ http-body-util = "0.1.0"
 hyper = { version = "1.0.1", features = ["client"] }
 hyper-tls = "0.6.0"
 hyper-util = { version = "0.1.1", features = ["client", "tokio", "client-legacy"] }
-rquickjs = { version = "0.4.0", features = ["loader", "futures", "parallel", "macro"] }
+rquickjs = { version = "0.4.0", features = ["loader", "parallel", "macro", "futures", "exports"] }
 rss = "2.0.6"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
@@ -26,3 +27,4 @@ thiserror = "1.0.51"
 time = { version = "0.3.30", features = ["parsing", "formatting", "serde"] }
 tokio = { version = "1.35.0", features = ["macros", "net", "rt-multi-thread"] }
 tower = "0.4.13"
+ureq = "2.9.1"

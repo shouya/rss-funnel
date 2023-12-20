@@ -88,8 +88,9 @@ pub struct EndpointService {
 impl Service<Request> for EndpointService {
   type Response = Response;
   type Error = Infallible;
+  // not Sync because the request's Body may not be sync
   type Future =
-    Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    Pin<Box<dyn Future<Output = Result<Response, Infallible>> + Send>>;
 
   fn poll_ready(
     &mut self,
