@@ -1,7 +1,7 @@
 mod full_text;
 mod html;
 mod js;
-mod regex;
+mod sanitize;
 mod simplify_html;
 
 use std::sync::Arc;
@@ -70,6 +70,5 @@ define_filters!(
   FullText => full_text::FullTextConfig;
   SimplifyHtml => simplify_html::SimplifyHtmlConfig;
   RemoveElement => html::RemoveElementConfig;
-  RegexRemove => regex::RegexRemoveConfig;
-  RegexReplace => regex::RegexReplaceConfig;
+  Sanitize => sanitize::SanitizeConfig;
 );

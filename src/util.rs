@@ -17,6 +17,9 @@ pub enum ConfigError {
 
   #[error("Regex error")]
   Regex(#[from] regex::Error),
+
+  #[error("{0}")]
+  Message(String),
 }
 
 #[derive(Debug, thiserror::Error)]
