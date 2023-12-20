@@ -68,7 +68,7 @@ impl FeedFilter for RemoveElement {
 
 #[derive(Serialize, Deserialize)]
 pub struct KeepElementConfig {
-  selectors: Vec<String>,
+  selector: String,
 }
 
 pub struct KeepElement {
@@ -79,9 +79,12 @@ pub struct KeepElement {
 impl FeedFilterConfig for KeepElementConfig {
   type Filter = KeepElement;
 
+  // TODO: decide whether we want to support iteratively narrowed
+  // selector. Multiple selectors here may create more confusion than
+  // being useful.
   async fn build(&self) -> Result<Self::Filter> {
     let mut selectors = vec![];
-    for selector in &self.selectors {
+    for selector in [&self.selector] {
       let parsed = scraper::Selector::parse(selector).map_err(|err| {
         ConfigError::BadSelector(format!("{}: {}", selector, err))
       })?;
@@ -100,17 +103,16 @@ impl KeepElement {
   ) -> Option<()> {
     let tree = &mut html.tree;
 
-    match selected {
-      [] => return None,
-      node_ids => {
-        while let Some(mut child) = tree.root_mut().first_child() {
-          child.detach();
-        }
+    if selected.is_empty() {
+      return None;
+    }
 
-        for node_id in node_ids {
-          tree.root_mut().append_id(*node_id);
-        }
-      }
+    // remove all children of root to make the selected nodes the only children
+    while let Some(mut child) = tree.root_mut().first_child() {
+      child.detach();
+    }
+    for node_id in selected {
+      tree.root_mut().append_id(*node_id);
     }
 
     Some(())
