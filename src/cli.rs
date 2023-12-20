@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   server::{self, EndpointConfig, ServerConfig},
-  util::Result,
+  util::{ConfigError, Result},
 };
 
 #[derive(Parser)]
@@ -49,7 +49,8 @@ fn default_href_attr() -> String {
 impl Cli {
   fn load_feed_definition(&self) -> Result<FeedDefinition> {
     let f = std::fs::File::open(&self.config)?;
-    let feed_definition = serde_yaml::from_reader(f)?;
+    let feed_definition =
+      serde_yaml::from_reader(f).map_err(ConfigError::from)?;
     Ok(feed_definition)
   }
 

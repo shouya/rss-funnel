@@ -1,5 +1,7 @@
 mod full_text;
+mod html;
 mod js;
+mod regex;
 mod simplify_html;
 
 use std::sync::Arc;
@@ -41,7 +43,7 @@ impl BoxedFilter {
 }
 
 macro_rules! define_filters {
-  ($($variant:ident => $config:ty),*) => {
+  ($($variant:ident => $config:ty);* ;) => {
     #[derive(Serialize, Deserialize)]
     #[serde(tag = "type", rename_all = "snake_case")]
     pub enum FilterConfig {
@@ -64,7 +66,10 @@ macro_rules! define_filters {
 }
 
 define_filters!(
-  Js => js::JsConfig,
-  FullText => full_text::FullTextConfig,
-  SimplifyHtml => simplify_html::SimplifyHtmlConfig
+  Js => js::JsConfig;
+  FullText => full_text::FullTextConfig;
+  SimplifyHtml => simplify_html::SimplifyHtmlConfig;
+  RemoveElement => html::RemoveElementConfig;
+  RegexRemove => regex::RegexRemoveConfig;
+  RegexReplace => regex::RegexReplaceConfig;
 );

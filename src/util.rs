@@ -5,6 +5,21 @@ pub const USER_AGENT: &str =
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
+pub enum ConfigError {
+  #[error("Bad selector")]
+  BadSelector(String),
+
+  #[error("YAML parse error")]
+  Yaml(#[from] serde_yaml::Error),
+
+  #[error("Js exception {0}")]
+  JsException(String),
+
+  #[error("Regex error")]
+  Regex(#[from] regex::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
   #[error("Get non-2xx response from upstream")]
   UpstreamNon2xx(http::Response<axum::body::Body>),
@@ -20,9 +35,6 @@ pub enum Error {
 
   #[error("Axum error")]
   Axum(#[from] axum::Error),
-
-  #[error("YAML parse error")]
-  Yaml(#[from] serde_yaml::Error),
 
   #[error("Bad time format")]
   TimeFormat(#[from] time::error::Format),
@@ -41,6 +53,9 @@ pub enum Error {
 
   #[error("Js exception {0}")]
   JsException(String),
+
+  #[error("Config error {0:?}")]
+  Config(#[from] ConfigError),
 
   #[error("{0}")]
   Message(String),
