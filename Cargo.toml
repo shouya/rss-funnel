@@ -49,3 +49,4 @@ regex = "1.10.2"
 # Logging
 tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
+duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }

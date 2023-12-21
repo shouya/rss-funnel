@@ -138,7 +138,9 @@ impl EndpointService {
 
     let feed = match content_type.as_deref() {
       Some("text/html") => todo!(),
-      Some("application/xml") => Feed::from_rss_content(&content)?,
+      Some("application/xml") | Some("application/rss+xml") => {
+        Feed::from_rss_content(&content)?
+      }
       // todo: atom handling, etc.
       x => todo!("{:?}", x),
     };

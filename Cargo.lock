@@ -485,6 +485,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "duration-str"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8bb6a301a95ba86fa0ebaf71d49ae4838c51f8b84cb88ed140dfb66452bb3c4"
+dependencies = [
+ "nom",
+ "rust_decimal",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "ego-tree"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1082,6 +1094,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "minimal-lexical"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
 name = "miniz_oxide"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1112,6 +1130,16 @@ name = "new_debug_unreachable"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
+
+[[package]]
+name = "nom"
+version = "7.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
+dependencies = [
+ "memchr",
+ "minimal-lexical",
+]
 
 [[package]]
 name = "nu-ansi-term"
@@ -1605,6 +1633,7 @@ dependencies = [
  "axum",
  "blake2s_simd",
  "clap",
+ "duration-str",
  "ego-tree",
  "futures",
  "http 1.0.0",
@@ -1624,6 +1653,16 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+]
+
+[[package]]
+name = "rust_decimal"
+version = "1.33.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06676aec5ccb8fc1da723cc8c0f9a46549f21ebb8753d3915c6c41db1e7f1dc4"
+dependencies = [
+ "arrayvec",
+ "num-traits",
 ]
 
 [[package]]

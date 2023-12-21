@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use duration_str::deserialize_duration;
 use futures::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
 
@@ -6,11 +9,19 @@ use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig};
 
+const DEFAULT_PARALLELISM: usize = 20;
+
 #[derive(Serialize, Deserialize)]
-pub struct FullTextConfig;
+pub struct FullTextConfig {
+  #[serde(default = "default_timeout")]
+  #[serde(deserialize_with = "deserialize_duration")]
+  timeout: Duration,
+  parallelism: Option<usize>,
+}
 
 pub struct FullTextFilter {
   client: reqwest::Client,
+  parallelism: usize,
 }
 
 #[async_trait::async_trait]
@@ -20,25 +31,43 @@ impl FeedFilterConfig for FullTextConfig {
   async fn build(&self) -> Result<Self::Filter> {
     let client = reqwest::Client::builder()
       .user_agent(crate::util::USER_AGENT)
-      .tcp_keepalive(Some(std::time::Duration::from_secs(10)))
+      .tcp_keepalive(Some(self.timeout))
+      .timeout(self.timeout)
       .build()?;
+    let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
 
-    Ok(FullTextFilter { client })
+    Ok(FullTextFilter {
+      client,
+      parallelism,
+    })
   }
 }
 
 impl FullTextFilter {
-  async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
+  async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
     let resp = self.client.get(&post.link).send().await?;
     let resp = resp.error_for_status()?;
     post.description = resp.text().await?;
-    Ok(post)
+    Ok(())
+  }
+
+  async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
+    // if anything went wrong with fetching the full text, we simply
+    // append the exact error message to the description
+    match self.try_fetch_full_post(&mut post).await {
+      Ok(_) => Ok(post),
+      Err(e) => {
+        let message = format!("\n<br>\n<br>\nerror fetching full text: {}", e);
+        post.description.push_str(&message);
+        Ok(post)
+      }
+    }
   }
 
   async fn fetch_all_posts(&self, posts: Vec<Post>) -> Result<Vec<Post>> {
     stream::iter(posts)
       .map(|post| self.fetch_full_post(post))
-      .buffered(20)
+      .buffered(self.parallelism)
       .collect::<Vec<_>>()
       .await
       .into_iter()
@@ -54,4 +83,8 @@ impl FeedFilter for FullTextFilter {
     feed.posts = posts;
     Ok(())
   }
+}
+
+fn default_timeout() -> Duration {
+  Duration::from_secs(10)
 }
