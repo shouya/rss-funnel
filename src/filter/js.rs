@@ -7,6 +7,7 @@ use crate::util::Result;
 use super::{FeedFilter, FeedFilterConfig};
 
 #[derive(Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct JsConfig {
   /// The javascript code to run
   code: String,

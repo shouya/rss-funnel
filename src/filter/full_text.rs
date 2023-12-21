@@ -7,7 +7,7 @@ use crate::util::Result;
 use super::{FeedFilter, FeedFilterConfig};
 
 #[derive(Serialize, Deserialize)]
-pub struct FullTextConfig {}
+pub struct FullTextConfig;
 
 pub struct FullTextFilter {
   client: reqwest::Client,

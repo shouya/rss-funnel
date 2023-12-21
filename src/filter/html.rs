@@ -9,6 +9,7 @@ use crate::{feed::Feed, util::ConfigError};
 use super::{FeedFilter, FeedFilterConfig};
 
 #[derive(Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct RemoveElementConfig {
   selectors: Vec<String>,
 }
@@ -73,6 +74,7 @@ impl FeedFilter for RemoveElement {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct KeepElementConfig {
   selector: String,
 }

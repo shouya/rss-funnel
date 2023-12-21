@@ -74,6 +74,7 @@ pub enum SanitizeOp {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct SanitizeConfig {
   ops: Vec<SanitizeOpConfig>,
 }
