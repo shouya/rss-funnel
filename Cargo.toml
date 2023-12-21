@@ -6,32 +6,41 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.75"
+# Async runtime, utility and helper crates
 async-trait = "0.1.74"
-atom_syndication = "0.12.2"
-axum = "0.7.2"
-blake2s_simd = "1.0.2"
-clap = { version = "4.4.11", features = ["derive"] }
-ego-tree = "0.6.2"
-erased-serde = "0.4.1"
-futures = "0.3.29"
-http = "1.0.0"
-http-body-util = "0.1.0"
-hyper = { version = "1.0.1", features = ["client"] }
-hyper-tls = "0.6.0"
-hyper-util = { version = "0.1.1", features = ["client", "tokio", "client-legacy"] }
-itertools = "0.12.0"
-readability = { version = "0.3.0", default-features = false }
-regex = "1.10.2"
-reqwest = "0.11.23"
-rquickjs = { version = "0.4.0", features = ["loader", "parallel", "macro", "futures", "exports"] }
-rss = "2.0.6"
-scraper = "0.18.1"
-serde = { version = "1.0.193", features = ["derive"] }
-serde_json = "1.0.108"
-serde_yaml = "0.9.27"
 thiserror = "1.0.51"
-time = { version = "0.3.30", features = ["parsing", "formatting", "serde"] }
+futures = "0.3.29"
+itertools = "0.12.0"
 tokio = { version = "1.35.0", features = ["macros", "net", "rt-multi-thread"] }
+
+# Command line and config parsing
+clap = { version = "4.4.11", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_yaml = "0.9.27"
+
+# Feed formats support
+atom_syndication = "0.12.2"
+rss = "2.0.6"
+
+# Web server
+axum = "0.7.2"
 tower = "0.4.13"
-ureq = "2.9.1"
+http = "1.0.0"
+
+# HTML manipulation in the feeds
+scraper = "0.18.1"
+ego-tree = "0.6.2"
+# for extracting article content from HTML, used in simplify_html filter
+readability = { version = "0.3.0", default-features = false }
+
+# JS runtime crates
+rquickjs = { version = "0.4.0", features = ["loader", "parallel", "macro", "futures", "exports"] }
+blake2s_simd = "1.0.2" # for calculating digest in caching support of the remote loader
+serde_json = "1.0.108" # for data transfer with the JS runtime
+
+# Web client (blocking and async both used, blocking used in the JS runtime)
+# TODO: upgrade reqwest after its hyper 1.0 upgrade
+reqwest = { version = "0.11.23", features = ["blocking", "rustls-tls"] }
+
+# Used in sanitize filter to remove/replace text contents
+regex = "1.10.2"
