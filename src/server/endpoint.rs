@@ -2,19 +2,16 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
-use http_body_util::BodyExt;
-use hyper_tls::HttpsConnector;
-use hyper_util::client::legacy::connect::HttpConnector;
-use hyper_util::client::legacy::Client;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 
 use crate::feed::Feed;
 use crate::filter::{BoxedFilter, FeedFilter, FilterConfig};
-use crate::util::{Error, Result};
+use crate::util::Result;
 
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
@@ -40,49 +37,11 @@ pub struct EndpointServiceConfig {
   filters: Vec<FilterConfig>,
 }
 
-enum HttpClient {
-  Http(Client<HttpConnector, Body>),
-  Https(Client<HttpsConnector<HttpConnector>, Body>),
-}
-
-impl HttpClient {
-  fn new(source: &str) -> Self {
-    let executor = hyper_util::rt::TokioExecutor::new();
-
-    if source.starts_with("http://") {
-      let http_client = Client::builder(executor).build_http();
-      Self::Http(http_client)
-    } else if source.starts_with("https://") {
-      let tls = hyper_tls::HttpsConnector::new();
-      let https_client = Client::builder(executor).build(tls);
-      Self::Https(https_client)
-    } else {
-      panic!(
-        "invalid source: {}, must start with http:// or https://",
-        source
-      );
-    }
-  }
-
-  async fn request(&self, request: Request) -> Result<Response> {
-    match self {
-      Self::Http(client) => {
-        let resp: Response = client.request(request).await?.into_response();
-        Ok(resp)
-      }
-      Self::Https(client) => {
-        let resp: Response = client.request(request).await?.into_response();
-        Ok(resp)
-      }
-    }
-  }
-}
-
 #[derive(Clone)]
 pub struct EndpointService {
   source: String,
   filters: Arc<Vec<BoxedFilter>>,
-  client: Arc<HttpClient>,
+  client: Arc<reqwest::Client>,
 }
 
 impl Service<Request> for EndpointService {
@@ -116,7 +75,10 @@ impl EndpointService {
       filters.push(filter);
     }
 
-    let client = HttpClient::new(&config.source);
+    let client = reqwest::ClientBuilder::new()
+      .user_agent(crate::util::USER_AGENT)
+      .timeout(Duration::from_secs(10))
+      .build()?;
 
     Ok(Self {
       source: config.source,
@@ -136,28 +98,25 @@ impl EndpointService {
   }
 
   async fn fetch_feed(&self) -> Result<Feed> {
-    let req = http::Request::builder()
-      .uri(&self.source)
-      .header("User-Agent", crate::util::USER_AGENT)
+    let resp = self
+      .client
+      .get(&self.source)
       .header("Accept", "text/html,application/xml")
-      .body(Body::empty())?;
+      .send()
+      .await?
+      .error_for_status()?;
 
-    let resp: Response = self.client.request(req).await?.into_response();
-    if resp.status() != http::StatusCode::OK {
-      return Err(Error::UpstreamNon2xx(resp));
-    }
-
-    let (parts, body) = resp.into_parts();
-    let content = body.collect().await?.to_bytes();
-
-    let headers = &parts.headers;
-    let content_type = headers
+    let content_type = resp
+      .headers()
       .get("Content-Type")
       .and_then(|x| x.to_str().ok())
       // remove anything after ";"
-      .and_then(|x| x.split(';').next());
+      .and_then(|x| x.split(';').next())
+      .map(|s| s.to_owned());
 
-    let feed = match content_type {
+    let content = resp.text().await?;
+
+    let feed = match content_type.as_deref() {
       Some("text/html") => todo!(),
       Some("application/xml") => Feed::from_rss_content(&content)?,
       // todo: atom handling, etc.

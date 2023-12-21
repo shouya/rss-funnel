@@ -19,8 +19,9 @@ pub struct Feed {
 }
 
 impl Feed {
-  pub fn from_rss_content(bytes: &[u8]) -> Result<Self> {
-    let channel = rss::Channel::read_from(bytes)?;
+  pub fn from_rss_content(content: &str) -> Result<Self> {
+    let cursor = std::io::Cursor::new(content);
+    let channel = rss::Channel::read_from(cursor)?;
     let feed = Self::try_from(channel)?;
     Ok(feed)
   }

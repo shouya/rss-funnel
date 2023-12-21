@@ -257,11 +257,17 @@ impl RemoteLoader {
   }
 
   fn try_load_remote(&self, name: &str) -> rquickjs::Result<String> {
-    let source = ureq::get(name)
-      .call()
-      .map_err(|_| rquickjs::Error::new_loading(name))?
-      .into_string()
+    let client = reqwest::blocking::ClientBuilder::new()
+      .user_agent(crate::util::USER_AGENT)
+      .build()
       .map_err(|_| rquickjs::Error::new_loading(name))?;
+    let source = client
+      .get(name)
+      .send()
+      .and_then(|r| r.error_for_status())
+      .and_then(|r| r.text())
+      .map_err(|_| rquickjs::Error::new_loading(name))?;
+
     Ok(source)
   }
 }

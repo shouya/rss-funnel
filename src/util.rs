@@ -33,14 +33,8 @@ pub enum Error {
   #[error("HTTP error")]
   Http(#[from] http::Error),
 
-  #[error("Hyper client error: {0:?}")]
-  HyperClient(#[from] hyper_util::client::legacy::Error),
-
   #[error("Axum error")]
   Axum(#[from] axum::Error),
-
-  #[error("Bad time format")]
-  TimeFormat(#[from] time::error::Format),
 
   #[error("Feed error")]
   Rss(#[from] rss::Error),
@@ -62,7 +56,4 @@ pub enum Error {
 
   #[error("{0}")]
   Message(String),
-
-  #[error("Generic anyhow error")]
-  Generic(#[from] anyhow::Error),
 }
