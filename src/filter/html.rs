@@ -199,13 +199,28 @@ impl Split {
     )
   }
 
-  fn select_link(&self, doc: &Html) -> Result<Vec<String>> {
+  fn expand_link(base_link: &str, link: &str) -> String {
+    if link.starts_with("http://") || link.starts_with("https://") {
+      return link.to_string();
+    }
+
+    let mut base_link = base_link.to_string();
+    if let Some(i) = base_link.rfind('/') {
+      base_link.truncate(i + 1);
+    }
+    base_link.push_str(link);
+
+    base_link
+  }
+
+  fn select_link(&self, base_link: &str, doc: &Html) -> Result<Vec<String>> {
     let links = doc
       .select(&self.link_selector)
       .map(|e| {
         e.value()
           .attr("href")
           .map(|s| s.to_string())
+          .map(|link| Self::expand_link(base_link, &link))
           .ok_or_else(|| {
             Error::Message("Selector error: link has no href".into())
           })
@@ -254,6 +269,7 @@ impl Split {
     content: &str,
     author: Option<&str>,
   ) {
+    template.guid = link.to_string();
     template.title = title.to_string();
     template.link = link.to_string();
     template.description = content.to_string();
@@ -268,7 +284,7 @@ impl Split {
     let doc = Html::parse_fragment(&post.description);
 
     let titles = self.select_title(&doc)?;
-    let links = self.select_link(&doc)?;
+    let links = self.select_link(&post.link, &doc)?;
     let contents = self.select_content(&doc)?;
     let authors = self.select_author(&doc)?;
     let authors = match authors {

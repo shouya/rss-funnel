@@ -52,8 +52,9 @@ impl FullTextFilter {
   }
 
   async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
-    // if anything went wrong with fetching the full text, we simply
-    // append the exact error message to the description
+    // if anything went wrong when fetching the full text, we simply
+    // append the error message to the description instead of failing
+    // completely.
     match self.try_fetch_full_post(&mut post).await {
       Ok(_) => Ok(post),
       Err(e) => {
