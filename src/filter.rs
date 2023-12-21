@@ -71,5 +71,6 @@ define_filters!(
   SimplifyHtml => simplify_html::SimplifyHtmlConfig;
   RemoveElement => html::RemoveElementConfig;
   KeepElement => html::KeepElementConfig;
+  Split => html::SplitConfig;
   Sanitize => sanitize::SanitizeConfig;
 );
