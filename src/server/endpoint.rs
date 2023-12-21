@@ -6,12 +6,14 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
+use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use tower::Service;
+use url::Url;
 
 use crate::feed::Feed;
 use crate::filter::{BoxedFilter, FeedFilter, FilterConfig};
-use crate::util::Result;
+use crate::util::{Error, Result};
 
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
@@ -33,13 +35,13 @@ impl EndpointConfig {
 
 #[derive(Serialize, Deserialize)]
 pub struct EndpointServiceConfig {
-  source: String,
+  source: Option<String>,
   filters: Vec<FilterConfig>,
 }
 
 #[derive(Clone)]
 pub struct EndpointService {
-  source: String,
+  source: Option<String>,
   filters: Arc<Vec<BoxedFilter>>,
   client: Arc<reqwest::Client>,
 }
@@ -61,8 +63,11 @@ impl Service<Request> for EndpointService {
   fn call(&mut self, req: Request) -> Self::Future {
     let this = self.clone();
     let fut = async { this.call_internal(req).await };
-    let fut =
-      async { fut.await.or_else(|e| Ok(e.to_string().into_response())) };
+    let fut = async {
+      fut.await.or_else(|e| {
+        Ok((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response())
+      })
+    };
     Box::pin(fut)
   }
 }
@@ -87,8 +92,9 @@ impl EndpointService {
     })
   }
 
-  async fn call_internal(self, _req: Request) -> Result<Response> {
-    let mut feed = self.fetch_feed().await?;
+  async fn call_internal(self, req: Request) -> Result<Response> {
+    let source = self.find_source(&req)?;
+    let mut feed = self.fetch_feed(&source).await?;
     for filter in self.filters.iter() {
       filter.run(&mut feed).await?;
     }
@@ -97,10 +103,24 @@ impl EndpointService {
     Ok(resp.into_response())
   }
 
-  async fn fetch_feed(&self) -> Result<Feed> {
+  fn find_source(&self, req: &Request) -> Result<Url> {
+    match self.source.as_ref() {
+      Some(source) => Ok(Url::parse(&source)?),
+      None => {
+        let url = Url::parse(&req.uri().to_string())?;
+        let source = url
+          .query_pairs()
+          .find_map(|(k, v)| (k == "source").then(|| v))
+          .ok_or(Error::Message(format!("missing source parameter")))?;
+        Ok(Url::parse(&source)?)
+      }
+    }
+  }
+
+  async fn fetch_feed(&self, source: &Url) -> Result<Feed> {
     let resp = self
       .client
-      .get(&self.source)
+      .get(source.to_string())
       .header("Accept", "text/html,application/xml")
       .send()
       .await?

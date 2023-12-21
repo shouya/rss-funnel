@@ -39,6 +39,9 @@ pub enum Error {
   #[error("Feed error")]
   Rss(#[from] rss::Error),
 
+  #[error("Invalid URL {0}")]
+  InvalidUrl(#[from] url::ParseError),
+
   #[error("Feed parsing error {0:?}")]
   FeedParse(&'static str),
 

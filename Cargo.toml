@@ -26,6 +26,7 @@ rss = "2.0.6"
 axum = "0.7.2"
 tower = "0.4.13"
 http = "1.0.0"
+url = "2.5.0"
 
 # HTML manipulation in the feeds
 scraper = "0.18.1"
