@@ -33,7 +33,7 @@ impl FeedFilter for SimplifyHtmlFilter {
   }
 }
 
-fn simplify(text: &str, url: &str) -> Option<String> {
+pub(super) fn simplify(text: &str, url: &str) -> Option<String> {
   let url = reqwest::Url::parse(url).ok()?;
   let mut text = std::io::Cursor::new(text);
   let product = extract(&mut text, &url).ok()?;

@@ -17,11 +17,15 @@ pub struct FullTextConfig {
   #[serde(deserialize_with = "deserialize_duration")]
   timeout: Duration,
   parallelism: Option<usize>,
+  simplify: Option<bool>,
+  append_mode: Option<bool>,
 }
 
 pub struct FullTextFilter {
   client: reqwest::Client,
   parallelism: usize,
+  append_mode: bool,
+  simplify: bool,
 }
 
 #[async_trait::async_trait]
@@ -35,10 +39,14 @@ impl FeedFilterConfig for FullTextConfig {
       .timeout(self.timeout)
       .build()?;
     let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
+    let append_mode = self.append_mode.unwrap_or(false);
+    let simplify = self.simplify.unwrap_or(false);
 
     Ok(FullTextFilter {
+      simplify,
       client,
       parallelism,
+      append_mode,
     })
   }
 }
@@ -47,7 +55,19 @@ impl FullTextFilter {
   async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
     let resp = self.client.get(&post.link).send().await?;
     let resp = resp.error_for_status()?;
-    post.description = resp.text().await?;
+    let text = resp.text().await?;
+
+    let text = if self.simplify {
+      super::simplify_html::simplify(&text, &post.link).unwrap_or(text)
+    } else {
+      text
+    };
+
+    if self.append_mode {
+      post.description.push_str(&text);
+    } else {
+      post.description = text;
+    };
     Ok(())
   }
 

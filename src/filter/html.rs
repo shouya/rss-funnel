@@ -1,3 +1,11 @@
+//! HTML related filters.
+//!
+//! # Included filters
+//!
+//! - [`RemoveElementConfig`] (`remove_element`): remove elements from HTML content
+//! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML content
+//! - [`SplitConfig`] (`split`): split a post into multiple posts
+
 use ego_tree::NodeId;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
@@ -8,6 +16,19 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig};
 
+/// Remove elements from HTML content.
+///
+/// You can specify the list of CSS `selectors` to remove.
+///
+/// # Example
+///
+/// ```yaml
+/// filters:
+///   - remove_element:
+///       - img[src$=".gif"]
+///       - span.ads
+/// ```
+#[doc(alias = "remove_element")]
 #[derive(Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RemoveElementConfig {
