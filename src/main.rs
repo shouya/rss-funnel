@@ -11,6 +11,8 @@ use crate::util::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+  tracing_subscriber::fmt::init();
+
   let cli = cli::Cli::parse();
   cli.run().await
 }
