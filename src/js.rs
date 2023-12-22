@@ -40,7 +40,11 @@ where
       .and_then(|s| s.to_string().ok())
       .unwrap_or_else(|| "null".to_string());
 
-    let value = serde_json::from_str(&json).unwrap();
+    let value = serde_json::from_str(&json).map_err(|e| {
+      let type_name = std::any::type_name::<T>();
+      let message = format!("{}: {}", e.to_string(), json);
+      rquickjs::Error::new_from_js_message("json", type_name, message)
+    })?;
     Ok(Self(value))
   }
 }
