@@ -64,6 +64,7 @@ impl FullTextFilter {
     };
 
     if self.append_mode {
+      post.description.push_str("\n<br><hr><br>\n");
       post.description.push_str(&text);
     } else {
       post.description = text;
