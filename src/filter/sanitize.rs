@@ -120,10 +120,14 @@ impl Sanitize {
 #[async_trait::async_trait]
 impl FeedFilter for Sanitize {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    for post in &mut feed.posts {
-      post.description = self.filter_content(&post.description);
+    let mut posts = feed.take_posts();
+    for post in &mut posts {
+      post.content_mut().map(|content| {
+        *content = self.filter_content(content);
+      });
     }
 
+    feed.set_posts(posts);
     Ok(())
   }
 }

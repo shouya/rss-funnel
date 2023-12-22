@@ -84,12 +84,16 @@ impl RemoveElement {
 #[async_trait::async_trait]
 impl FeedFilter for RemoveElement {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    for post in &mut feed.posts {
-      if let Some(content) = self.filter_content(&post.description) {
-        post.description = content;
+    let mut posts = feed.take_posts();
+
+    for post in &mut posts {
+      let content_mut = post.content_or_insert();
+      if let Some(content) = self.filter_content(content_mut) {
+        *content_mut = content;
       }
     }
 
+    feed.set_posts(posts);
     Ok(())
   }
 }
@@ -162,12 +166,16 @@ impl KeepElement {
 #[async_trait::async_trait]
 impl FeedFilter for KeepElement {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    for post in &mut feed.posts {
-      if let Some(content) = self.filter_content(&post.description) {
-        post.description = content;
+    let mut posts = feed.take_posts();
+
+    for post in &mut posts {
+      let content_mut = post.content_or_insert();
+      if let Some(content) = self.filter_content(content_mut) {
+        *content_mut = content;
       }
     }
 
+    feed.set_posts(posts);
     Ok(())
   }
 }
@@ -275,9 +283,9 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    template_post.description = "".to_string();
+    template_post.content_mut().map(|c| c.clear());
     if self.author_selector.is_some() {
-      template_post.authors = vec![];
+      template_post.author_mut().map(|a| a.clear());
     }
     template_post
   }
@@ -290,22 +298,22 @@ impl Split {
     content: &str,
     author: Option<&str>,
   ) {
-    template.guid = link.to_string();
-    template.title = title.to_string();
-    template.link = link.to_string();
-    template.description = content.to_string();
+    template.set_title(title);
+    template.set_link(link);
+    template.set_content(content);
     if let Some(author) = author {
-      template.authors = vec![author.to_string()];
+      template.set_author(author);
     }
+    template.set_guid(link);
   }
 
   fn split(&self, post: &Post) -> Result<Vec<Post>> {
     let mut posts = vec![];
 
-    let doc = Html::parse_fragment(&post.description);
+    let doc = Html::parse_fragment(post.content_or_err()?);
 
     let titles = self.select_title(&doc)?;
-    let links = self.select_link(&post.link, &doc)?;
+    let links = self.select_link(post.link_or_err()?, &doc)?;
     let contents = self.select_content(&doc)?;
     let authors = self.select_author(&doc)?;
     let authors = match authors {
@@ -350,13 +358,12 @@ impl Split {
 impl FeedFilter for Split {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
     let mut posts = vec![];
-    for post in &feed.posts {
+    for post in &feed.take_posts() {
       let mut split_posts = self.split(post)?;
       posts.append(&mut split_posts);
     }
 
-    feed.posts = posts;
-
+    feed.set_posts(posts);
     Ok(())
   }
 }

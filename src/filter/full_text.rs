@@ -53,34 +53,36 @@ impl FeedFilterConfig for FullTextConfig {
 
 impl FullTextFilter {
   async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
-    let resp = self.client.get(&post.link).send().await?;
+    let link = post.link_or_err()?;
+    let resp = self.client.get(link).send().await?;
     let resp = resp.error_for_status()?;
     let text = resp.text().await?;
 
     let text = if self.simplify {
-      super::simplify_html::simplify(&text, &post.link).unwrap_or(text)
+      super::simplify_html::simplify(&text, link).unwrap_or(text)
     } else {
       text
     };
 
+    let content = post.content_or_insert();
     if self.append_mode {
-      post.description.push_str("\n<br><hr><br>\n");
-      post.description.push_str(&text);
+      content.push_str("\n<br><hr><br>\n");
+      content.push_str(&text);
     } else {
-      post.description = text;
+      *content = text;
     };
     Ok(())
   }
 
   async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
     // if anything went wrong when fetching the full text, we simply
-    // append the error message to the description instead of failing
+    // append the error message to the content instead of failing
     // completely.
     match self.try_fetch_full_post(&mut post).await {
       Ok(_) => Ok(post),
       Err(e) => {
         let message = format!("\n<br>\n<br>\nerror fetching full text: {}", e);
-        post.description.push_str(&message);
+        post.content_or_insert().push_str(&message);
         Ok(post)
       }
     }
@@ -100,9 +102,9 @@ impl FullTextFilter {
 #[async_trait::async_trait]
 impl FeedFilter for FullTextFilter {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    let posts = feed.posts.split_off(0);
+    let posts = feed.take_posts();
     let posts = self.fetch_all_posts(posts).await?;
-    feed.posts = posts;
+    feed.set_posts(posts);
     Ok(())
   }
 }

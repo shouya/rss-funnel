@@ -12,9 +12,6 @@ pub enum ConfigError {
   #[error("YAML parse error")]
   Yaml(#[from] serde_yaml::Error),
 
-  #[error("Js exception {0}")]
-  JsException(String),
-
   #[error("Regex error")]
   Regex(#[from] regex::Error),
 
@@ -24,9 +21,6 @@ pub enum ConfigError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-  #[error("Get non-2xx response from upstream")]
-  UpstreamNon2xx(http::Response<axum::body::Body>),
-
   #[error("IO error")]
   Io(#[from] std::io::Error),
 

@@ -35,10 +35,9 @@ impl FeedFilter for JsFilter {
     use either::Either::{Left, Right};
     use rquickjs::{Null, Undefined};
 
-    let posts = feed.posts.split_off(0);
-    let mut output = Vec::new();
+    let mut posts = Vec::new();
 
-    for post in posts.into_iter() {
+    for post in feed.take_posts() {
       let args = (AsJson(&*feed), AsJson(&post));
 
       match self.runtime.call_fn("update_post", args).await? {
@@ -51,14 +50,12 @@ impl FeedFilter for JsFilter {
           ));
         }
         Right(AsJson(updated_post)) => {
-          // The merge is needed because there are properties that are
-          // not serializable in the javascript.
-          output.push(post.merge(updated_post));
+          posts.push(updated_post);
         }
       }
     }
 
-    feed.posts = output;
+    feed.set_posts(posts);
     Ok(())
   }
 }

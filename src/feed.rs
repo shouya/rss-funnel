@@ -1,8 +1,6 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
-
 use axum::response::IntoResponse;
 use http::StatusCode;
+use paste::paste;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -10,159 +8,110 @@ use crate::util::Error;
 use crate::util::Result;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Feed {
-  pub title: String,
-  pub link: String,
-  pub description: String,
-  pub extra: HashMap<String, String>,
-  pub posts: Vec<Post>,
+#[serde(untagged)]
+pub enum Feed {
+  Rss(rss::Channel),
 }
 
 impl Feed {
   pub fn from_rss_content(content: &str) -> Result<Self> {
     let cursor = std::io::Cursor::new(content);
     let channel = rss::Channel::read_from(cursor)?;
-    let feed = Self::try_from(channel)?;
-    Ok(feed)
+    Ok(Feed::Rss(channel))
   }
 
   pub fn into_resp(self) -> Result<impl IntoResponse> {
     let headers = [(http::header::CONTENT_TYPE, "application/rss+xml")];
-    let body = rss::Channel::from(self).to_string();
-
-    Ok((StatusCode::OK, headers, body))
+    match self {
+      Feed::Rss(channel) => {
+        let body = channel.to_string();
+        Ok((StatusCode::OK, headers, body))
+      }
+    }
   }
-}
 
-impl TryFrom<rss::Channel> for Feed {
-  type Error = Error;
-  fn try_from(channel: rss::Channel) -> Result<Self> {
-    let title = channel.title;
-    let link = channel.link;
-    let description = channel.description;
-    let extra = HashMap::new();
-
-    let posts = channel
-      .items
-      .into_iter()
-      .map(Post::try_from)
-      .collect::<Result<Vec<_>>>()?;
-
-    Ok(Self {
-      title,
-      link,
-      description,
-      extra,
-      posts,
-    })
+  pub fn take_posts(&mut self) -> Vec<Post> {
+    match self {
+      Feed::Rss(channel) => {
+        let posts = channel.items.split_off(0);
+        posts.into_iter().map(Post::Rss).collect()
+      }
+    }
   }
-}
 
-impl From<Feed> for rss::Channel {
-  fn from(feed: Feed) -> Self {
-    let title = feed.title;
-    let link = feed.link;
-    let description = feed.description;
-
-    let items = feed.posts.into_iter().map(rss::Item::from).collect();
-
-    Self {
-      title,
-      link,
-      description,
-      items,
-      ..Default::default()
+  pub fn set_posts(&mut self, posts: Vec<Post>) {
+    match self {
+      Feed::Rss(channel) => {
+        channel.items = posts
+          .into_iter()
+          .filter_map(|post| match post {
+            Post::Rss(item) => Some(item),
+          })
+          .collect();
+      }
     }
   }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Post {
-  pub guid: String,
-  pub title: String,
-  pub description: String,
-  pub authors: Vec<String>,
-  pub link: String,
-  pub extra: HashMap<String, String>,
-  pub pub_date: Option<String>,
+pub enum Post {
+  Rss(rss::Item),
 }
 
-impl TryFrom<rss::Item> for Post {
-  type Error = Error;
+macro_rules! impl_post_get {
+  ($($key:ident),*) => {
+    paste! {
+      impl Post {
+        $(
+        #[allow(unused)]
+        pub fn $key(&self) -> Option<&str> {
+          match self {
+            Post::Rss(item) => item.$key.as_deref(),
+          }
+        }
 
-  fn try_from(item: rss::Item) -> Result<Self> {
-    let link = item.link.ok_or_else(|| Error::FeedParse("link in item"))?;
-    let guid = item
-      .guid
-      .map(|guid| guid.value)
-      .unwrap_or_else(|| link.clone());
+        #[allow(unused)]
+        pub fn [<$key _mut>](&mut self) -> Option<&mut String> {
+          match self {
+            Post::Rss(item) => item.$key.as_mut(),
+          }
+        }
 
-    let title = item
-      .title
-      .ok_or_else(|| Error::FeedParse("title in item"))?;
+        #[allow(unused)]
+        pub fn [<$key _or_err>](&self) -> Result<&str> {
+          match self.$key() {
+            Some(value) => Ok(value),
+            None => Err(Error::FeedParse(concat!("missing ", stringify!($key)))),
+          }
+        }
 
-    let description = item.description.unwrap_or("".to_string());
+        #[allow(unused)]
+        pub fn [<$key _or_insert>](&mut self) -> &mut String {
+          match self {
+            Post::Rss(item) => item.$key.get_or_insert_with(String::new),
+          }
+        }
 
-    let authors = item.author.into_iter().collect();
-
-    let pub_date = item.pub_date;
-    let extra = HashMap::new();
-
-    Ok(Self {
-      guid,
-      title,
-      description,
-      authors,
-      link,
-      extra,
-      pub_date,
-    })
-  }
-}
-
-impl From<Post> for rss::Item {
-  fn from(post: Post) -> Self {
-    let guid = Some(rss::Guid {
-      value: post.guid,
-      ..Default::default()
-    });
-    let title = Some(post.title);
-    let description = Some(post.description);
-    let author = Some(post.authors.join(","));
-    let link = Some(post.link);
-    let pub_date = post.pub_date;
-
-    Self {
-      guid,
-      title,
-      description,
-      author,
-      link,
-      pub_date,
-      ..Default::default()
+        #[allow(unused)]
+        pub fn [<set_ $key>](&mut self, value: impl Into<String>) {
+          match self {
+            Post::Rss(item) => item.$key = Some(value.into()),
+          }
+        }
+        )*
+      }
     }
-  }
+  };
 }
+
+impl_post_get!(title, link, content, author);
 
 impl Post {
-  pub fn get_field(&self, field: &str) -> Option<Cow<str>> {
-    match field {
-      "guid" => Some(Cow::from(&self.guid)),
-      "title" => Some(Cow::from(&self.title)),
-      "description" => Some(Cow::from(&self.description)),
-      "link" => Some(Cow::from(&self.link)),
-      "pub_date" => self.pub_date.as_ref().map(Cow::from),
-      _ => self.extra.get(field).map(Cow::from),
+  pub fn set_guid(&mut self, value: impl Into<String>) {
+    match self {
+      Post::Rss(item) => {
+        item.guid.get_or_insert_with(Default::default).value = value.into();
+      }
     }
-  }
-
-  pub fn merge(mut self, post: Post) -> Self {
-    self.title = post.title;
-    self.description = post.description;
-    self.authors = post.authors;
-    self.link = post.link;
-    self.extra = post.extra;
-    self.pub_date = post.pub_date;
-    self
   }
 }
