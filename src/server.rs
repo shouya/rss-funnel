@@ -1,6 +1,6 @@
 mod endpoint;
 
-use axum::Router;
+use axum::{routing::get, Router};
 use clap::Parser;
 pub use endpoint::EndpointConfig;
 use tracing::info;
@@ -26,6 +26,9 @@ pub async fn serve(
     let endpoint_route = endpoint_config.into_route().await?;
     app = app.merge(endpoint_route);
   }
+
+  app = app.route("/", get(|| async { "Up and running!" }));
+  app = app.route("/health", get(|| async { "ok" }));
 
   info!("starting server");
   Ok(axum::serve(listener, app).await?)
