@@ -2,7 +2,7 @@
 
 The RSS Funnel is a simple yet highly configurable RSS processing pipeline. It is designed to be used to modify existing RSS source in various interesting ways such as:
 
-- Fetch full content of the article
+- Fetch full content
 - Remove unwanted elements from the article (using a CSS selector)
 - Redact or replace text in the article (using a regular expression)
 - Split a single RSS article into multiple articles
@@ -99,12 +99,12 @@ Properties:
 
 - timeout (optional, Duration): The timeout in each individual request. You can specify a string value like =20s= ([[https://docs.rs/duration-str/latest/duration_str/index.html][supported formats]]). Default to 10 seconds.
 - parallelism (optional, number): The number of parallel requests to make. Default to =20=.
-- simplify (optional, boolean): Whether to simplify the HTML using =html5ever=. Default to =false=.
+- simplify (optional, boolean): Whether to simplify the HTML using [[https://github.com/kumabook/readability][readability]]. Default to =false=.
 - append_mode (optional, boolean): Whether to *append* the full text to the existing content. If not, the content is *replaced* with the full text. Default to =false=.
 
 *** Simplify HTML (=simplify_html=)
 
-This filter simplifies the HTML using =html5ever=.
+This filter simplifies the HTML using [[https://github.com/kumabook/readability][readability]].
 
 Configuration type: Object. Only an empty object without property is accepted.
 
