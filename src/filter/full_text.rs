@@ -64,25 +64,25 @@ impl FullTextFilter {
       text
     };
 
-    let content = post.content_or_insert();
+    let description = post.description_or_insert();
     if self.append_mode {
-      content.push_str("\n<br><hr><br>\n");
-      content.push_str(&text);
+      description.push_str("\n<br><hr><br>\n");
+      description.push_str(&text);
     } else {
-      *content = text;
+      *description = text;
     };
     Ok(())
   }
 
   async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
     // if anything went wrong when fetching the full text, we simply
-    // append the error message to the content instead of failing
+    // append the error message to the description instead of failing
     // completely.
     match self.try_fetch_full_post(&mut post).await {
       Ok(_) => Ok(post),
       Err(e) => {
         let message = format!("\n<br>\n<br>\nerror fetching full text: {}", e);
-        post.content_or_insert().push_str(&message);
+        post.description_or_insert().push_str(&message);
         Ok(post)
       }
     }

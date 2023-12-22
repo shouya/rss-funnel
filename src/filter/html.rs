@@ -2,8 +2,8 @@
 //!
 //! # Included filters
 //!
-//! - [`RemoveElementConfig`] (`remove_element`): remove elements from HTML content
-//! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML content
+//! - [`RemoveElementConfig`] (`remove_element`): remove elements from HTML description
+//! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML description
 //! - [`SplitConfig`] (`split`): split a post into multiple posts
 
 use ego_tree::NodeId;
@@ -16,7 +16,7 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig};
 
-/// Remove elements from HTML content.
+/// Remove elements from HTML description.
 ///
 /// You can specify the list of CSS `selectors` to remove.
 ///
@@ -62,8 +62,8 @@ impl FeedFilterConfig for RemoveElementConfig {
 }
 
 impl RemoveElement {
-  fn filter_content(&self, content: &str) -> Option<String> {
-    let mut html = Html::parse_fragment(content);
+  fn filter_description(&self, description: &str) -> Option<String> {
+    let mut html = Html::parse_fragment(description);
     let mut selected_node_ids = vec![];
     for selector in &self.selectors {
       for elem in html.select(selector) {
@@ -87,9 +87,9 @@ impl FeedFilter for RemoveElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      let content_mut = post.content_or_insert();
-      if let Some(content) = self.filter_content(content_mut) {
-        *content_mut = content;
+      let description_mut = post.description_or_insert();
+      if let Some(description) = self.filter_description(description_mut) {
+        *description_mut = description;
       }
     }
 
@@ -145,8 +145,8 @@ impl KeepElement {
     Some(())
   }
 
-  fn filter_content(&self, content: &str) -> Option<String> {
-    let mut html = Html::parse_fragment(content);
+  fn filter_description(&self, description: &str) -> Option<String> {
+    let mut html = Html::parse_fragment(description);
 
     for selector in &self.selectors {
       let mut selected = vec![];
@@ -169,9 +169,9 @@ impl FeedFilter for KeepElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      let content_mut = post.content_or_insert();
-      if let Some(content) = self.filter_content(content_mut) {
-        *content_mut = content;
+      let description_mut = post.description_or_insert();
+      if let Some(description) = self.filter_description(description_mut) {
+        *description_mut = description;
       }
     }
 
@@ -184,14 +184,14 @@ impl FeedFilter for KeepElement {
 pub struct SplitConfig {
   title_selector: String,
   link_selector: String,
-  content_selector: String,
+  description_selector: String,
   author_selector: Option<String>,
 }
 
 pub struct Split {
   title_selector: Selector,
   link_selector: Selector,
-  content_selector: Selector,
+  description_selector: Selector,
   author_selector: Option<Selector>,
 }
 
@@ -202,7 +202,7 @@ impl FeedFilterConfig for SplitConfig {
   async fn build(&self) -> Result<Self::Filter> {
     let title_selector = parse_selector(&self.title_selector)?;
     let link_selector = parse_selector(&self.link_selector)?;
-    let content_selector = parse_selector(&self.content_selector)?;
+    let description_selector = parse_selector(&self.description_selector)?;
     let author_selector = self
       .author_selector
       .as_ref()
@@ -212,7 +212,7 @@ impl FeedFilterConfig for SplitConfig {
     Ok(Split {
       title_selector,
       link_selector,
-      content_selector,
+      description_selector,
       author_selector,
     })
   }
@@ -259,10 +259,10 @@ impl Split {
     Ok(links)
   }
 
-  fn select_content(&self, doc: &Html) -> Result<Vec<String>> {
+  fn select_description(&self, doc: &Html) -> Result<Vec<String>> {
     Ok(
       doc
-        .select(&self.content_selector)
+        .select(&self.description_selector)
         .map(|e| e.html())
         .collect(),
     )
@@ -283,7 +283,7 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    template_post.content_mut().map(|c| c.clear());
+    template_post.description_mut().map(|c| c.clear());
     if self.author_selector.is_some() {
       template_post.author_mut().map(|a| a.clear());
     }
@@ -295,12 +295,12 @@ impl Split {
     template: &mut Post,
     title: &str,
     link: &str,
-    content: &str,
+    description: &str,
     author: Option<&str>,
   ) {
     template.set_title(title);
     template.set_link(link);
-    template.set_content(content);
+    template.set_description(description);
     if let Some(author) = author {
       template.set_author(author);
     }
@@ -310,11 +310,11 @@ impl Split {
   fn split(&self, post: &Post) -> Result<Vec<Post>> {
     let mut posts = vec![];
 
-    let doc = Html::parse_fragment(post.content_or_err()?);
+    let doc = Html::parse_fragment(post.description_or_err()?);
 
     let titles = self.select_title(&doc)?;
     let links = self.select_link(post.link_or_err()?, &doc)?;
-    let contents = self.select_content(&doc)?;
+    let descriptions = self.select_description(&doc)?;
     let authors = self.select_author(&doc)?;
     let authors = match authors {
       Some(authors) => authors.into_iter().map(|a| Some(a)).collect(),
@@ -322,29 +322,29 @@ impl Split {
     };
 
     if titles.len() != links.len()
-      || titles.len() != contents.len()
+      || titles.len() != descriptions.len()
       || titles.len() != authors.len()
     {
       let msg = format!(
         "Selector error: title ({}), link ({}), \
-         content ({}), and author ({}) count mismatch",
+         description ({}), and author ({}) count mismatch",
         titles.len(),
         links.len(),
-        contents.len(),
+        descriptions.len(),
         authors.len()
       );
       return Err(Error::Message(msg));
     }
 
-    let iter = itertools::multizip((titles, links, contents, authors));
+    let iter = itertools::multizip((titles, links, descriptions, authors));
 
-    for (title, link, content, author) in iter {
+    for (title, link, description, author) in iter {
       let mut post = self.prepare_template(post);
       self.apply_template(
         &mut post,
         &title,
         &link,
-        &content,
+        &description,
         author.as_ref().map(|a| a.as_str()),
       );
       posts.push(post);

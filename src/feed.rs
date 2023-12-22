@@ -105,7 +105,7 @@ macro_rules! impl_post_get {
   };
 }
 
-impl_post_get!(title, link, content, author);
+impl_post_get!(title, link, description, author);
 
 impl Post {
   pub fn set_guid(&mut self, value: impl Into<String>) {

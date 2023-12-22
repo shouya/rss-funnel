@@ -27,9 +27,9 @@ impl FeedFilter for SimplifyHtmlFilter {
 
     for post in &mut posts {
       let link = post.link().unwrap_or("").to_string();
-      if let Some(content) = post.content_mut() {
-        if let Some(simplified) = simplify(content, &link) {
-          *content = simplified;
+      if let Some(description) = post.description_mut() {
+        if let Some(simplified) = simplify(description, &link) {
+          *description = simplified;
         }
       };
     }
