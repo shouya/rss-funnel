@@ -18,7 +18,7 @@ cargo build --release
 
 ** Usage
 
-To use `rss-funnel`, you need to supply a configuration file in YAML. Here is an example configuration.
+To use =rss-funnel=, you need to supply a configuration file in YAML. Here is an example configuration.
 
 #+begin_src yaml
 endpoints:
@@ -80,11 +80,12 @@ Properties:
 - =source= (optional): The source url of the RSS feed.
   + If not specified, you must specify =?source=<url>= query in the request. This allows for usages like applying same filters for different feeds.
 - =filters= (required): A list of filters to apply to the feed.
-  + The feed is going through the filters in the order specified. You can imagine each filter corresponds to an endofunction on the =Feed=.
-  + Each filter is an object with the singleton key being the name of the filter and the value being the configuration of the filter.
-    - For example, in the filter definition: - =keep_element: .p_mainnew=
+  + The feed from the =source= goes through the filters in the order specified. You can think of each filter as corresponding to a transformation on the =Feed=.
+  + Each filter is specified as an YAML object with the singleton key being the name of the filter and the value being the configuration of the filter.
+    - For example, in the filter definition: =- keep_element: .p_mainnew=
       + the filter's name is =keep_element=
-      + the configuration is the string value =".p_mainnew"=. Depending on the filter, the configuration can have different types.
+      + the configuration is the string value =.p_mainnew=. Depending on the filter, the configuration can have different types.
+  + The =Feed= object from the last filter is returned as the response.
 
 ** Filters
 
@@ -96,7 +97,7 @@ Configuration type: Object
 
 Properties:
 
-- timeout (optional, Duration): The timeout in each individual request. You can specify a string value like ='20s'=. Default to 10 seconds.
+- timeout (optional, Duration): The timeout in each individual request. You can specify a string value like =20s= ([[https://docs.rs/duration-str/latest/duration_str/index.html][supported formats]]). Default to 10 seconds.
 - parallelism (optional, number): The number of parallel requests to make. Default to =20=.
 - simplify (optional, boolean): Whether to simplify the HTML using =html5ever=. Default to =false=.
 - append_mode (optional, boolean): Whether to *append* the full text to the existing content. If not, the content is *replaced* with the full text. Default to =false=.
@@ -138,7 +139,7 @@ The selectors are evaluated against the article's HTML. There is an validation t
 
 *** Sanitize text (=sanitize=)
 
-This filter allows you to redact or replace text in the content of the articles.
+This filter allows you to redact or replace text in the content of the articles. The operations are executed in the order specified.
 
 Configuration type: Array of "operations".
 
@@ -157,7 +158,7 @@ Operations:
 
 *** JS (=js=)
 
-This filter allows you to run arbitrary JS code to transform the articles. The JS runtime is built upon bellar's [[https://bellard.org/quickjs/][QuickJS]] (via [[https://github.com/DelSkayn/rquickjs][rquickjs]] lib).
+This filter allows you to run arbitrary JS code to transform the articles. The JS runtime is built upon Fabrice Bellard's [[https://bellard.org/quickjs/][QuickJS]] (via [[https://github.com/DelSkayn/rquickjs][rquickjs]] lib).
 
 Configuration type: string. The string is the JS code to run.
 
