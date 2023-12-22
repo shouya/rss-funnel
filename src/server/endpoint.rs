@@ -107,7 +107,9 @@ impl EndpointService {
     match self.source.as_ref() {
       Some(source) => Ok(Url::parse(&source)?),
       None => {
-        let url = Url::parse(&req.uri().to_string())?;
+        // the uri from request only contains the path, so we need to
+        // reconstruct the full url
+        let url = Url::parse(&format!("http://placeholder{}", &req.uri()))?;
         let source = url
           .query_pairs()
           .find_map(|(k, v)| (k == "source").then(|| v))
