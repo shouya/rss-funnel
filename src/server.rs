@@ -3,6 +3,7 @@ mod endpoint;
 use axum::{routing::get, Router};
 use clap::Parser;
 pub use endpoint::EndpointConfig;
+use http::StatusCode;
 use tracing::info;
 
 use crate::{cli::FeedDefinition, util::Result};
@@ -27,8 +28,12 @@ pub async fn serve(
     app = app.merge(endpoint_route);
   }
 
-  app = app.route("/", get(|| async { "Up and running!" }));
-  app = app.route("/health", get(|| async { "ok" }));
+  app = app
+    .route("/", get(|| async { "Up and running!" }))
+    .route("/health", get(|| async { "ok" }))
+    .fallback(get(|| async {
+      (StatusCode::NOT_FOUND, "Endpoint not found")
+    }));
 
   info!("starting server");
   Ok(axum::serve(listener, app).await?)
