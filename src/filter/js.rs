@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::feed::Feed;
 use crate::js::{AsJson, Runtime};
-use crate::util::Result;
+use crate::util::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig};
 
@@ -32,15 +32,33 @@ impl FeedFilterConfig for JsConfig {
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    let mut posts = Vec::new();
+    use either::Either::{Left, Right};
+    use rquickjs::{Null, Undefined};
 
-    for post in feed.posts.iter() {
-      if self.runtime.call_fn("keep_post", (AsJson(post),)).await? {
-        posts.push(post.clone());
+    let posts = feed.posts.split_off(0);
+    let mut output = Vec::new();
+
+    for post in posts.into_iter() {
+      let args = (AsJson(&*feed), AsJson(&post));
+
+      match self.runtime.call_fn("update_post", args).await? {
+        Left(Left(Null)) => {
+          // returning null means the post should be removed
+        }
+        Left(Right(Undefined)) => {
+          return Err(Error::Message(
+            "update_post must return the modified post or null".into(),
+          ));
+        }
+        Right(AsJson(updated_post)) => {
+          // The merge is needed because there are properties that are
+          // not serializable in the javascript.
+          output.push(post.merge(updated_post));
+        }
       }
     }
 
-    feed.posts = posts;
+    feed.posts = output;
     Ok(())
   }
 }

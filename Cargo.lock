@@ -1570,6 +1570,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de83ea57beee293520e2f93ac6d34a5596411e7841846a8e179a3623ea17e4e2"
 dependencies = [
+ "either",
  "rquickjs-core",
  "rquickjs-macro",
 ]
@@ -1581,6 +1582,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a0af23e8116333509584b539f0cb65bcdbe5db019abe86e1159ad4f87f27f5e"
 dependencies = [
  "async-lock",
+ "either",
  "relative-path",
  "rquickjs-sys",
 ]
@@ -1635,6 +1637,7 @@ dependencies = [
  "clap",
  "duration-str",
  "ego-tree",
+ "either",
  "futures",
  "http 1.0.0",
  "itertools",

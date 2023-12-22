@@ -30,6 +30,21 @@ where
   }
 }
 
+impl<'js, T> FromJs<'js> for AsJson<T>
+where
+  T: serde::de::DeserializeOwned,
+{
+  fn from_js(ctx: &Ctx<'js>, value: Value<'js>) -> rquickjs::Result<Self> {
+    let json = ctx
+      .json_stringify(value)?
+      .and_then(|s| s.to_string().ok())
+      .unwrap_or_else(|| "null".to_string());
+
+    let value = serde_json::from_str(&json).unwrap();
+    Ok(Self(value))
+  }
+}
+
 impl Runtime {
   pub async fn new() -> Result<Self> {
     let runtime = rquickjs::Runtime::new()?;
@@ -261,6 +276,7 @@ impl RemoteLoader {
       .user_agent(crate::util::USER_AGENT)
       .build()
       .map_err(|_| rquickjs::Error::new_loading(name))?;
+
     let source = client
       .get(name)
       .send()
@@ -274,7 +290,6 @@ impl RemoteLoader {
 
 impl Loader for RemoteLoader {
   fn load(&mut self, _ctx: &Ctx, name: &str) -> rquickjs::Result<ModuleData> {
-    dbg!(name);
     let err = rquickjs::Error::new_loading(name);
     if !self.name_valid(name) {
       return Err(err);

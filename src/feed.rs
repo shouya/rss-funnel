@@ -155,4 +155,14 @@ impl Post {
       _ => self.extra.get(field).map(Cow::from),
     }
   }
+
+  pub fn merge(mut self, post: Post) -> Self {
+    self.title = post.title;
+    self.description = post.description;
+    self.authors = post.authors;
+    self.link = post.link;
+    self.extra = post.extra;
+    self.pub_date = post.pub_date;
+    self
+  }
 }
