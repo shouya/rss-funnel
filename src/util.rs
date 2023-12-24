@@ -48,6 +48,9 @@ pub enum Error {
   #[error("Js exception {0}")]
   JsException(String),
 
+  #[error("Failed to extract webpage {0:?}")]
+  Readability(#[from] readability::error::Error),
+
   #[error("Config error {0:?}")]
   Config(#[from] ConfigError),
 

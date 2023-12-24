@@ -139,7 +139,7 @@ impl EndpointService {
     let content = resp.text().await?;
 
     let feed = match content_type.as_deref() {
-      Some("text/html") => todo!(),
+      Some("text/html") => Feed::from_html_content(&content, &source)?,
       Some("application/xml")
       | Some("application/rss+xml")
       | Some("text/xml") => Feed::from_rss_content(&content)?,

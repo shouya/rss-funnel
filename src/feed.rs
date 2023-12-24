@@ -3,6 +3,7 @@ use http::StatusCode;
 use paste::paste;
 use serde::Deserialize;
 use serde::Serialize;
+use url::Url;
 
 use crate::util::Error;
 use crate::util::Result;
@@ -18,6 +19,19 @@ impl Feed {
     let cursor = std::io::Cursor::new(content);
     let channel = rss::Channel::read_from(cursor)?;
     Ok(Feed::Rss(channel))
+  }
+
+  pub fn from_html_content(content: &str, url: &Url) -> Result<Self> {
+    let item = Post::from_html_content(content, url)?;
+
+    let mut channel = rss::Channel::default();
+    channel.title = item.title().expect("title should present").to_string();
+    channel.link = url.to_string();
+
+    let mut feed = Feed::Rss(channel);
+    feed.set_posts(vec![item]);
+
+    Ok(feed)
   }
 
   pub fn into_resp(self) -> Result<impl IntoResponse> {
@@ -113,6 +127,26 @@ impl Post {
       Post::Rss(item) => {
         item.guid.get_or_insert_with(Default::default).value = value.into();
       }
+    }
+  }
+
+  fn from_html_content(content: &str, url: &Url) -> Result<Self> {
+    let mut reader = std::io::Cursor::new(content);
+    let product = readability::extractor::extract(&mut reader, &url)?;
+    let mut item = rss::Item::default();
+    item.title = Some(product.title);
+    item.description = Some(product.content);
+    item.link = Some(url.to_string());
+    item.guid = Some(rss::Guid {
+      value: url.to_string(),
+      ..Default::default()
+    });
+    Ok(Post::Rss(item))
+  }
+
+  fn into_rss_item(self) -> Result<rss::Item> {
+    match self {
+      Post::Rss(item) => Ok(item),
     }
   }
 }
