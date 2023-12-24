@@ -162,7 +162,29 @@ This filter allows you to run arbitrary JS code to transform the articles. The J
 
 Configuration type: string. The string is the JS code to run.
 
-You must define a function named =update_post= that takes two arguments: =feed= and =post=, where =feed= is the RSS feed and =post= is the article. The function should return the updated =post=. If you want to remove the article, return =null=.
+You must define either (or both) of two functions: =update_feed= and =update_post=.
+
+**** update_feed
+
+You can define a function named =update_feed= that takes one argument: =feed=, where =feed= is the RSS feed. The function should return the updated =feed=.
+
+See [[https://docs.rs/rss/latest/rss/struct.Channel.html][Feed]] for the available fields of =feed=. Here's an example of updating feed's title:
+
+#+begin_src yaml
+  - path: /set-title.xml
+    filters:
+      - js: |
+          function update_feed(feed) {
+            feed.title = "My New Feed"
+            return feed;
+          }
+#+end_src
+
+You can use this function to modify arbitrary fields in the feed or even add new posts.
+
+**** update_post
+
+More often you may want to run a filter on individual posts instead of the whole feed. In such case you can deffine a function named =update_post= that takes two arguments: =feed= and =post=, where =feed= is the RSS feed and =post= is the article. The function should return the updated =post=. If you want to remove the article, return =null=.
 
 The actual fields of =feed= and =post= can be found in the rss crate: [[https://docs.rs/rss/latest/rss/struct.Channel.html][Feed]], [[https://docs.rs/rss/latest/rss/struct.Item.html][Post]]. But keep in mind that depending on the source and previous filters, you may get different fields. It's best to print out the =feed= and =post= to see what fields are available. The sample =/inspect.xml= endpoint is useful for this purpose.
 
@@ -175,7 +197,5 @@ The actual fields of =feed= and =post= can be found in the rss crate: [[https://
             return post;
           }
 #+end_src
-
-There is currently no way to add new articles or modify the feed's properties. These features may be added in the future.
 
 You can use =console.log(string)= function to print debugging info to the stdout.

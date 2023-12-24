@@ -29,11 +29,38 @@ impl FeedFilterConfig for JsConfig {
   }
 }
 
-#[async_trait::async_trait]
-impl FeedFilter for JsFilter {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+impl JsFilter {
+  async fn modify_feed(&self, feed: &mut Feed) -> Result<()> {
+    use either::Either::{Left, Right};
+    use rquickjs::Undefined;
+
+    if !self.runtime.fn_exists("update_feed").await {
+      return Ok(());
+    }
+
+    let args = (AsJson(&*feed),);
+
+    match self.runtime.call_fn("update_feed", args).await? {
+      Left(Undefined) => {
+        return Err(Error::Message(
+          "update_feed must return the modified feed".into(),
+        ));
+      }
+      Right(AsJson(updated_feed)) => {
+        *feed = updated_feed;
+      }
+    }
+
+    Ok(())
+  }
+
+  async fn modify_posts(&self, feed: &mut Feed) -> Result<()> {
     use either::Either::{Left, Right};
     use rquickjs::{Null, Undefined};
+
+    if !self.runtime.fn_exists("update_post").await {
+      return Ok(());
+    }
 
     let mut posts = Vec::new();
 
@@ -56,6 +83,14 @@ impl FeedFilter for JsFilter {
     }
 
     feed.set_posts(posts);
+  }
+}
+
+#[async_trait::async_trait]
+impl FeedFilter for JsFilter {
+  async fn run(&self, feed: &mut Feed) -> Result<()> {
+    self.modify_feed(feed).await;
+    self.modify_posts(feed).await;
     Ok(())
   }
 }
