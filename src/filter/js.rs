@@ -34,16 +34,16 @@ impl JsFilter {
     use either::Either::{Left, Right};
     use rquickjs::Undefined;
 
-    if !self.runtime.fn_exists("update_feed").await {
+    if !self.runtime.fn_exists("modify_feed").await {
       return Ok(());
     }
 
     let args = (AsJson(&*feed),);
 
-    match self.runtime.call_fn("update_feed", args).await? {
+    match self.runtime.call_fn("modify_feed", args).await? {
       Left(Undefined) => {
         return Err(Error::Message(
-          "update_feed must return the modified feed".into(),
+          "modify_feed must return the modified feed".into(),
         ));
       }
       Right(AsJson(updated_feed)) => {
@@ -58,7 +58,7 @@ impl JsFilter {
     use either::Either::{Left, Right};
     use rquickjs::{Null, Undefined};
 
-    if !self.runtime.fn_exists("update_post").await {
+    if !self.runtime.fn_exists("modify_post").await {
       return Ok(());
     }
 
@@ -67,13 +67,13 @@ impl JsFilter {
     for post in feed.take_posts() {
       let args = (AsJson(&*feed), AsJson(&post));
 
-      match self.runtime.call_fn("update_post", args).await? {
+      match self.runtime.call_fn("modify_post", args).await? {
         Left(Left(Null)) => {
           // returning null means the post should be removed
         }
         Left(Right(Undefined)) => {
           return Err(Error::Message(
-            "update_post must return the modified post or null".into(),
+            "modify_post must return the modified post or null".into(),
           ));
         }
         Right(AsJson(updated_post)) => {
@@ -83,14 +83,15 @@ impl JsFilter {
     }
 
     feed.set_posts(posts);
+    Ok(())
   }
 }
 
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    self.modify_feed(feed).await;
-    self.modify_posts(feed).await;
+    self.modify_feed(feed).await?;
+    self.modify_posts(feed).await?;
     Ok(())
   }
 }
