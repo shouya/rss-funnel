@@ -41,15 +41,6 @@ endpoints:
               from: "(?<link>http(s)?://[^< \n]*)"
               to: '<a href="$link">$link</a>'
 
-  - path: /inspect.xml
-    note: Utility for inspecting RSS feeds
-    filters:
-      - js: |
-          function update_post(feed, post) {
-            post.content = `<pre>${JSON.stringify(post, null, 2)}</pre>`;
-            return post;
-          }
-
   - path: /hackernews.xml
     note: Full text of Hacker News
     source: https://news.ycombinator.com/rss
