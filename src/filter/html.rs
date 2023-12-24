@@ -183,15 +183,15 @@ impl FeedFilter for KeepElement {
 #[derive(Serialize, Deserialize)]
 pub struct SplitConfig {
   title_selector: String,
-  link_selector: String,
-  description_selector: String,
+  link_selector: Option<String>,
+  description_selector: Option<String>,
   author_selector: Option<String>,
 }
 
 pub struct Split {
   title_selector: Selector,
-  link_selector: Selector,
-  description_selector: Selector,
+  link_selector: Option<Selector>,
+  description_selector: Option<Selector>,
   author_selector: Option<Selector>,
 }
 
@@ -200,14 +200,17 @@ impl FeedFilterConfig for SplitConfig {
   type Filter = Split;
 
   async fn build(&self) -> Result<Self::Filter> {
+    let parse_selector_opt = |s: &Option<String>| -> Result<Option<Selector>> {
+      match s {
+        Some(s) => Ok(Some(parse_selector(s)?)),
+        None => Ok(None),
+      }
+    };
+
     let title_selector = parse_selector(&self.title_selector)?;
-    let link_selector = parse_selector(&self.link_selector)?;
-    let description_selector = parse_selector(&self.description_selector)?;
-    let author_selector = self
-      .author_selector
-      .as_ref()
-      .map(|s| parse_selector(s))
-      .transpose()?;
+    let link_selector = parse_selector_opt(&self.link_selector)?;
+    let description_selector = parse_selector_opt(&self.description_selector)?;
+    let author_selector = parse_selector_opt(&self.author_selector)?;
 
     Ok(Split {
       title_selector,
@@ -243,8 +246,11 @@ impl Split {
   }
 
   fn select_link(&self, base_link: &str, doc: &Html) -> Result<Vec<String>> {
+    let link_selector =
+      self.link_selector.as_ref().unwrap_or(&self.title_selector);
+
     let links = doc
-      .select(&self.link_selector)
+      .select(&link_selector)
       .map(|e| {
         e.value()
           .attr("href")
@@ -259,13 +265,15 @@ impl Split {
     Ok(links)
   }
 
-  fn select_description(&self, doc: &Html) -> Result<Vec<String>> {
-    Ok(
-      doc
-        .select(&self.description_selector)
-        .map(|e| e.html())
-        .collect(),
-    )
+  fn select_description(&self, doc: &Html) -> Result<Option<Vec<String>>> {
+    let Some(description_selector) = &self.description_selector else {
+      return Ok(None);
+    };
+
+    let descriptions =
+      doc.select(description_selector).map(|e| e.html()).collect();
+
+    Ok(Some(descriptions))
   }
 
   fn select_author(&self, doc: &Html) -> Result<Option<Vec<String>>> {
@@ -295,12 +303,14 @@ impl Split {
     template: &mut Post,
     title: &str,
     link: &str,
-    description: &str,
+    description: Option<&str>,
     author: Option<&str>,
   ) {
     template.set_title(title);
     template.set_link(link);
-    template.set_description(description);
+    if let Some(description) = description {
+      template.set_description(description);
+    }
     if let Some(author) = author {
       template.set_author(author);
     }
@@ -314,17 +324,20 @@ impl Split {
 
     let titles = self.select_title(&doc)?;
     let links = self.select_link(post.link_or_err()?, &doc)?;
-    let descriptions = self.select_description(&doc)?;
-    let authors = self.select_author(&doc)?;
-    let authors = match authors {
-      Some(authors) => authors.into_iter().map(|a| Some(a)).collect(),
-      None => vec![None; titles.len()],
-    };
+    if titles.len() != links.len() {
+      let msg = format!(
+        "Selector error: title ({}) and link ({}) count mismatch",
+        titles.len(),
+        links.len()
+      );
+      return Err(Error::Message(msg));
+    }
 
-    if titles.len() != links.len()
-      || titles.len() != descriptions.len()
-      || titles.len() != authors.len()
-    {
+    let n = titles.len();
+    let descriptions = transpose_option_vec(self.select_description(&doc)?, n);
+    let authors = transpose_option_vec(self.select_author(&doc)?, n);
+
+    if titles.len() != descriptions.len() || titles.len() != authors.len() {
       let msg = format!(
         "Selector error: title ({}), link ({}), \
          description ({}), and author ({}) count mismatch",
@@ -344,13 +357,23 @@ impl Split {
         &mut post,
         &title,
         &link,
-        &description,
+        description.as_ref().map(|d| d.as_str()),
         author.as_ref().map(|a| a.as_str()),
       );
       posts.push(post);
     }
 
     Ok(posts)
+  }
+}
+
+fn transpose_option_vec<T: Clone>(
+  v: Option<Vec<T>>,
+  n: usize,
+) -> Vec<Option<T>> {
+  match v {
+    Some(v) => v.into_iter().map(|x| Some(x)).collect(),
+    None => vec![None; n],
   }
 }
 
