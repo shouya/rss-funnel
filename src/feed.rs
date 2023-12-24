@@ -135,7 +135,7 @@ impl Post {
     let product = readability::extractor::extract(&mut reader, &url)?;
     let mut item = rss::Item::default();
     item.title = Some(product.title);
-    item.description = Some(product.content);
+    item.description = Some(content.to_string());
     item.link = Some(url.to_string());
     item.guid = Some(rss::Guid {
       value: url.to_string(),
