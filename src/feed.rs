@@ -143,10 +143,4 @@ impl Post {
     });
     Ok(Post::Rss(item))
   }
-
-  fn into_rss_item(self) -> Result<rss::Item> {
-    match self {
-      Post::Rss(item) => Ok(item),
-    }
-  }
 }
