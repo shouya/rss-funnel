@@ -3,6 +3,7 @@
 The RSS Funnel is a simple yet highly configurable RSS processing pipeline. It is designed to be used to modify existing RSS source in various interesting ways such as:
 
 - Fetch full content
+- Generate a RSS feed from an HTML page
 - Remove unwanted elements from the article (using a CSS selector)
 - Redact or replace text in the article (using a regular expression)
 - Split a single RSS article into multiple articles
@@ -70,6 +71,7 @@ Properties:
 - =note= (optional): A note for the endpoint. Only used for display purpose.
 - =source= (optional): The source url of the RSS feed.
   + If not specified, you must specify =?source=<url>= query in the request. This allows for usages like applying same filters for different feeds.
+  + If the source points to a HTML page, =rss-funnel= will try to generate a RSS feed from the page with a single article. You can then use =split= filter to split the single article into multiple articles. See [[https://github.com/shouya/rss-funnel/wiki/Cookbook#hacker-news-top-links][Cookbook: Hacker News Top Links]] for an example.
 - =filters= (required): A list of filters to apply to the feed.
   + The feed from the =source= goes through the filters in the order specified. You can think of each filter as corresponding to a transformation on the =Feed=.
   + Each filter is specified as an YAML object with the singleton key being the name of the filter and the value being the configuration of the filter.
