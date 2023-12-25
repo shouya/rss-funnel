@@ -5,6 +5,7 @@ use futures::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
 
 use crate::feed::{Feed, Post};
+use crate::html::convert_relative_url;
 use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig};
@@ -57,6 +58,10 @@ impl FullTextFilter {
     let resp = self.client.get(link).send().await?;
     let resp = resp.error_for_status()?;
     let text = resp.text().await?;
+
+    let mut html = scraper::Html::parse_document(&text);
+    convert_relative_url(&mut html, link);
+    let text = html.html();
 
     let text = if self.simplify {
       super::simplify_html::simplify(&text, link).unwrap_or(text)

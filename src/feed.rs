@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
+use crate::html::convert_relative_url;
 use crate::util::Error;
 use crate::util::Result;
 
@@ -131,11 +132,16 @@ impl Post {
   }
 
   fn from_html_content(content: &str, url: &Url) -> Result<Self> {
-    let mut reader = std::io::Cursor::new(content);
+    // convert any relative urls to absolute urls
+    let mut html = scraper::Html::parse_document(&content);
+    convert_relative_url(&mut html, url.as_str());
+    let content = html.html();
+
+    let mut reader = std::io::Cursor::new(&content);
     let product = readability::extractor::extract(&mut reader, &url)?;
     let mut item = rss::Item::default();
     item.title = Some(product.title);
-    item.description = Some(content.to_string());
+    item.description = Some(content);
     item.link = Some(url.to_string());
     item.guid = Some(rss::Guid {
       value: url.to_string(),
