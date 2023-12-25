@@ -11,6 +11,7 @@ use rquickjs::markers::ParallelSend;
 use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
 use rquickjs::{Context, Ctx, FromJs, Function, IntoJs, Module, Value};
+use url::Url;
 
 use crate::util::{Error, Result};
 
@@ -193,14 +194,12 @@ impl Resolver for RemoteResolver {
       return Ok(name.to_string());
     }
 
-    if is_remote(base) && (name.starts_with("./") || name.starts_with("../")) {
-      let mut path = PathBuf::from(base);
-      path.pop();
-      path.push(name.trim_start_matches("./"));
-      return Ok(path.to_string_lossy().to_string());
-    }
+    let abs_url = Url::parse(base)
+      .and_then(|base| base.join(name))
+      .map_err(|_| rquickjs::Error::new_loading(name))
+      .map(|url| url.to_string())?;
 
-    Err(rquickjs::Error::new_loading(name))
+    Ok(abs_url)
   }
 }
 
