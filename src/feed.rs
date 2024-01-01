@@ -22,6 +22,7 @@ impl Feed {
     Ok(Feed::Rss(channel))
   }
 
+  #[allow(clippy::field_reassign_with_default)]
   pub fn from_html_content(content: &str, url: &Url) -> Result<Self> {
     let item = Post::from_html_content(content, url)?;
 
@@ -55,6 +56,7 @@ impl Feed {
   }
 
   pub fn set_posts(&mut self, posts: Vec<Post>) {
+    #[allow(clippy::unnecessary_filter_map)]
     match self {
       Feed::Rss(channel) => {
         channel.items = posts
@@ -131,14 +133,15 @@ impl Post {
     }
   }
 
+  #[allow(clippy::field_reassign_with_default)]
   fn from_html_content(content: &str, url: &Url) -> Result<Self> {
     // convert any relative urls to absolute urls
-    let mut html = scraper::Html::parse_document(&content);
+    let mut html = scraper::Html::parse_document(content);
     convert_relative_url(&mut html, url.as_str());
     let content = html.html();
 
     let mut reader = std::io::Cursor::new(&content);
-    let product = readability::extractor::extract(&mut reader, &url)?;
+    let product = readability::extractor::extract(&mut reader, url)?;
     let mut item = rss::Item::default();
     item.title = Some(product.title);
     item.description = Some(content);

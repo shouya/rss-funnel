@@ -107,9 +107,8 @@ impl Sanitize {
         SanitizeOp::Replace(needle, repl) => (needle, repl.as_str()),
       };
 
-      match needle.replace_all(&description, repl) {
-        Cow::Owned(o) => description = Cow::Owned(o),
-        Cow::Borrowed(_) => {} // description unchanged, no need to assign
+      if let Cow::Owned(o) = needle.replace_all(&description, repl) {
+        description = Cow::Owned(o)
       }
     }
 
@@ -122,9 +121,9 @@ impl FeedFilter for Sanitize {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
     let mut posts = feed.take_posts();
     for post in &mut posts {
-      post.description_mut().map(|description| {
+      if let Some(description) = post.description_mut() {
         *description = self.filter_description(description);
-      });
+      }
     }
 
     feed.set_posts(posts);

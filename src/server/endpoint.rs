@@ -108,15 +108,15 @@ impl EndpointService {
 
   fn find_source(&self, req: &Request) -> Result<Url> {
     match self.source.as_ref() {
-      Some(source) => Ok(Url::parse(&source)?),
+      Some(source) => Ok(Url::parse(source)?),
       None => {
         // the uri from request only contains the path, so we need to
         // reconstruct the full url
         let url = Url::parse(&format!("http://placeholder{}", &req.uri()))?;
         let source = url
           .query_pairs()
-          .find_map(|(k, v)| (k == "source").then(|| v))
-          .ok_or(Error::Message(format!("missing source parameter")))?;
+          .find_map(|(k, v)| (k == "source").then_some(v))
+          .ok_or(Error::Message("missing source parameter".into()))?;
         Ok(Url::parse(&source)?)
       }
     }
@@ -146,7 +146,7 @@ impl EndpointService {
     let content = resp.text().await?;
 
     let feed = match content_type {
-      Some("text/html") => Feed::from_html_content(&content, &source)?,
+      Some("text/html") => Feed::from_html_content(&content, source)?,
       Some("application/xml")
       | Some("application/rss+xml")
       | Some("text/xml") => Feed::from_rss_content(&content)?,

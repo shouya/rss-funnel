@@ -22,7 +22,7 @@ pub fn convert_relative_url(html: &mut Html, base_url: &str) {
   };
 
   for (selector, attr) in SELECTORS.iter() {
-    let node_ids = html.select(&selector).map(|e| e.id()).collect::<Vec<_>>();
+    let node_ids = html.select(selector).map(|e| e.id()).collect::<Vec<_>>();
     for node_id in node_ids {
       let mut node = html.tree.get_mut(node_id).expect("unreachable");
 
@@ -35,7 +35,7 @@ pub fn convert_relative_url(html: &mut Html, base_url: &str) {
         continue;
       };
 
-      let Ok(url) = base_url.join(&attr_value.to_string()) else {
+      let Ok(url) = base_url.join(attr_value) else {
         continue;
       };
 

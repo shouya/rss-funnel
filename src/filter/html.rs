@@ -116,12 +116,7 @@ impl FeedFilterConfig for KeepElementConfig {
   // selector. Multiple selectors here may create more confusion than
   // being useful.
   async fn build(&self) -> Result<Self::Filter> {
-    let mut selectors = vec![];
-    for selector in [&self.selector] {
-      let parsed = parse_selector(selector)?;
-      selectors.push(parsed);
-    }
-
+    let selectors = vec![parse_selector(&self.selector)?];
     Ok(KeepElement { selectors })
   }
 }
@@ -154,7 +149,7 @@ impl KeepElement {
         selected.push(elem.id());
       }
 
-      if let None = Self::keep_only_selected(&mut html, &selected) {
+      if Self::keep_only_selected(&mut html, &selected).is_none() {
         return Some("<no element kept>".to_string());
       }
     }
@@ -250,7 +245,7 @@ impl Split {
       self.link_selector.as_ref().unwrap_or(&self.title_selector);
 
     let links = doc
-      .select(&link_selector)
+      .select(link_selector)
       .map(|e| {
         e.value()
           .attr("href")
@@ -277,7 +272,7 @@ impl Split {
   }
 
   fn select_author(&self, doc: &Html) -> Result<Option<Vec<String>>> {
-    if let None = self.author_selector {
+    if self.author_selector.is_none() {
       return Ok(None);
     }
 
@@ -291,9 +286,14 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    template_post.description_mut().map(|c| c.clear());
+    if let Some(description) = template_post.description_mut() {
+      description.clear()
+    }
+
     if self.author_selector.is_some() {
-      template_post.author_mut().map(|a| a.clear());
+      if let Some(author) = template_post.author_mut() {
+        author.clear();
+      }
     }
     template_post
   }
@@ -357,8 +357,8 @@ impl Split {
         &mut post,
         &title,
         &link,
-        description.as_ref().map(|d| d.as_str()),
-        author.as_ref().map(|a| a.as_str()),
+        description.as_deref(),
+        author.as_deref(),
       );
       posts.push(post);
     }
