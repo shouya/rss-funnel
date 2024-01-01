@@ -36,12 +36,14 @@ impl EndpointConfig {
 #[derive(Serialize, Deserialize)]
 pub struct EndpointServiceConfig {
   source: Option<String>,
+  content_type: Option<String>,
   filters: Vec<FilterConfig>,
 }
 
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<String>,
+  content_type: Option<String>,
   filters: Arc<Vec<BoxedFilter>>,
   client: Arc<reqwest::Client>,
 }
@@ -87,6 +89,7 @@ impl EndpointService {
 
     Ok(Self {
       source: config.source,
+      content_type: config.content_type,
       filters: Arc::new(filters),
       client: Arc::new(client),
     })
@@ -128,17 +131,21 @@ impl EndpointService {
       .await?
       .error_for_status()?;
 
-    let content_type = resp
+    let resp_content_type = resp
       .headers()
       .get("Content-Type")
       .and_then(|x| x.to_str().ok())
       // remove anything after ";"
       .and_then(|x| x.split(';').next())
       .map(|s| s.to_owned());
+    let content_type = self
+      .content_type
+      .as_deref()
+      .or(resp_content_type.as_deref());
 
     let content = resp.text().await?;
 
-    let feed = match content_type.as_deref() {
+    let feed = match content_type {
       Some("text/html") => Feed::from_html_content(&content, &source)?,
       Some("application/xml")
       | Some("application/rss+xml")
