@@ -7,6 +7,7 @@ use std::time::Duration;
 use axum::body::Body;
 use axum::response::IntoResponse;
 use http::StatusCode;
+use mime::Mime;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
@@ -135,9 +136,8 @@ impl EndpointService {
       .headers()
       .get("content-type")
       .and_then(|x| x.to_str().ok())
-      // remove anything after ";"
-      .and_then(|x| x.split(';').next())
-      .map(|s| s.to_owned());
+      .and_then(|x| x.parse::<Mime>().ok())
+      .map(|x| x.essence_str().to_owned());
     let content_type = self
       .content_type
       .as_deref()
