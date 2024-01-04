@@ -1650,6 +1650,7 @@ dependencies = [
  "http 1.0.0",
  "itertools",
  "lazy_static",
+ "mime",
  "paste",
  "readability",
  "regex",

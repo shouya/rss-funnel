@@ -54,3 +54,4 @@ tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
 lazy_static = "1.4.0"
 html5ever = "0.26.0"
+mime = "0.3.17"

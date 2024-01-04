@@ -133,7 +133,7 @@ impl EndpointService {
 
     let resp_content_type = resp
       .headers()
-      .get("Content-Type")
+      .get("content-type")
       .and_then(|x| x.to_str().ok())
       // remove anything after ";"
       .and_then(|x| x.split(';').next())

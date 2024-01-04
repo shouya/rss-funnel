@@ -2,11 +2,12 @@ use std::time::Duration;
 
 use duration_str::deserialize_duration;
 use futures::{stream, StreamExt};
+use mime::Mime;
 use serde::{Deserialize, Serialize};
 
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
-use crate::util::Result;
+use crate::util::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig};
 
@@ -53,11 +54,32 @@ impl FeedFilterConfig for FullTextConfig {
 }
 
 impl FullTextFilter {
-  async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
-    let link = post.link_or_err()?;
-    let resp = self.client.get(link).send().await?;
+  async fn fetch_html(&self, url: &str) -> Result<String> {
+    let resp = self.client.get(url).send().await?;
+    let content_type = resp
+      .headers()
+      .get("content-type")
+      .and_then(|v| v.to_str().ok())
+      .unwrap_or("text/html")
+      .parse::<Mime>()
+      .map_err(|_| Error::Message("invalid content_type".to_string()))?;
+
+    if content_type.essence_str() != "text/html" {
+      return Err(Error::Message(format!(
+        "unexpected content type: {}",
+        content_type
+      )));
+    }
+
     let resp = resp.error_for_status()?;
     let text = resp.text().await?;
+
+    Ok(text)
+  }
+
+  async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
+    let link = post.link_or_err()?;
+    let text = self.fetch_html(link).await?;
 
     let mut html = scraper::Html::parse_document(&text);
     convert_relative_url(&mut html, link);
