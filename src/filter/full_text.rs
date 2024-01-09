@@ -21,6 +21,7 @@ pub struct FullTextConfig {
   parallelism: Option<usize>,
   simplify: Option<bool>,
   append_mode: Option<bool>,
+  keep_guid: Option<bool>,
 }
 
 pub struct FullTextFilter {
@@ -28,6 +29,7 @@ pub struct FullTextFilter {
   parallelism: usize,
   append_mode: bool,
   simplify: bool,
+  keep_guid: bool,
 }
 
 #[async_trait::async_trait]
@@ -43,12 +45,14 @@ impl FeedFilterConfig for FullTextConfig {
     let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
     let append_mode = self.append_mode.unwrap_or(false);
     let simplify = self.simplify.unwrap_or(false);
+    let keep_guid = self.keep_guid.unwrap_or(false);
 
     Ok(FullTextFilter {
       simplify,
       client,
       parallelism,
       append_mode,
+      keep_guid,
     })
   }
 }
@@ -98,6 +102,14 @@ impl FullTextFilter {
     } else {
       *description = text;
     };
+
+    if !self.keep_guid {
+      if let Some(mut guid) = post.get_guid().map(|v| v.to_string()) {
+        guid.push_str("-full");
+        post.set_guid(guid);
+      }
+    }
+
     Ok(())
   }
 

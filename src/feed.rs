@@ -125,6 +125,12 @@ macro_rules! impl_post_get {
 impl_post_get!(title, link, description, author);
 
 impl Post {
+  pub fn get_guid(&self) -> Option<&str> {
+    match self {
+      Post::Rss(item) => item.guid.as_ref().map(|v| v.value.as_str()),
+    }
+  }
+
   pub fn set_guid(&mut self, value: impl Into<String>) {
     match self {
       Post::Rss(item) => {
