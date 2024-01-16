@@ -1,13 +1,13 @@
-APP_NAME = rss-funnel
-IMAGE_USER = shouya
-IMAGE_HOST = git.lain.li
-IMAGE_NAME = $(IMAGE_HOST)/$(IMAGE_USER)/$(APP_NAME)
+APP_NAME ?= rss-funnel
+IMAGE_USER ?= shouya
+IMAGE_HOST ?= git.lain.li
+IMAGE_NAME ?= $(IMAGE_HOST)/$(IMAGE_USER)/$(APP_NAME)
 
-TARGET = x86_64-unknown-linux-musl
+TARGET ?= x86_64-unknown-linux-musl
 BINARY = target/$(TARGET)/release/$(APP_NAME)
 SOURCES = $(wildcard **/*.rs) Cargo.toml Cargo.lock
 
-VERSION = v$(shell git describe --tags --always --dirty)
+VERSION ?= v$(shell git describe --tags --always --dirty)
 
 $(BINARY): $(SOURCES)
 	cargo build --release --target x86_64-unknown-linux-musl
