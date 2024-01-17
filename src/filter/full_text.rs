@@ -1,10 +1,8 @@
-use std::time::Duration;
-
-use duration_str::deserialize_duration;
 use futures::{stream, StreamExt};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 
+use crate::client;
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
 use crate::util::{Error, Result};
@@ -16,14 +14,12 @@ const DEFAULT_PARALLELISM: usize = 20;
 
 #[derive(Serialize, Deserialize)]
 pub struct FullTextConfig {
-  #[serde(default = "default_timeout")]
-  #[serde(deserialize_with = "deserialize_duration")]
-  timeout: Duration,
   parallelism: Option<usize>,
   simplify: Option<bool>,
   append_mode: Option<bool>,
   keep_element: Option<KeepElementConfig>,
   keep_guid: Option<bool>,
+  client: Option<client::ClientConfig>,
 }
 
 pub struct FullTextFilter {
@@ -40,11 +36,7 @@ impl FeedFilterConfig for FullTextConfig {
   type Filter = FullTextFilter;
 
   async fn build(&self) -> Result<Self::Filter> {
-    let client = reqwest::Client::builder()
-      .user_agent(crate::util::USER_AGENT)
-      .tcp_keepalive(Some(self.timeout))
-      .timeout(self.timeout)
-      .build()?;
+    let client = self.client.clone().unwrap_or_default().build()?;
     let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
     let append_mode = self.append_mode.unwrap_or(false);
     let simplify = self.simplify.unwrap_or(false);
@@ -168,8 +160,4 @@ impl FeedFilter for FullTextFilter {
     feed.set_posts(posts);
     Ok(())
   }
-}
-
-fn default_timeout() -> Duration {
-  Duration::from_secs(10)
 }

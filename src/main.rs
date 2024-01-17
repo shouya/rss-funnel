@@ -1,4 +1,5 @@
 mod cli;
+mod client;
 mod feed;
 mod filter;
 mod html;
