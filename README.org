@@ -95,6 +95,7 @@ Properties:
       + the filter's name is =keep_element=
       + the configuration is the string value =.p_mainnew=. Depending on the filter, the configuration can have different types.
   + The =Feed= object from the last filter is returned as the response.
+- =client= (optional): The configuration for the HTTP client used to fetch the source like the user_agent. See [[https://github.com/shouya/rss-funnel/wiki/Client-config][Client config]] for detail.
 
 ** Filters
 

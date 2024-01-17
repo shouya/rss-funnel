@@ -2,7 +2,6 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
@@ -12,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
 
+use crate::client::ClientConfig;
 use crate::feed::Feed;
 use crate::filter::{BoxedFilter, FeedFilter, FilterConfig};
 use crate::util::{Error, Result};
@@ -39,6 +39,8 @@ pub struct EndpointServiceConfig {
   source: Option<String>,
   content_type: Option<String>,
   filters: Vec<FilterConfig>,
+  #[serde(default)]
+  client: Option<ClientConfig>,
 }
 
 #[derive(Clone)]
@@ -83,10 +85,7 @@ impl EndpointService {
       filters.push(filter);
     }
 
-    let client = reqwest::ClientBuilder::new()
-      .user_agent(crate::util::USER_AGENT)
-      .timeout(Duration::from_secs(10))
-      .build()?;
+    let client = config.client.unwrap_or_default().build()?;
 
     Ok(Self {
       source: config.source,
