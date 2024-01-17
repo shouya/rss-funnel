@@ -150,7 +150,7 @@ impl EndpointService {
       Some("application/xml")
       | Some("application/rss+xml")
       | Some("text/xml") => Feed::from_rss_content(&content)?,
-      // todo: atom handling, etc.
+      Some("application/atom+xml") => Feed::from_atom_content(&content)?,
       x => todo!("{:?}", x),
     };
 

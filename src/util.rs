@@ -30,8 +30,11 @@ pub enum Error {
   #[error("Axum error")]
   Axum(#[from] axum::Error),
 
-  #[error("Feed error")]
+  #[error("RSS feed error")]
   Rss(#[from] rss::Error),
+
+  #[error("Atom feed error")]
+  Atom(#[from] atom_syndication::Error),
 
   #[error("Invalid URL {0}")]
   InvalidUrl(#[from] url::ParseError),

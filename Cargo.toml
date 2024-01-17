@@ -21,7 +21,7 @@ serde_yaml = "0.9.27"
 duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }
 
 # Feed formats support
-atom_syndication = "0.12.2"
+atom_syndication = { version = "0.12.2", features = ["with-serde"] }
 rss = { version = "2.0.6", features = ["serde"] }
 
 # Web server

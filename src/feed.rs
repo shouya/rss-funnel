@@ -13,6 +13,7 @@ use crate::util::Result;
 #[serde(untagged)]
 pub enum Feed {
   Rss(rss::Channel),
+  Atom(atom_syndication::Feed),
 }
 
 impl Feed {
@@ -20,6 +21,12 @@ impl Feed {
     let cursor = std::io::Cursor::new(content);
     let channel = rss::Channel::read_from(cursor)?;
     Ok(Feed::Rss(channel))
+  }
+
+  pub fn from_atom_content(content: &str) -> Result<Self> {
+    let cursor = std::io::Cursor::new(content);
+    let feed = atom_syndication::Feed::read_from(cursor)?;
+    Ok(Feed::Atom(feed))
   }
 
   #[allow(clippy::field_reassign_with_default)]
@@ -37,10 +44,15 @@ impl Feed {
   }
 
   pub fn into_resp(self) -> Result<impl IntoResponse> {
-    let headers = [(http::header::CONTENT_TYPE, "application/rss+xml")];
     match self {
       Feed::Rss(channel) => {
         let body = channel.to_string();
+        let headers = [(http::header::CONTENT_TYPE, "application/rss+xml")];
+        Ok((StatusCode::OK, headers, body))
+      }
+      Feed::Atom(feed) => {
+        let body = feed.to_string();
+        let headers = [(http::header::CONTENT_TYPE, "application/atom+xml")];
         Ok((StatusCode::OK, headers, body))
       }
     }
@@ -51,6 +63,10 @@ impl Feed {
       Feed::Rss(channel) => {
         let posts = channel.items.split_off(0);
         posts.into_iter().map(Post::Rss).collect()
+      }
+      Feed::Atom(feed) => {
+        let posts = feed.entries.split_off(0);
+        posts.into_iter().map(Post::Atom).collect()
       }
     }
   }
@@ -63,6 +79,16 @@ impl Feed {
           .into_iter()
           .filter_map(|post| match post {
             Post::Rss(item) => Some(item),
+            _ => None,
+          })
+          .collect();
+      }
+      Feed::Atom(feed) => {
+        feed.entries = posts
+          .into_iter()
+          .filter_map(|post| match post {
+            Post::Atom(item) => Some(item),
+            _ => None,
           })
           .collect();
       }
@@ -74,25 +100,185 @@ impl Feed {
 #[serde(untagged)]
 pub enum Post {
   Rss(rss::Item),
+  Atom(atom_syndication::Entry),
 }
 
-macro_rules! impl_post_get {
-  ($($key:ident),*) => {
+enum PostField {
+  Title,
+  Link,
+  Description,
+  Author,
+  Guid,
+}
+
+impl Post {
+  fn get_field(&self, field: PostField) -> Option<&str> {
+    match (self, field) {
+      (Post::Rss(item), PostField::Title) => item.title.as_deref(),
+      (Post::Rss(item), PostField::Link) => item.link.as_deref(),
+      (Post::Rss(item), PostField::Description) => item.description.as_deref(),
+      (Post::Rss(item), PostField::Author) => item.author.as_deref(),
+      (Post::Rss(item), PostField::Guid) => {
+        item.guid.as_ref().map(|v| v.value.as_str())
+      }
+      (Post::Atom(item), PostField::Title) => Some(&item.title.value),
+      (Post::Atom(item), PostField::Link) => {
+        item.links.get(0).map(|v| v.href.as_str())
+      }
+      (Post::Atom(item), PostField::Description) => {
+        item.content.as_ref().and_then(|c| c.value.as_deref())
+      }
+      (Post::Atom(item), PostField::Author) => {
+        item.authors.get(0).map(|v| v.name.as_str())
+      }
+      (Post::Atom(item), PostField::Guid) => Some(&item.id),
+    }
+  }
+
+  fn set_field(&mut self, field: PostField, value: impl Into<String>) {
+    match (self, field) {
+      (Post::Rss(item), PostField::Title) => item.title = Some(value.into()),
+      (Post::Rss(item), PostField::Link) => item.link = Some(value.into()),
+      (Post::Rss(item), PostField::Description) => {
+        item.description = Some(value.into())
+      }
+      (Post::Rss(item), PostField::Author) => item.author = Some(value.into()),
+      (Post::Rss(item), PostField::Guid) => {
+        item.guid = Some(rss::Guid {
+          value: value.into(),
+          ..Default::default()
+        })
+      }
+      (Post::Atom(item), PostField::Title) => item.title.value = value.into(),
+      (Post::Atom(item), PostField::Link) => match item.links.get_mut(0) {
+        Some(link) => link.href = value.into(),
+        None => {
+          item.links.push(atom_syndication::Link {
+            href: value.into(),
+            ..Default::default()
+          });
+        }
+      },
+      (Post::Atom(item), PostField::Description) => {
+        item.content = Some(atom_syndication::Content {
+          value: Some(value.into()),
+          content_type: Some("html".to_string()),
+          ..Default::default()
+        })
+      }
+      (Post::Atom(item), PostField::Author) => match item.authors.get_mut(0) {
+        Some(author) => author.name = value.into(),
+        None => {
+          item.authors.push(atom_syndication::Person {
+            name: value.into(),
+            ..Default::default()
+          });
+        }
+      },
+      (Post::Atom(item), PostField::Guid) => item.id = value.into(),
+    }
+  }
+
+  fn get_field_mut(&mut self, field: PostField) -> Option<&mut String> {
+    match (self, field) {
+      (Post::Rss(item), PostField::Title) => item.title.as_mut(),
+      (Post::Rss(item), PostField::Link) => item.link.as_mut(),
+      (Post::Rss(item), PostField::Description) => item.description.as_mut(),
+      (Post::Rss(item), PostField::Author) => item.author.as_mut(),
+      (Post::Rss(item), PostField::Guid) => {
+        item.guid.as_mut().map(|v| &mut v.value)
+      }
+      (Post::Atom(item), PostField::Title) => Some(&mut item.title.value),
+      (Post::Atom(item), PostField::Link) => {
+        item.links.get_mut(0).map(|v| &mut v.href)
+      }
+      (Post::Atom(item), PostField::Description) => {
+        item.content.as_mut().and_then(|c| c.value.as_mut())
+      }
+      (Post::Atom(item), PostField::Author) => {
+        item.authors.get_mut(0).map(|v| &mut v.name)
+      }
+      (Post::Atom(item), PostField::Guid) => Some(&mut item.id),
+    }
+  }
+
+  fn get_field_mut_or_insert(&mut self, field: PostField) -> &mut String {
+    match (self, field) {
+      (Post::Rss(item), PostField::Title) => {
+        item.title.get_or_insert_with(String::new)
+      }
+      (Post::Rss(item), PostField::Link) => {
+        item.link.get_or_insert_with(String::new)
+      }
+      (Post::Rss(item), PostField::Description) => {
+        item.description.get_or_insert_with(String::new)
+      }
+      (Post::Rss(item), PostField::Author) => {
+        item.author.get_or_insert_with(String::new)
+      }
+      (Post::Rss(item), PostField::Guid) => {
+        &mut item
+          .guid
+          .get_or_insert_with(|| rss::Guid {
+            value: String::new(),
+            ..Default::default()
+          })
+          .value
+      }
+      (Post::Atom(item), PostField::Title) => &mut item.title.value,
+      (Post::Atom(item), PostField::Link) => {
+        &mut vec_first_or_insert(
+          &mut item.links,
+          atom_syndication::Link {
+            href: String::new(),
+            ..Default::default()
+          },
+        )
+        .href
+      }
+      (Post::Atom(item), PostField::Description) => item
+        .content
+        .get_or_insert_with(|| atom_syndication::Content {
+          value: Some(String::new()),
+          content_type: Some("html".to_string()),
+          ..Default::default()
+        })
+        .value
+        .as_mut()
+        .unwrap(),
+      (Post::Atom(item), PostField::Author) => {
+        &mut vec_first_or_insert(
+          &mut item.authors,
+          atom_syndication::Person {
+            name: String::new(),
+            ..Default::default()
+          },
+        )
+        .name
+      }
+      (Post::Atom(item), PostField::Guid) => &mut item.id,
+    }
+  }
+}
+
+macro_rules! impl_post_accessors {
+  ($($key:ident => $field:ident);*) => {
     paste! {
       impl Post {
         $(
         #[allow(unused)]
         pub fn $key(&self) -> Option<&str> {
-          match self {
-            Post::Rss(item) => item.$key.as_deref(),
-          }
+          self.get_field(PostField::$field)
+        }
+
+        #[allow(unused)]
+        pub fn [<set_ $key>](&mut self, value: impl Into<String>) {
+          self.set_field(PostField::$field, value);
         }
 
         #[allow(unused)]
         pub fn [<$key _mut>](&mut self) -> Option<&mut String> {
-          match self {
-            Post::Rss(item) => item.$key.as_mut(),
-          }
+          self.get_field_mut(PostField::$field)
         }
 
         #[allow(unused)]
@@ -105,16 +291,7 @@ macro_rules! impl_post_get {
 
         #[allow(unused)]
         pub fn [<$key _or_insert>](&mut self) -> &mut String {
-          match self {
-            Post::Rss(item) => item.$key.get_or_insert_with(String::new),
-          }
-        }
-
-        #[allow(unused)]
-        pub fn [<set_ $key>](&mut self, value: impl Into<String>) {
-          match self {
-            Post::Rss(item) => item.$key = Some(value.into()),
-          }
+          self.get_field_mut_or_insert(PostField::$field)
         }
         )*
       }
@@ -122,23 +299,15 @@ macro_rules! impl_post_get {
   };
 }
 
-impl_post_get!(title, link, description, author);
+impl_post_accessors! {
+  title => Title;
+  link => Link;
+  description => Description;
+  author => Author;
+  guid => Guid
+}
 
 impl Post {
-  pub fn get_guid(&self) -> Option<&str> {
-    match self {
-      Post::Rss(item) => item.guid.as_ref().map(|v| v.value.as_str()),
-    }
-  }
-
-  pub fn set_guid(&mut self, value: impl Into<String>) {
-    match self {
-      Post::Rss(item) => {
-        item.guid.get_or_insert_with(Default::default).value = value.into();
-      }
-    }
-  }
-
   #[allow(clippy::field_reassign_with_default)]
   fn from_html_content(content: &str, url: &Url) -> Result<Self> {
     // convert any relative urls to absolute urls
@@ -158,4 +327,13 @@ impl Post {
     });
     Ok(Post::Rss(item))
   }
+}
+
+fn vec_first_or_insert<T>(v: &mut Vec<T>, def: T) -> &mut T {
+  if !v.is_empty() {
+    return v.first_mut().unwrap();
+  }
+
+  v.push(def);
+  v.first_mut().unwrap()
 }

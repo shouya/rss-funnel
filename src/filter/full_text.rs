@@ -126,7 +126,7 @@ impl FullTextFilter {
     };
 
     if !self.keep_guid {
-      if let Some(mut guid) = post.get_guid().map(|v| v.to_string()) {
+      if let Some(mut guid) = post.guid().map(|v| v.to_string()) {
         guid.push_str("-full");
         post.set_guid(guid);
       }
