@@ -9,6 +9,7 @@ use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
 use crate::util::{Error, Result};
 
+use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig};
 
 const DEFAULT_PARALLELISM: usize = 20;
@@ -21,6 +22,7 @@ pub struct FullTextConfig {
   parallelism: Option<usize>,
   simplify: Option<bool>,
   append_mode: Option<bool>,
+  keep_element: Option<KeepElementConfig>,
   keep_guid: Option<bool>,
 }
 
@@ -28,6 +30,7 @@ pub struct FullTextFilter {
   client: reqwest::Client,
   parallelism: usize,
   append_mode: bool,
+  keep_element: Option<KeepElement>,
   simplify: bool,
   keep_guid: bool,
 }
@@ -46,6 +49,10 @@ impl FeedFilterConfig for FullTextConfig {
     let append_mode = self.append_mode.unwrap_or(false);
     let simplify = self.simplify.unwrap_or(false);
     let keep_guid = self.keep_guid.unwrap_or(false);
+    let keep_element = match self.keep_element {
+      None => None,
+      Some(ref c) => Some(c.build().await?),
+    };
 
     Ok(FullTextFilter {
       simplify,
@@ -53,6 +60,7 @@ impl FeedFilterConfig for FullTextConfig {
       parallelism,
       append_mode,
       keep_guid,
+      keep_element,
     })
   }
 }
@@ -87,12 +95,26 @@ impl FullTextFilter {
 
     let mut html = scraper::Html::parse_document(&text);
     convert_relative_url(&mut html, link);
-    let text = html.html();
+    let mut text = html.html();
 
-    let text = if self.simplify {
-      super::simplify_html::simplify(&text, link).unwrap_or(text)
-    } else {
-      text
+    match self
+      .keep_element
+      .as_ref()
+      .and_then(|k| k.filter_description(&text))
+    {
+      Some(filtered) => {
+        text = filtered;
+      }
+      None => {
+        text = format!(
+          "<p>Failed to filter description with keep_element</p>\n{}",
+          text
+        );
+      }
+    }
+
+    if self.simplify {
+      text = super::simplify_html::simplify(&text, link).unwrap_or(text);
     };
 
     let description = post.description_or_insert();

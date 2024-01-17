@@ -140,7 +140,7 @@ impl KeepElement {
     Some(())
   }
 
-  fn filter_description(&self, description: &str) -> Option<String> {
+  pub fn filter_description(&self, description: &str) -> Option<String> {
     let mut html = Html::parse_fragment(description);
 
     for selector in &self.selectors {
