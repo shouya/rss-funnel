@@ -29,12 +29,15 @@ axum = "0.7.2"
 tower = "0.4.13"
 http = "1.0.0"
 url = "2.5.0"
+mime = "0.3.17"
 
 # HTML manipulation in the feeds
 scraper = "0.18.1"
 ego-tree = "0.6.2"
 # for extracting article content from HTML, used in simplify_html filter
 readability = { version = "0.3.0", default-features = false }
+html5ever = "0.26.0"
+htmlescape = "0.3.1"
 
 # JS runtime crates
 rquickjs = { version = "0.4.0", features = ["loader", "parallel", "macro", "futures", "exports", "either"] }
@@ -53,6 +56,3 @@ regex = "1.10.2"
 tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
 lazy_static = "1.4.0"
-html5ever = "0.26.0"
-mime = "0.3.17"
-htmlescape = "0.3.1"
