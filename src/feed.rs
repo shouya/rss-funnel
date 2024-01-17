@@ -50,7 +50,8 @@ impl Feed {
         let headers = [(http::header::CONTENT_TYPE, "application/rss+xml")];
         Ok((StatusCode::OK, headers, body))
       }
-      Feed::Atom(feed) => {
+      Feed::Atom(mut feed) => {
+        fix_escaping_in_extension_attr(&mut feed);
         let body = feed.to_string();
         let headers = [(http::header::CONTENT_TYPE, "application/atom+xml")];
         Ok((StatusCode::OK, headers, body))
@@ -336,4 +337,20 @@ fn vec_first_or_insert<T>(v: &mut Vec<T>, def: T) -> &mut T {
 
   v.push(def);
   v.first_mut().unwrap()
+}
+
+fn fix_escaping_in_extension_attr(feed: &mut atom_syndication::Feed) {
+  // atom_syndication unescapes the html entities in the extension attributes, but it doesn't
+  // escape them back when serializing the feed, so we need to do it ourselves
+  for entry in &mut feed.entries {
+    for (_ns, elems) in entry.extensions.iter_mut() {
+      for (_ns2, exts) in elems.iter_mut() {
+        for ext in exts {
+          if let Some(url) = ext.attrs.get_mut("url") {
+            *url = url.replace('&', "&amp;");
+          }
+        }
+      }
+    }
+  }
 }
