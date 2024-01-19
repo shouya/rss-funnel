@@ -44,7 +44,7 @@ impl BoxedFilter {
 
 macro_rules! define_filters {
   ($($variant:ident => $config:ty);* ;) => {
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Clone, Debug)]
     #[serde(rename_all = "snake_case")]
     pub enum FilterConfig {
       $(

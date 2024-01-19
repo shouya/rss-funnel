@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use tower::Service;
+use url::Url;
 
 use crate::{
   server::{self, EndpointConfig, ServerConfig},
@@ -26,11 +28,37 @@ enum SubCommand {
 #[derive(Parser)]
 struct TestConfig {
   endpoint: String,
+  #[clap(long, short)]
+  source: Option<Url>,
+  #[clap(long, short)]
+  limit: Option<usize>,
+  #[clap(long, short)]
+  pretty_print: Option<bool>,
+}
+
+impl TestConfig {
+  fn to_endpoint_param(&self) -> server::EndpointParam {
+    server::EndpointParam::new(
+      self.source.clone(),
+      self.limit,
+      self.pretty_print.unwrap_or(false),
+    )
+  }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct FeedDefinition {
   pub endpoints: Vec<EndpointConfig>,
+}
+
+impl FeedDefinition {
+  fn get_endpoint(&self, endpoint: &str) -> Option<EndpointConfig> {
+    self.endpoints.iter().find(|e| e.path == endpoint).cloned()
+  }
+
+  fn endpoints(&self) -> impl Iterator<Item = &EndpointConfig> {
+    self.endpoints.iter()
+  }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -60,9 +88,30 @@ impl Cli {
       SubCommand::Server(server_config) => {
         server::serve(server_config, feed_defn).await
       }
-      SubCommand::Test(_test_config) => {
-        todo!()
+      SubCommand::Test(test_config) => {
+        test_endpoint(feed_defn, &test_config).await
       }
     }
   }
+}
+
+async fn test_endpoint(
+  feed_defn: FeedDefinition,
+  test_config: &TestConfig,
+) -> Result<()> {
+  let Some(endpoint_conf) = feed_defn.get_endpoint(&test_config.endpoint)
+  else {
+    let endpoints: Vec<_> =
+      feed_defn.endpoints().map(|e| e.path.clone()).collect();
+    return Err(crate::util::Error::Message(format!(
+      "endpoint {} not found (available endpoints: {:?})",
+      &test_config.endpoint, endpoints
+    )));
+  };
+  let mut endpoint_service = endpoint_conf.into_service().await?;
+  let endpoint_param = test_config.to_endpoint_param();
+  let outcome = endpoint_service.call(endpoint_param).await?;
+  println!("{}", outcome.feed_xml());
+
+  Ok(())
 }

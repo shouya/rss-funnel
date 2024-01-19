@@ -19,7 +19,7 @@ use crate::util::{Error, Result};
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EndpointConfig {
   pub path: String,
   pub note: Option<String>,
@@ -32,9 +32,13 @@ impl EndpointConfig {
     let endpoint_service = EndpointService::from_config(self.config).await?;
     Ok(axum::Router::new().nest_service(&self.path, endpoint_service))
   }
+
+  pub async fn into_service(self) -> Result<EndpointService> {
+    EndpointService::from_config(self.config).await
+  }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EndpointServiceConfig {
   source: Option<String>,
   content_type: Option<String>,
@@ -60,6 +64,18 @@ pub struct EndpointParam {
 }
 
 impl EndpointParam {
+  pub fn new(
+    source: Option<Url>,
+    limit: Option<usize>,
+    pretty_print: bool,
+  ) -> Self {
+    Self {
+      source,
+      limit,
+      pretty_print,
+    }
+  }
+
   fn from_request(req: &Request) -> Self {
     Self {
       source: Self::parse_source(req),
@@ -111,6 +127,10 @@ impl EndpointOutcome {
     if let Ok(xml) = self.feed_xml.parse::<xmlem::Document>() {
       self.feed_xml = xml.to_string_pretty();
     }
+  }
+
+  pub fn feed_xml(&self) -> &str {
+    &self.feed_xml
   }
 }
 
