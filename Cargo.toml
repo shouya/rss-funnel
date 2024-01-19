@@ -56,3 +56,4 @@ regex = "1.10.2"
 tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
 lazy_static = "1.4.0"
+xmlem = "0.2.3"

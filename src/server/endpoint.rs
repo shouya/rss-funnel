@@ -54,7 +54,7 @@ pub struct EndpointService {
 #[derive(Clone, Default)]
 pub struct EndpointParam {
   source: Option<Url>,
-  /// Only process the initial N filters
+  /// Only process the initial N filter steps
   limit: Option<usize>,
   pretty_print: bool,
 }
@@ -104,6 +104,12 @@ impl EndpointOutcome {
     Self {
       feed_xml,
       content_type,
+    }
+  }
+
+  pub fn prettify(&mut self) {
+    if let Ok(xml) = self.feed_xml.parse::<xmlem::Document>() {
+      self.feed_xml = xml.to_string_pretty();
     }
   }
 }
@@ -202,7 +208,11 @@ impl EndpointService {
     for filter in limited_filters {
       filter.run(&mut feed).await?;
     }
-    feed.into_outcome()
+    let mut outcome = feed.into_outcome()?;
+    if param.pretty_print {
+      outcome.prettify();
+    }
+    Ok(outcome)
   }
 
   fn find_source(&self, param: &Option<Url>) -> Result<Url> {
