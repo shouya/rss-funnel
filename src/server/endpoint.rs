@@ -197,7 +197,9 @@ impl EndpointService {
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
     let mut feed = self.fetch_feed(&source).await?;
-    for filter in self.filters.iter() {
+    let limited_filters =
+      self.filters.iter().take(param.limit.unwrap_or(usize::MAX));
+    for filter in limited_filters {
       filter.run(&mut feed).await?;
     }
     feed.into_outcome()
