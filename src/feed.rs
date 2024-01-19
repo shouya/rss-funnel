@@ -1,11 +1,10 @@
-use axum::response::IntoResponse;
-use http::StatusCode;
 use paste::paste;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
 use crate::html::convert_relative_url;
+use crate::server::EndpointOutcome;
 use crate::util::Error;
 use crate::util::Result;
 
@@ -43,18 +42,16 @@ impl Feed {
     Ok(feed)
   }
 
-  pub fn into_resp(self) -> Result<impl IntoResponse> {
+  pub fn into_outcome(self) -> Result<EndpointOutcome> {
     match self {
       Feed::Rss(channel) => {
         let body = channel.to_string();
-        let headers = [(http::header::CONTENT_TYPE, "application/rss+xml")];
-        Ok((StatusCode::OK, headers, body))
+        Ok(EndpointOutcome::new(body, "application/rss+xml"))
       }
       Feed::Atom(mut feed) => {
         fix_escaping_in_extension_attr(&mut feed);
         let body = feed.to_string();
-        let headers = [(http::header::CONTENT_TYPE, "application/atom+xml")];
-        Ok((StatusCode::OK, headers, body))
+        Ok(EndpointOutcome::new(body, "application/atom+xml"))
       }
     }
   }

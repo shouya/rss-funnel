@@ -2,7 +2,9 @@ mod endpoint;
 
 use axum::{routing::get, Router};
 use clap::Parser;
-pub use endpoint::EndpointConfig;
+pub use endpoint::{
+  EndpointConfig, EndpointOutcome, EndpointParam, EndpointService,
+};
 use http::StatusCode;
 use tracing::info;
 
