@@ -59,19 +59,23 @@ pub struct EndpointService {
 pub struct EndpointParam {
   source: Option<Url>,
   /// Only process the initial N filter steps
-  limit: Option<usize>,
+  limit_filters: Option<usize>,
+  /// Limit the number of items in the feed
+  limit_posts: Option<usize>,
   pretty_print: bool,
 }
 
 impl EndpointParam {
   pub fn new(
     source: Option<Url>,
-    limit: Option<usize>,
+    limit_filters: Option<usize>,
+    limit_posts: Option<usize>,
     pretty_print: bool,
   ) -> Self {
     Self {
       source,
-      limit,
+      limit_filters,
+      limit_posts,
       pretty_print,
     }
   }
@@ -79,7 +83,8 @@ impl EndpointParam {
   fn from_request(req: &Request) -> Self {
     Self {
       source: Self::parse_source(req),
-      limit: Self::parse_limit(req),
+      limit_filters: Self::parse_limit_filters(req),
+      limit_posts: Self::parse_limit_posts(req),
       pretty_print: Self::parse_pretty_print(req),
     }
   }
@@ -88,8 +93,12 @@ impl EndpointParam {
     Self::get_query(req, "source").and_then(|x| Url::parse(&x).ok())
   }
 
-  fn parse_limit(req: &Request) -> Option<usize> {
-    Self::get_query(req, "limit").and_then(|x| x.parse::<usize>().ok())
+  fn parse_limit_filters(req: &Request) -> Option<usize> {
+    Self::get_query(req, "limit_filters").and_then(|x| x.parse::<usize>().ok())
+  }
+
+  fn parse_limit_posts(req: &Request) -> Option<usize> {
+    Self::get_query(req, "limit_posts").and_then(|x| x.parse::<usize>().ok())
   }
 
   fn parse_pretty_print(req: &Request) -> bool {
@@ -223,11 +232,20 @@ impl EndpointService {
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
     let mut feed = self.fetch_feed(&source).await?;
-    let limited_filters =
-      self.filters.iter().take(param.limit.unwrap_or(usize::MAX));
+    let limited_filters = self
+      .filters
+      .iter()
+      .take(param.limit_filters.unwrap_or(usize::MAX));
     for filter in limited_filters {
       filter.run(&mut feed).await?;
     }
+
+    if let Some(limit) = param.limit_posts {
+      let mut posts = feed.take_posts();
+      posts.truncate(limit);
+      feed.set_posts(posts);
+    }
+
     let mut outcome = feed.into_outcome()?;
     if param.pretty_print {
       outcome.prettify();

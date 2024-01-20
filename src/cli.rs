@@ -27,21 +27,32 @@ enum SubCommand {
 
 #[derive(Parser)]
 struct TestConfig {
+  /// The endpoint to test
   endpoint: String,
+  /// The source URL to use for the endpoint
   #[clap(long, short)]
   source: Option<Url>,
+  /// Limit the first N filter steps to run
   #[clap(long, short)]
-  limit: Option<usize>,
+  limit_filters: Option<usize>,
+  /// Limit the number of items in the feed
+  #[clap(long, short('n'))]
+  limit_posts: Option<usize>,
+  /// Whether to compact the XML output (opposite of pretty-print)
   #[clap(long, short)]
-  pretty_print: Option<bool>,
+  compact_output: bool,
+  /// Don't print XML output (Useful for checking console.log in JS filters)
+  #[clap(long, short)]
+  quiet: bool,
 }
 
 impl TestConfig {
   fn to_endpoint_param(&self) -> server::EndpointParam {
     server::EndpointParam::new(
       self.source.clone(),
-      self.limit,
-      self.pretty_print.unwrap_or(false),
+      self.limit_filters,
+      self.limit_posts,
+      !self.compact_output,
     )
   }
 }
@@ -116,5 +127,8 @@ async fn test_endpoint(feed_defn: FeedDefinition, test_config: &TestConfig) {
     .call(endpoint_param)
     .await
     .expect("failed to call endpoint service");
-  println!("{}", outcome.feed_xml());
+
+  if !test_config.quiet {
+    println!("{}", outcome.feed_xml());
+  }
 }
