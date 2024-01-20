@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::Result;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientConfig {
   user_agent: Option<String>,
   accept: Option<String>,

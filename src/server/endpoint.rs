@@ -19,7 +19,7 @@ use crate::util::{Error, Result};
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EndpointConfig {
   pub path: String,
   pub note: Option<String>,
@@ -38,7 +38,7 @@ impl EndpointConfig {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EndpointServiceConfig {
   source: Option<String>,
   content_type: Option<String>,

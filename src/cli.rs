@@ -46,7 +46,7 @@ impl TestConfig {
   }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FeedDefinition {
   pub endpoints: Vec<EndpointConfig>,
 }
@@ -89,29 +89,32 @@ impl Cli {
         server::serve(server_config, feed_defn).await
       }
       SubCommand::Test(test_config) => {
-        test_endpoint(feed_defn, &test_config).await
+        test_endpoint(feed_defn, &test_config).await;
+        Ok(())
       }
     }
   }
 }
 
-async fn test_endpoint(
-  feed_defn: FeedDefinition,
-  test_config: &TestConfig,
-) -> Result<()> {
+async fn test_endpoint(feed_defn: FeedDefinition, test_config: &TestConfig) {
   let Some(endpoint_conf) = feed_defn.get_endpoint(&test_config.endpoint)
   else {
     let endpoints: Vec<_> =
       feed_defn.endpoints().map(|e| e.path.clone()).collect();
-    return Err(crate::util::Error::Message(format!(
+    eprintln!(
       "endpoint {} not found (available endpoints: {:?})",
       &test_config.endpoint, endpoints
-    )));
+    );
+    return;
   };
-  let mut endpoint_service = endpoint_conf.into_service().await?;
+  let mut endpoint_service = endpoint_conf
+    .into_service()
+    .await
+    .expect("failed to build endpoint service");
   let endpoint_param = test_config.to_endpoint_param();
-  let outcome = endpoint_service.call(endpoint_param).await?;
+  let outcome = endpoint_service
+    .call(endpoint_param)
+    .await
+    .expect("failed to call endpoint service");
   println!("{}", outcome.feed_xml());
-
-  Ok(())
 }

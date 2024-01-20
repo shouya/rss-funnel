@@ -8,13 +8,13 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct SanitizeOpReplaceConfig {
   from: String,
   to: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SanitizeOpConfig {
   remove: Option<String>,
   remove_regex: Option<String>,
@@ -73,7 +73,7 @@ pub enum SanitizeOp {
   Replace(Regex, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct SanitizeConfig {
   ops: Vec<SanitizeOpConfig>,

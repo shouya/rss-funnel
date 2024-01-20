@@ -6,7 +6,7 @@ use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SimplifyHtmlConfig {}
 
 pub struct SimplifyHtmlFilter;

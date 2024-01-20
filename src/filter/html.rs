@@ -29,7 +29,7 @@ use super::{FeedFilter, FeedFilterConfig};
 ///       - span.ads
 /// ```
 #[doc(alias = "remove_element")]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct RemoveElementConfig {
   selectors: Vec<String>,
@@ -98,7 +98,7 @@ impl FeedFilter for RemoveElement {
   }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct KeepElementConfig {
   selector: String,
@@ -175,7 +175,7 @@ impl FeedFilter for KeepElement {
   }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SplitConfig {
   title_selector: String,
   link_selector: Option<String>,

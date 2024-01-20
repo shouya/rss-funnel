@@ -12,7 +12,7 @@ use super::{FeedFilter, FeedFilterConfig};
 
 const DEFAULT_PARALLELISM: usize = 20;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FullTextConfig {
   parallelism: Option<usize>,
   simplify: Option<bool>,
