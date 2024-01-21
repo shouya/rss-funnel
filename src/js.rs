@@ -1,4 +1,5 @@
 mod builtin;
+mod dom;
 
 use std::fs;
 use std::path::PathBuf;
