@@ -82,6 +82,27 @@ impl<'js> Node<'js> {
     Ok(value)
   }
 
+  fn inner_text(&self) -> Result<String, Error> {
+    let dom = self.dom.borrow();
+    let elem = self.elem(&dom)?;
+    let text = elem.text().collect::<String>();
+    Ok(text)
+  }
+
+  fn inner_html(&self) -> Result<String, Error> {
+    let dom = self.dom.borrow();
+    let elem = self.elem(&dom)?;
+    let html = elem.inner_html();
+    Ok(html)
+  }
+
+  fn outer_html(&self) -> Result<String, Error> {
+    let dom = self.dom.borrow();
+    let elem = self.elem(&dom)?;
+    let html = elem.html();
+    Ok(html)
+  }
+
   #[qjs(skip)]
   fn elem<'a, 'b: 'a>(
     &'a self,
