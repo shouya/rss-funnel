@@ -2,7 +2,7 @@ use ego_tree::NodeId;
 use rquickjs::{
   class::{Trace, Tracer},
   convert::FromIteratorJs,
-  qjs, Class, Ctx, Error, Exception, Object,
+  Class, Ctx, Error, Exception, Object,
 };
 use scraper::ElementRef;
 
@@ -15,7 +15,7 @@ pub struct DOM {
 }
 
 impl<'js> Trace<'js> for DOM {
-  fn trace<'a>(&self, tracer: Tracer<'a, 'js>) {
+  fn trace<'a>(&self, _tracer: Tracer<'a, 'js>) {
     // no object is reached from this object
   }
 }

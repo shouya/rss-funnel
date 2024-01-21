@@ -24,8 +24,14 @@ struct Console {}
 
 #[rquickjs::methods]
 impl Console {
-  fn log(msg: String) {
+  fn log(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
+    let msg = match value.try_into_string() {
+      Ok(s) => s.to_string()?,
+      Err(v) => format!("[{}] {:?}", v.type_name(), v),
+    };
+
     println!("[console.log] {}", msg);
+    Ok(())
   }
 }
 
