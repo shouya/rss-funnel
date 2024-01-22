@@ -11,13 +11,13 @@ The RSS Funnel is a simple yet highly configurable RSS processing pipeline. It i
 
 ** Installation
 
-You can use the docker image (=ghcr.io/shouya/rss-funnel:0.0.1=) in your =docker-compose.yaml=:
+You can use the docker image ([[https://github.com/shouya/rss-funnel/pkgs/container/rss-funnel][latest version]]) in your =docker-compose.yaml=:
 
 #+begin_src yaml
 version: "3.8"
 services:
   rss-funnel:
-    image: ghcr.io/shouya/rss-funnel:0.0.1
+    image: ghcr.io/shouya/rss-funnel:latest
     ports:
       - 4080:4080
     volumes:
