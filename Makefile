@@ -34,7 +34,7 @@ push-docker: build-docker-$(TARGET)
 	podman push $(IMAGE_NAME):latest-$(TARGET)
 
 push-docker-multiarch: build-docker-multiarch
-	podman push $(IMAGE_NAME):$(VERSION)
-	podman push $(IMAGE_NAME):latest
+	podman manifest push $(IMAGE_NAME):$(VERSION)
+	podman manifest push $(IMAGE_NAME):latest
 
 .PHONY: build-docker build-docker-multiarch push-docker push-docker-multiarch
