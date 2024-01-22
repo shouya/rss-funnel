@@ -27,3 +27,10 @@ make IMAGE_HOST=ghcr.io \
 make IMAGE_HOST=ghcr.io \
      VERSION=$version \
      push-docker-multiarch
+
+git tag -a "$version" -m "Release $version"
+git push origin "$version"
+
+git cliff -o CHANGELOG.md
+git commit -am "chore: update changelog"
+git push origin HEAD
