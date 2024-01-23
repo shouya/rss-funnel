@@ -235,6 +235,21 @@ impl<'js> Node<'js> {
     Ok(nodes)
   }
 
+  fn children(&self) -> Result<Vec<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.elem(&dom)?;
+    let mut nodes = Vec::new();
+    for child in node.children() {
+      let node_id = child.id();
+      nodes.push(Node {
+        dom: self.dom.clone(),
+        node_id,
+      });
+    }
+
+    Ok(nodes)
+  }
+
   #[qjs(skip)]
   fn node_mut<'a, 'b: 'a>(
     &'a self,
@@ -399,6 +414,21 @@ mod test {
     );
 
     assert_eq!(res.await, "<div><p>world</p></div>");
+  }
+
+  #[tokio::test]
+  async fn test_node_children() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p><p>world</p></div>");
+      const [div] = dom.select('div');
+      const children = div.children();
+      children.map(c => c.tag_name()).join(',')
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "p,p");
   }
 
   async fn run_js(code: &str) -> String {
