@@ -14,6 +14,7 @@ use crate::util::Result;
 #[derive(Clone)]
 pub struct DOM {
   html: scraper::Html,
+  fragment: bool,
 }
 
 impl<'js> Trace<'js> for DOM {
@@ -24,14 +25,36 @@ impl<'js> Trace<'js> for DOM {
 
 #[rquickjs::methods]
 impl DOM {
+  #[qjs(static)]
+  fn parse_fragment(html: String) -> Option<Self> {
+    let html = scraper::Html::parse_fragment(&html);
+    Some(DOM {
+      html,
+      fragment: true,
+    })
+  }
+
+  #[qjs(static)]
+  fn parse_document(html: String) -> Option<Self> {
+    let html = scraper::Html::parse_document(&html);
+    Some(DOM {
+      html,
+      fragment: false,
+    })
+  }
+
   #[qjs(constructor)]
   fn new(s: String) -> Option<Self> {
-    let html = scraper::Html::parse_document(&s);
-    Some(DOM { html })
+    Self::parse_document(s)
   }
 
   fn to_html(&self) -> String {
-    self.html.html()
+    if self.fragment {
+      // do not include the outmost "<html>" tag for fragment
+      self.html.root_element().inner_html()
+    } else {
+      self.html.html()
+    }
   }
 
   fn select<'js>(
