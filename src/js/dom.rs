@@ -263,3 +263,161 @@ impl<'js> Node<'js> {
     Ok(elem_ref)
   }
 }
+
+#[cfg(test)]
+mod test {
+  use crate::js::Runtime;
+
+  #[tokio::test]
+  async fn test_dom_constructor() {
+    let res = run_js(
+      r#"
+      const dom = new DOM("<div>hello</div>");
+      dom.select('div').length.toString()
+    "#,
+    )
+    .await;
+
+    assert_eq!(res, "1");
+  }
+
+  #[tokio::test]
+  async fn test_dom_constructor_document() {
+    let res = run_js(
+      r#"
+      const dom = new DOM("<html><head></head><body><div>hello</div></body></html>");
+      dom.to_html()
+    "#,
+    )
+    .await;
+
+    assert_eq!(
+      res,
+      "<html><head></head><body><div>hello</div></body></html>"
+    );
+  }
+
+  #[tokio::test]
+  async fn test_dom_to_html() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div>hello</div>");
+      dom.to_html()
+    "#,
+    )
+    .await;
+
+    assert_eq!(res, "<div>hello</div>");
+  }
+
+  #[tokio::test]
+  async fn test_node_attr() {
+    let res = run_js(
+      r#"
+      const dom = new DOM("<div class='greeting' onclick='return 0;'>hello</div>");
+      const [div] = dom.select('div');
+      JSON.stringify(div.attrs())
+    "#,
+    )
+    .await;
+
+    let json = serde_json::from_str::<serde_json::Value>(&res).unwrap();
+    assert_eq!(
+      json,
+      serde_json::json!({
+        "class": "greeting",
+        "onclick": "return 0;",
+      })
+    );
+  }
+
+  #[tokio::test]
+  async fn test_node_mutation() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      const [div] = dom.select('div');
+      div.set_attr('class', 'greeting');
+      const [p] = div.select('p');
+      p.set_inner_text('world');
+      dom.to_html()
+      "#,
+    );
+
+    assert_eq!(res.await, "<div class=\"greeting\"><p>world</p></div>");
+  }
+
+  #[tokio::test]
+  async fn test_node_deletion() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p><p>world</p></div>");
+      for (const p of dom.select('p')) {
+        p.delete();
+      }
+      dom.to_html()
+      "#,
+    );
+
+    assert_eq!(res.await, "<div></div>");
+  }
+
+  #[tokio::test]
+  async fn test_set_inner_html() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      dom.select('p')[0].set_inner_html("<span>world</span>");
+      dom.to_html()
+      "#,
+    );
+
+    assert_eq!(res.await, "<div><p><span>world</span></p></div>");
+  }
+
+  #[tokio::test]
+  async fn test_set_outer_html() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      dom.select('p')[0].set_outer_html("<span>world</span>");
+      dom.to_html()
+      "#,
+    );
+
+    assert_eq!(res.await, "<div><span>world</span></div>");
+  }
+
+  #[tokio::test]
+  async fn test_set_inner_text() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      dom.select('p')[0].set_inner_text("world");
+      dom.to_html()
+      "#,
+    );
+
+    assert_eq!(res.await, "<div><p>world</p></div>");
+  }
+
+  async fn run_js(code: &str) -> String {
+    let rt = Runtime::new().await.unwrap();
+    rt.eval(code).await.unwrap()
+  }
+}
+
+fn fragment_root_node_id(mut node: NodeRef<'_, scraper::Node>) -> NodeId {
+  let val = node.value();
+  if val.is_fragment() || val.is_document() {
+    node = node.first_child().unwrap();
+    return fragment_root_node_id(node);
+  }
+
+  if val.as_element().is_some_and(|e| e.name() == "html") {
+    node = node.first_child().unwrap();
+    return fragment_root_node_id(node);
+  }
+
+  node.id()
+}
