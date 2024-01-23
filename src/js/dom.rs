@@ -3,6 +3,7 @@ use html5ever::{namespace_url, ns, LocalName, QualName};
 use rquickjs::{
   class::{Trace, Tracer},
   convert::FromIteratorJs,
+  prelude::This,
   Class, Ctx, Error, Exception, Object,
 };
 use scraper::ElementRef;
@@ -34,15 +35,15 @@ impl DOM {
   }
 
   fn select<'js>(
-    &self,
+    this: This<Class<'js, Self>>,
     ctx: Ctx<'js>,
     selector: String,
   ) -> Result<Vec<Node<'js>>, Error> {
     let mut nodes = Vec::new();
     let selector = scraper::Selector::parse(&selector)
       .map_err(|_e| Exception::throw_message(&ctx, "bad selector"))?;
-    let dom = Class::instance(ctx, self.clone())?;
-    for node in self.html.select(&selector) {
+    let dom = this.clone();
+    for node in this.borrow().html.select(&selector) {
       let node_id = node.id();
       nodes.push(Node {
         dom: dom.clone(),
