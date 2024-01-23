@@ -1,4 +1,5 @@
-use ego_tree::NodeId;
+use ego_tree::{NodeId, NodeMut};
+use html5ever::{namespace_url, ns, LocalName, QualName};
 use rquickjs::{
   class::{Trace, Tracer},
   convert::FromIteratorJs,
@@ -82,6 +83,37 @@ impl<'js> Node<'js> {
     Ok(value)
   }
 
+  fn set_attr(&self, name: String, value: String) -> Result<(), Error> {
+    let mut dom = self.dom.borrow_mut();
+    let mut node = self.node_mut(&mut dom)?;
+    let scraper::Node::Element(elem) = node.value() else {
+      return Err(Exception::throw_message(
+        self.dom.ctx(),
+        "node is not an element",
+      ));
+    };
+
+    let attr_name =
+      QualName::new(None, namespace_url!(""), LocalName::from(name));
+    elem.attrs.insert(attr_name, value.into());
+    Ok(())
+  }
+
+  fn unset_attr(&self, name: String) -> Result<(), Error> {
+    let mut dom = self.dom.borrow_mut();
+    let mut node = self.node_mut(&mut dom)?;
+    let scraper::Node::Element(elem) = node.value() else {
+      return Err(Exception::throw_message(
+        self.dom.ctx(),
+        "node is not an element",
+      ));
+    };
+
+    let attr_name = QualName::new(None, ns!(), LocalName::from(name));
+    elem.attrs.remove(&attr_name);
+    Ok(())
+  }
+
   fn inner_text(&self) -> Result<String, Error> {
     let dom = self.dom.borrow();
     let elem = self.elem(&dom)?;
@@ -101,6 +133,18 @@ impl<'js> Node<'js> {
     let elem = self.elem(&dom)?;
     let html = elem.html();
     Ok(html)
+  }
+
+  #[qjs(skip)]
+  fn node_mut<'a, 'b: 'a>(
+    &'a self,
+    dom: &'b mut DOM,
+  ) -> Result<NodeMut<'b, scraper::Node>, Error> {
+    let node_mut = dom.html.tree.get_mut(self.node_id).ok_or_else(|| {
+      Exception::throw_message(self.dom.ctx(), "node not found")
+    })?;
+
+    Ok(node_mut)
   }
 
   #[qjs(skip)]
