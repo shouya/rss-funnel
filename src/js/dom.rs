@@ -114,6 +114,32 @@ impl<'js> Node<'js> {
     Ok(())
   }
 
+  fn tag_name(&self) -> Result<String, Error> {
+    let dom = self.dom.borrow();
+    let elem = self.elem(&dom)?;
+    Ok(elem.value().name().to_string())
+  }
+
+  fn set_inner_text(&self, text: String) -> Result<(), Error> {
+    use scraper::node::Text;
+    let mut dom = self.dom.borrow_mut();
+    let mut node = self.node_mut(&mut dom)?;
+    while let Some(mut child) = node.first_child() {
+      child.detach();
+    }
+
+    let new_text_node = scraper::Node::Text(Text { text: text.into() });
+    node.append(new_text_node);
+    Ok(())
+  }
+
+  fn delete(&self) -> Result<(), Error> {
+    let mut dom = self.dom.borrow_mut();
+    let mut node = self.node_mut(&mut dom)?;
+    node.detach();
+    Ok(())
+  }
+
   fn inner_text(&self) -> Result<String, Error> {
     let dom = self.dom.borrow();
     let elem = self.elem(&dom)?;
@@ -128,11 +154,33 @@ impl<'js> Node<'js> {
     Ok(html)
   }
 
+  fn set_inner_html(&self, html: String) -> Result<(), Error> {
+    let mut dom = self.dom.borrow_mut();
+    let mut node = self.node_mut(&mut dom)?;
+    while let Some(mut child) = node.first_child() {
+      child.detach();
+    }
+
+    let new_tree = scraper::Html::parse_fragment(&html).tree;
+    node.append_subtree(new_tree);
+    Ok(())
+  }
+
   fn outer_html(&self) -> Result<String, Error> {
     let dom = self.dom.borrow();
     let elem = self.elem(&dom)?;
     let html = elem.html();
     Ok(html)
+  }
+
+  fn set_outer_html(&self, html: String) -> Result<(), Error> {
+    let mut dom = self.dom.borrow_mut();
+    let mut node = self.node_mut(&mut dom)?;
+    let new_tree = scraper::Html::parse_fragment(&html).tree;
+    let new_root = node.tree().extend_tree(new_tree).id();
+    node.insert_id_after(new_root);
+    node.detach();
+    Ok(())
   }
 
   #[qjs(skip)]

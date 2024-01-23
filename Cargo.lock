@@ -526,8 +526,7 @@ dependencies = [
 [[package]]
 name = "ego-tree"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a68a4904193147e0a8dec3314640e6db742afd5f6e634f428a6af230d9b3591"
+source = "git+https://github.com/shouya/ego-tree.git#8d8ffd51e1393e561161abd5e138b2684bde17ba"
 
 [[package]]
 name = "either"
