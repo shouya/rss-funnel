@@ -1,4 +1,4 @@
-use ego_tree::{NodeId, NodeMut};
+use ego_tree::{NodeId, NodeMut, NodeRef};
 use html5ever::{namespace_url, ns, LocalName, QualName};
 use rquickjs::{
   class::{Trace, Tracer},
@@ -186,7 +186,9 @@ impl<'js> Node<'js> {
     }
 
     let new_tree = scraper::Html::parse_fragment(&html).tree;
-    node.append_subtree(new_tree);
+    let new_root = node.tree().extend_tree(new_tree);
+    let root_node_id = fragment_root_node_id(new_root.into());
+    node.append_id(root_node_id);
     Ok(())
   }
 
@@ -201,9 +203,12 @@ impl<'js> Node<'js> {
     let mut dom = self.dom.borrow_mut();
     let mut node = self.node_mut(&mut dom)?;
     let new_tree = scraper::Html::parse_fragment(&html).tree;
-    let new_root = node.tree().extend_tree(new_tree).id();
-    node.insert_id_after(new_root);
+    let new_root = node.tree().extend_tree(new_tree);
+    let root_node_id = fragment_root_node_id(new_root.into());
+
+    node.insert_id_after(root_node_id);
     node.detach();
+
     Ok(())
   }
 
