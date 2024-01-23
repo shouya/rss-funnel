@@ -183,6 +183,29 @@ impl<'js> Node<'js> {
     Ok(())
   }
 
+  fn select(
+    &self,
+    ctx: Ctx<'js>,
+    selector: String,
+  ) -> Result<Vec<Node<'js>>, Error> {
+    let selector = scraper::Selector::parse(&selector)
+      .map_err(|_e| Exception::throw_message(&ctx, "bad selector"))?;
+
+    let dom = self.dom.borrow();
+    let elem = self.elem(&dom)?;
+
+    let mut nodes = Vec::new();
+    for node in elem.select(&selector) {
+      let node_id = node.id();
+      nodes.push(Node {
+        dom: self.dom.clone(),
+        node_id,
+      });
+    }
+
+    Ok(nodes)
+  }
+
   #[qjs(skip)]
   fn node_mut<'a, 'b: 'a>(
     &'a self,
