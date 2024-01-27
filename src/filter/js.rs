@@ -21,7 +21,7 @@ pub struct JsFilter {
 impl FeedFilterConfig for JsConfig {
   type Filter = JsFilter;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     let runtime = Runtime::new().await?;
     runtime.eval(&self.code).await?;
 
