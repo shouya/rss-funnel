@@ -49,10 +49,10 @@ fn parse_selector(selector: &str) -> Result<Selector> {
 impl FeedFilterConfig for RemoveElementConfig {
   type Filter = RemoveElement;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     let mut selectors = vec![];
-    for selector in &self.selectors {
-      let parsed = parse_selector(selector)?;
+    for selector in self.selectors {
+      let parsed = parse_selector(&selector)?;
 
       selectors.push(parsed);
     }
@@ -115,7 +115,7 @@ impl FeedFilterConfig for KeepElementConfig {
   // TODO: decide whether we want to support iteratively narrowed
   // selector. Multiple selectors here may create more confusion than
   // being useful.
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     let selectors = vec![parse_selector(&self.selector)?];
     Ok(KeepElement { selectors })
   }
@@ -194,7 +194,7 @@ pub struct Split {
 impl FeedFilterConfig for SplitConfig {
   type Filter = Split;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     let parse_selector_opt = |s: &Option<String>| -> Result<Option<Selector>> {
       match s {
         Some(s) => Ok(Some(parse_selector(s)?)),

@@ -21,7 +21,7 @@ pub trait FeedFilter {
 pub trait FeedFilterConfig: DeserializeOwned {
   type Filter: FeedFilter;
 
-  async fn build(&self) -> Result<Self::Filter>;
+  async fn build(self) -> Result<Self::Filter>;
 }
 
 #[derive(Clone)]
@@ -54,7 +54,7 @@ macro_rules! define_filters {
     }
 
     impl FilterConfig {
-      pub async fn build(&self) -> Result<BoxedFilter> {
+      pub async fn build(self) -> Result<BoxedFilter> {
         match self {
           $(FilterConfig::$variant(config) => {
             let filter = config.build().await?;

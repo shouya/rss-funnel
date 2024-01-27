@@ -128,7 +128,7 @@ enum Action {
 impl FeedFilterConfig for KeepOnlyConfig {
   type Filter = Select;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     self.0.to_match_config().to_select(Action::Include)
   }
 }
@@ -137,7 +137,7 @@ impl FeedFilterConfig for KeepOnlyConfig {
 impl FeedFilterConfig for DiscardConfig {
   type Filter = Select;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     self.0.to_match_config().to_select(Action::Exclude)
   }
 }

@@ -15,7 +15,7 @@ pub struct SimplifyHtmlFilter;
 impl FeedFilterConfig for SimplifyHtmlConfig {
   type Filter = SimplifyHtmlFilter;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(SimplifyHtmlFilter)
   }
 }

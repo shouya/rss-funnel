@@ -35,15 +35,15 @@ pub struct FullTextFilter {
 impl FeedFilterConfig for FullTextConfig {
   type Filter = FullTextFilter;
 
-  async fn build(&self) -> Result<Self::Filter> {
-    let client = self.client.clone().unwrap_or_default().build()?;
+  async fn build(self) -> Result<Self::Filter> {
+    let client = self.client.unwrap_or_default().build()?;
     let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
     let append_mode = self.append_mode.unwrap_or(false);
     let simplify = self.simplify.unwrap_or(false);
     let keep_guid = self.keep_guid.unwrap_or(false);
     let keep_element = match self.keep_element {
       None => None,
-      Some(ref c) => Some(c.build().await?),
+      Some(c) => Some(c.build().await?),
     };
 
     Ok(FullTextFilter {

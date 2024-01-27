@@ -87,9 +87,9 @@ pub struct Sanitize {
 impl FeedFilterConfig for SanitizeConfig {
   type Filter = Sanitize;
 
-  async fn build(&self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter> {
     let mut ops = Vec::new();
-    for op in &self.ops {
+    for op in self.ops {
       ops.push(op.parse()?);
     }
 
