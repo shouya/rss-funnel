@@ -2,6 +2,7 @@ mod full_text;
 mod html;
 mod js;
 mod sanitize;
+mod select;
 mod simplify_html;
 
 use std::sync::Arc;
@@ -73,4 +74,6 @@ define_filters!(
   KeepElement => html::KeepElementConfig;
   Split => html::SplitConfig;
   Sanitize => sanitize::SanitizeConfig;
+  KeepOnly => select::KeepOnlyConfig;
+  Discard => select::DiscardConfig;
 );
