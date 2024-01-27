@@ -45,17 +45,17 @@ impl Default for MatchConfig {
 }
 
 impl AnyMatchConfig {
-  fn to_match_config(&self) -> MatchConfig {
+  fn into_match_config(self) -> MatchConfig {
     match self {
       Self::SingleContains(s) => MatchConfig {
-        contains: SingleOrVec::Vec(vec![s.clone()]),
+        contains: SingleOrVec::Vec(vec![s]),
         ..Default::default()
       },
       Self::MultipleContains(v) => MatchConfig {
-        contains: SingleOrVec::Vec(v.clone()),
+        contains: SingleOrVec::Vec(v),
         ..Default::default()
       },
-      Self::MatchConfig(m) => m.clone(),
+      Self::MatchConfig(m) => m,
     }
   }
 }
@@ -78,7 +78,7 @@ impl MatchConfig {
     Ok(RegexSet::new(self.regexes()).map_err(ConfigError::from)?)
   }
 
-  fn to_select(&self, action: Action) -> Result<Select> {
+  fn into_select(self, action: Action) -> Result<Select> {
     let needle = self.regex_set()?;
     let field = self.field;
 
@@ -129,7 +129,7 @@ impl FeedFilterConfig for KeepOnlyConfig {
   type Filter = Select;
 
   async fn build(self) -> Result<Self::Filter> {
-    self.0.to_match_config().to_select(Action::Include)
+    self.0.into_match_config().into_select(Action::Include)
   }
 }
 
@@ -138,7 +138,7 @@ impl FeedFilterConfig for DiscardConfig {
   type Filter = Select;
 
   async fn build(self) -> Result<Self::Filter> {
-    self.0.to_match_config().to_select(Action::Exclude)
+    self.0.into_match_config().into_select(Action::Exclude)
   }
 }
 
