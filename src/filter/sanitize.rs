@@ -23,7 +23,7 @@ pub struct SanitizeOpConfig {
 }
 
 impl SanitizeOpConfig {
-  fn parse(&self) -> Result<SanitizeOp> {
+  fn into_op(self) -> Result<SanitizeOp> {
     // must ensure that only one of the options is Some
     let num_selected = self.remove.is_some() as u8
       + self.remove_regex.is_some() as u8
@@ -43,24 +43,24 @@ impl SanitizeOpConfig {
       };
     }
 
-    if let Some(text) = &self.remove {
-      let escaped = regex::escape(text);
+    if let Some(text) = self.remove {
+      let escaped = regex::escape(&text);
       return Ok(SanitizeOp::Remove(parse_regex!(escaped)));
     }
 
-    if let Some(repl) = &self.remove_regex {
+    if let Some(repl) = self.remove_regex {
       return Ok(SanitizeOp::Remove(parse_regex!(repl)));
     }
 
-    if let Some(text) = &self.replace {
+    if let Some(text) = self.replace {
       let from = parse_regex!(regex::escape(&text.from));
-      let to = text.to.clone();
+      let to = text.to;
       return Ok(SanitizeOp::Replace(from, to));
     }
 
-    if let Some(repl) = &self.replace_regex {
+    if let Some(repl) = self.replace_regex {
       let from = parse_regex!(repl.from);
-      let to = repl.to.clone();
+      let to = repl.to;
       return Ok(SanitizeOp::Replace(from, to));
     }
 
@@ -89,8 +89,8 @@ impl FeedFilterConfig for SanitizeConfig {
 
   async fn build(self) -> Result<Self::Filter> {
     let mut ops = Vec::new();
-    for op in self.ops {
-      ops.push(op.parse()?);
+    for conf in self.ops {
+      ops.push(conf.into_op()?);
     }
 
     Ok(Sanitize { ops })
