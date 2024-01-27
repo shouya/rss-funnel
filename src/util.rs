@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 pub const USER_AGENT: &str =
   concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
@@ -59,4 +61,58 @@ pub enum Error {
 
   #[error("{0}")]
   Message(String),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum SingleOrVec<T> {
+  Single(T),
+  Vec(Vec<T>),
+}
+
+impl<T> Default for SingleOrVec<T> {
+  fn default() -> Self {
+    Self::empty()
+  }
+}
+
+pub enum SingleOrVecIter<'a, T> {
+  Single(std::iter::Once<&'a T>),
+  Vec(std::slice::Iter<'a, T>),
+}
+
+impl<T> SingleOrVec<T> {
+  pub fn empty() -> Self {
+    Self::Vec(Vec::new())
+  }
+
+  pub fn into_vec(self) -> Vec<T> {
+    match self {
+      Self::Single(s) => vec![s],
+      Self::Vec(v) => v,
+    }
+  }
+}
+
+impl<'a, T> IntoIterator for &'a SingleOrVec<T> {
+  type Item = &'a T;
+  type IntoIter = SingleOrVecIter<'a, T>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    match self {
+      SingleOrVec::Single(s) => SingleOrVecIter::Single(std::iter::once(s)),
+      SingleOrVec::Vec(v) => SingleOrVecIter::Vec(v.iter()),
+    }
+  }
+}
+
+impl<'a, T> Iterator for SingleOrVecIter<'a, T> {
+  type Item = &'a T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::Single(s) => s.next(),
+      Self::Vec(v) => v.next(),
+    }
+  }
 }
