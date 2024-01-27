@@ -39,6 +39,7 @@ pub struct RemoveElement {
   selectors: Vec<Selector>,
 }
 
+// can't define FromStr for Selector due to Rust's orphan rule
 fn parse_selector(selector: &str) -> Result<Selector> {
   Selector::parse(selector)
     .map_err(|e| ConfigError::BadSelector(format!("{}: {}", selector, e)))
