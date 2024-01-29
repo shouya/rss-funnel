@@ -1,6 +1,6 @@
 use super::{FeedFilter, FeedFilterConfig};
 use ego_tree::{NodeId, NodeMut};
-use regex::{Regex, RegexSet};
+use regex::{Regex, RegexBuilder, RegexSet, RegexSetBuilder};
 use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
@@ -102,11 +102,16 @@ impl TextSegment {
 
 impl Highlight {
   fn new<T: AsRef<str>>(patterns: &[T], bg_color: String) -> Result<Self> {
-    let regexset = RegexSet::new(patterns).map_err(ConfigError::from)?;
+    let regexset = RegexSetBuilder::new(patterns)
+      .case_insensitive(true)
+      .build()
+      .map_err(ConfigError::from)?;
     let patterns = patterns
-      .into_iter()
+      .iter()
       .map(|p| {
-        Regex::new(p.as_ref())
+        RegexBuilder::new(p.as_ref())
+          .case_insensitive(true)
+          .build()
           .map_err(ConfigError::from)
           .map_err(|e| e.into())
       })
@@ -235,11 +240,14 @@ mod test {
     let highlight = Highlight::new(&keywords, "#ffff00".into())
       .expect("failed to build highlighter");
 
-    let html = r#"<html><p class="foo">foo<div><!-- bar -->foo<br> bar</div></p></html>
+    let html = r#"<html><p class="foo">FOO<div><!-- bar -->foo<br> bar</div></p></html>
 "#;
     let actual = highlight.highlight_html(html);
-    let expected = r#"<html><p class="foo"><span class="rss-funnel-hl" style="color: #ffff00">foo</span><div><!-- bar --><span class="rss-funnel-hl" style="color: #ffff00">foo</span><br> <span style="color: #ffff00" class="rss-funnel-hl">bar</span></div></p></html>
+    let expected = r#"<html><p class="foo"><span class="rss-funnel-hl" style="color: #ffff00">FOO</span><div><!-- bar --><span class="rss-funnel-hl" style="color: #ffff00">foo</span><br> <span style="color: #ffff00" class="rss-funnel-hl">bar</span></div></p></html>
 "#;
+
+    // println!("{}", actual);
+    // println!("{}", expected);
 
     assert_eq!(
       Html::parse_fragment(&actual).tree,
