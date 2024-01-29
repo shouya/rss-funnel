@@ -1,4 +1,5 @@
 mod full_text;
+mod highlight;
 mod html;
 mod js;
 mod sanitize;
