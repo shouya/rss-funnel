@@ -1,4 +1,5 @@
 mod full_text;
+mod highlight;
 mod html;
 mod js;
 mod sanitize;
@@ -76,4 +77,5 @@ define_filters!(
   Sanitize => sanitize::SanitizeConfig;
   KeepOnly => select::KeepOnlyConfig;
   Discard => select::DiscardConfig;
+  Highlight => highlight::HighlightConfig;
 );

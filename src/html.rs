@@ -1,3 +1,4 @@
+use ego_tree::{NodeId, NodeRef};
 use scraper::{Html, Selector};
 
 const RELATIVE_URL_PROPERTIES: [(&str, &str); 3] = [
@@ -43,4 +44,19 @@ pub fn convert_relative_url(html: &mut Html, base_url: &str) {
       attr_value.push_slice(url.as_str());
     }
   }
+}
+
+pub fn fragment_root_node_id(mut node: NodeRef<'_, scraper::Node>) -> NodeId {
+  let val = node.value();
+  if val.is_fragment() || val.is_document() {
+    node = node.first_child().unwrap();
+    return fragment_root_node_id(node);
+  }
+
+  if val.as_element().is_some_and(|e| e.name() == "html") {
+    node = node.first_child().unwrap();
+    return fragment_root_node_id(node);
+  }
+
+  node.id()
 }
