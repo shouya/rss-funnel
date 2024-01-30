@@ -5,6 +5,8 @@ mod filter;
 mod html;
 mod js;
 mod server;
+#[cfg(test)]
+mod test_utils;
 mod util;
 
 use clap::Parser;

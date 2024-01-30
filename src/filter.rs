@@ -8,7 +8,6 @@ mod simplify_html;
 
 use std::sync::Arc;
 
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::{feed::Feed, util::Result};
@@ -19,7 +18,7 @@ pub trait FeedFilter {
 }
 
 #[async_trait::async_trait]
-pub trait FeedFilterConfig: DeserializeOwned {
+pub trait FeedFilterConfig {
   type Filter: FeedFilter;
 
   async fn build(self) -> Result<Self::Filter>;
@@ -55,6 +54,24 @@ macro_rules! define_filters {
     }
 
     impl FilterConfig {
+      // currently only used in tests
+      #[cfg(test)]
+      pub fn parse_yaml(input: &str) -> Result<Box<dyn std::any::Any>> {
+        #[derive(Deserialize)]
+        struct Dummy {
+          #[serde(flatten)]
+          config: FilterConfig
+        }
+
+        use crate::util::ConfigError;
+        let config: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
+        match config.config {
+          $(FilterConfig::$variant(config) => {
+            Ok(Box::new(config))
+          })*
+        }
+      }
+
       pub async fn build(self) -> Result<BoxedFilter> {
         match self {
           $(FilterConfig::$variant(config) => {
