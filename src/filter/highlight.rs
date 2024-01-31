@@ -236,6 +236,8 @@ fn insert_sibling_fragment(
 
 #[cfg(test)]
 mod test {
+  use crate::test_utils::assert_filter_parse;
+
   use super::*;
   #[test]
   fn test_highlighting() {
@@ -255,6 +257,40 @@ mod test {
     assert_eq!(
       Html::parse_fragment(&actual).tree,
       Html::parse_fragment(expected).tree
+    );
+  }
+
+  #[test]
+  fn test_parse_config() {
+    assert_filter_parse(
+      r#"
+highlight:
+  keywords:
+    - foo
+    - bar
+  bg_color: '#ffff00'
+    "#,
+      HighlightConfig {
+        keywords: KeywordsOrPatterns::Keywords {
+          keywords: vec!["foo".into(), "bar".into()],
+        },
+        bg_color: Some("#ffff00".into()),
+      },
+    );
+
+    assert_filter_parse(
+      r#"
+highlight:
+  patterns:
+    - '\bfoo\b'
+  bg_color: '#ffff00'
+"#,
+      HighlightConfig {
+        keywords: KeywordsOrPatterns::Patterns {
+          patterns: serde_regex::Serde(vec![Regex::new(r"\bfoo\b").unwrap()]),
+        },
+        bg_color: Some("#ffff00".into()),
+      },
     );
   }
 }
