@@ -130,3 +130,61 @@ impl FeedFilter for Sanitize {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use crate::test_utils::assert_filter_parse;
+
+  #[test]
+  fn test_config_sanitize() {
+    let config = r#"
+      sanitize:
+        - remove: "foo"
+        - remove_regex: '\d+'
+        - replace:
+            from: "bar"
+            to: "baz"
+        - replace_regex:
+            from: '\w+'
+            to: "qux"
+    "#;
+
+    let expected = SanitizeConfig {
+      ops: vec![
+        SanitizeOpConfig {
+          remove: Some("foo".into()),
+          remove_regex: None,
+          replace: None,
+          replace_regex: None,
+        },
+        SanitizeOpConfig {
+          remove: None,
+          remove_regex: Some(r"\d+".into()),
+          replace: None,
+          replace_regex: None,
+        },
+        SanitizeOpConfig {
+          remove: None,
+          remove_regex: None,
+          replace: Some(SanitizeOpReplaceConfig {
+            from: "bar".into(),
+            to: "baz".into(),
+          }),
+          replace_regex: None,
+        },
+        SanitizeOpConfig {
+          remove: None,
+          remove_regex: None,
+          replace: None,
+          replace_regex: Some(SanitizeOpReplaceConfig {
+            from: r"\w+".into(),
+            to: "qux".into(),
+          }),
+        },
+      ],
+    };
+
+    assert_filter_parse(config, expected);
+  }
+}
