@@ -1,5 +1,6 @@
 use readability::extractor::extract;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::feed::Feed;
 use crate::util::Result;
@@ -40,7 +41,7 @@ impl FeedFilter for SimplifyHtmlFilter {
 }
 
 pub(super) fn simplify(text: &str, url: &str) -> Option<String> {
-  let url = reqwest::Url::parse(url).ok()?;
+  let url = Url::parse(url).ok()?;
   let mut text = std::io::Cursor::new(text);
   let product = extract(&mut text, &url).ok()?;
   Some(product.content)
