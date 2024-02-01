@@ -1,9 +1,14 @@
+mod cache;
+
 use std::time::Duration;
 
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::util::Result;
+
+use self::cache::{Response, ResponseCache};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientConfig {
@@ -11,6 +16,11 @@ pub struct ClientConfig {
   accept: Option<String>,
   set_cookie: Option<String>,
   referer: Option<String>,
+  cache_size: Option<usize>,
+  #[serde(deserialize_with = "duration_str::deserialize_duration")]
+  #[serde(default = "default_cache_ttl")]
+  cache_ttl: Duration,
+
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   timeout: Duration,
@@ -24,6 +34,8 @@ impl Default for ClientConfig {
       set_cookie: None,
       referer: None,
       timeout: default_timeout(),
+      cache_size: None,
+      cache_ttl: default_cache_ttl(),
     }
   }
 }
@@ -67,11 +79,48 @@ impl ClientConfig {
     builder
   }
 
-  pub fn build(&self) -> Result<reqwest::Client> {
-    Ok(self.to_builder().build()?)
+  pub fn build(&self) -> Result<Client> {
+    let reqwest_client = self.to_builder().build()?;
+    Ok(Client::new(
+      self.cache_size.unwrap_or(0),
+      self.cache_ttl,
+      reqwest_client,
+    ))
+  }
+}
+
+pub struct Client {
+  cache: ResponseCache,
+  client: reqwest::Client,
+}
+
+impl Client {
+  fn new(
+    cache_size: usize,
+    cache_ttl: Duration,
+    client: reqwest::Client,
+  ) -> Self {
+    Self {
+      cache: ResponseCache::new(cache_size, cache_ttl),
+      client,
+    }
+  }
+  async fn get(&self, url: Url) -> Result<Response> {
+    if let Some(resp) = self.cache.get_cached(&url) {
+      return Ok(resp);
+    }
+
+    let resp = self.client.get(url.clone()).send().await?;
+    let resp = Response::from_reqwest_resp(resp).await?;
+    self.cache.insert(url, resp.clone());
+    Ok(resp)
   }
 }
 
 fn default_timeout() -> Duration {
   Duration::from_secs(10)
+}
+
+fn default_cache_ttl() -> Duration {
+  Duration::from_secs(10 * 60)
 }
