@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use futures::{stream, StreamExt};
 
 use serde::{Deserialize, Serialize};
@@ -37,7 +39,9 @@ impl FeedFilterConfig for FullTextConfig {
   type Filter = FullTextFilter;
 
   async fn build(self) -> Result<Self::Filter> {
-    let client = self.client.unwrap_or_default().build()?;
+    // default cache ttl is 12 hours
+    let default_cache_ttl = Duration::from_secs(12 * 60 * 60);
+    let client = self.client.unwrap_or_default().build(default_cache_ttl)?;
     let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
     let append_mode = self.append_mode.unwrap_or(false);
     let simplify = self.simplify.unwrap_or(false);

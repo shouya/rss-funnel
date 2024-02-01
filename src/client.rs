@@ -17,9 +17,8 @@ pub struct ClientConfig {
   set_cookie: Option<String>,
   referer: Option<String>,
   cache_size: Option<usize>,
-  #[serde(deserialize_with = "duration_str::deserialize_duration")]
-  #[serde(default = "default_cache_ttl")]
-  cache_ttl: Duration,
+  #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
+  cache_ttl: Option<Duration>,
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   timeout: Duration,
@@ -34,7 +33,7 @@ impl Default for ClientConfig {
       referer: None,
       timeout: default_timeout(),
       cache_size: None,
-      cache_ttl: default_cache_ttl(),
+      cache_ttl: None,
     }
   }
 }
@@ -78,11 +77,11 @@ impl ClientConfig {
     builder
   }
 
-  pub fn build(&self) -> Result<Client> {
+  pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
     let reqwest_client = self.to_builder().build()?;
     Ok(Client::new(
       self.cache_size.unwrap_or(0),
-      self.cache_ttl,
+      self.cache_ttl.unwrap_or(default_cache_ttl),
       reqwest_client,
     ))
   }
@@ -127,8 +126,4 @@ impl Client {
 
 fn default_timeout() -> Duration {
   Duration::from_secs(10)
-}
-
-fn default_cache_ttl() -> Duration {
-  Duration::from_secs(10 * 60)
 }

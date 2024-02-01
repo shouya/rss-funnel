@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
@@ -212,7 +213,8 @@ impl EndpointService {
       filters.push(filter);
     }
 
-    let client = config.client.unwrap_or_default().build()?;
+    let default_cache_ttl = Duration::from_secs(15 * 60);
+    let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
     let source = match config.source {
       Some(source) => Some(Url::parse(&source)?),
       None => None,
