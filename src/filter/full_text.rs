@@ -1,8 +1,9 @@
 use futures::{stream, StreamExt};
-use mime::Mime;
-use serde::{Deserialize, Serialize};
 
-use crate::client;
+use serde::{Deserialize, Serialize};
+use url::Url;
+
+use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
 use crate::util::{Error, Result};
@@ -23,7 +24,7 @@ pub struct FullTextConfig {
 }
 
 pub struct FullTextFilter {
-  client: reqwest::Client,
+  client: Client,
   parallelism: usize,
   append_mode: bool,
   keep_element: Option<KeepElement>,
@@ -59,14 +60,9 @@ impl FeedFilterConfig for FullTextConfig {
 
 impl FullTextFilter {
   async fn fetch_html(&self, url: &str) -> Result<String> {
-    let resp = self.client.get(url).send().await?;
-    let content_type = resp
-      .headers()
-      .get("content-type")
-      .and_then(|v| v.to_str().ok())
-      .unwrap_or("text/html")
-      .parse::<Mime>()
-      .map_err(|_| Error::Message("invalid content_type".to_string()))?;
+    let url = Url::parse(url)?;
+    let resp = self.client.get(&url).await?;
+    let content_type = resp.content_type().unwrap_or(mime::TEXT_HTML);
 
     if content_type.essence_str() != "text/html" {
       return Err(Error::Message(format!(
@@ -76,7 +72,7 @@ impl FullTextFilter {
     }
 
     let resp = resp.error_for_status()?;
-    let text = resp.text().await?;
+    let text = resp.text()?;
 
     Ok(text)
   }

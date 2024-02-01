@@ -1894,6 +1894,7 @@ dependencies = [
  "duration-str",
  "ego-tree",
  "either",
+ "encoding_rs",
  "futures",
  "html5ever",
  "htmlescape",

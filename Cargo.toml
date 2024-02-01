@@ -49,6 +49,8 @@ either = "1.9.0" # used for returning sum types from the JS runtime
 # Web client (blocking and async both used, blocking used in the JS runtime)
 # TODO: upgrade reqwest after its hyper 1.0 upgrade
 reqwest = { version = "0.11.23", default-features = false, features = ["blocking", "rustls-tls", "trust-dns"] }
+encoding_rs = "0.8.33"
+lru = "0.12.2"
 
 # Used in sanitize filter to remove/replace text contents
 regex = "1.10.2"
@@ -58,7 +60,6 @@ tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
 lazy_static = "1.4.0"
 serde_regex = "1.1.0"
-lru = "0.12.2"
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }

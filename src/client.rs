@@ -20,7 +20,6 @@ pub struct ClientConfig {
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   #[serde(default = "default_cache_ttl")]
   cache_ttl: Duration,
-
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   timeout: Duration,
@@ -105,14 +104,23 @@ impl Client {
       client,
     }
   }
-  async fn get(&self, url: Url) -> Result<Response> {
-    if let Some(resp) = self.cache.get_cached(&url) {
+
+  pub async fn get(&self, url: &Url) -> Result<Response> {
+    self.get_with(url, |req| req).await
+  }
+
+  pub async fn get_with(
+    &self,
+    url: &Url,
+    f: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
+  ) -> Result<Response> {
+    if let Some(resp) = self.cache.get_cached(url) {
       return Ok(resp);
     }
 
-    let resp = self.client.get(url.clone()).send().await?;
+    let resp = f(self.client.get(url.clone())).send().await?;
     let resp = Response::from_reqwest_resp(resp).await?;
-    self.cache.insert(url, resp.clone());
+    self.cache.insert(url.clone(), resp.clone());
     Ok(resp)
   }
 }

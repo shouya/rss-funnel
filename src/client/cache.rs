@@ -5,10 +5,11 @@ use std::{
 };
 
 use lru::LruCache;
+use mime::Mime;
 use reqwest::header::HeaderMap;
 use url::Url;
 
-use crate::util::Result;
+use crate::util::{Error, Result};
 
 struct Timed<T> {
   value: T,
@@ -57,6 +58,7 @@ pub struct Response {
 }
 
 struct InnerResponse {
+  url: Url,
   status: reqwest::StatusCode,
   headers: HeaderMap,
   body: Box<[u8]>,
@@ -66,14 +68,54 @@ impl Response {
   pub async fn from_reqwest_resp(resp: reqwest::Response) -> Result<Self> {
     let status = resp.status();
     let headers = resp.headers().clone();
+    let url = resp.url().clone();
     let body = resp.bytes().await?.to_vec().into_boxed_slice();
+    let resp = InnerResponse {
+      url,
+      status,
+      headers,
+      body,
+    };
 
     Ok(Self {
-      inner: Arc::new(InnerResponse {
-        status,
-        headers,
-        body,
-      }),
+      inner: Arc::new(resp),
     })
+  }
+
+  pub fn error_for_status(self) -> Result<Self> {
+    let status = self.inner.status;
+    if status.is_client_error() || status.is_server_error() {
+      return Err(Error::HttpStatus(status, self.inner.url.clone()));
+    }
+
+    Ok(self)
+  }
+
+  pub fn header(&self, name: &str) -> Option<&str> {
+    self.inner.headers.get(name).and_then(|v| v.to_str().ok())
+  }
+
+  pub fn text_with_charset(&self, default_encoding: &str) -> Result<String> {
+    let content_type = self.content_type();
+    let encoding_name = content_type
+      .as_ref()
+      .and_then(|mime| {
+        mime.get_param("charset").map(|charset| charset.as_str())
+      })
+      .unwrap_or(default_encoding);
+    let encoding = encoding_rs::Encoding::for_label(encoding_name.as_bytes())
+      .unwrap_or(encoding_rs::UTF_8);
+
+    let full = &self.inner.body;
+    let (text, _, _) = encoding.decode(full);
+    Ok(text.into_owned())
+  }
+
+  pub fn text(&self) -> Result<String> {
+    self.text_with_charset("utf-8")
+  }
+
+  pub fn content_type(&self) -> Option<Mime> {
+    self.header("content-type").and_then(|v| v.parse().ok())
   }
 }
