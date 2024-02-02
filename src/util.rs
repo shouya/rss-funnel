@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 pub const USER_AGENT: &str =
   concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
@@ -46,6 +47,9 @@ pub enum Error {
 
   #[error("Reqwest client error {0:?}")]
   Reqwest(#[from] reqwest::Error),
+
+  #[error("HTTP status error {0:?} (url: {1})")]
+  HttpStatus(reqwest::StatusCode, Url),
 
   #[error("Js execution error {0:?}")]
   Js(#[from] rquickjs::Error),

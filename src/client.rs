@@ -1,9 +1,14 @@
+mod cache;
+
 use std::time::Duration;
 
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::util::Result;
+
+use self::cache::{Response, ResponseCache};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientConfig {
@@ -11,6 +16,9 @@ pub struct ClientConfig {
   accept: Option<String>,
   set_cookie: Option<String>,
   referer: Option<String>,
+  cache_size: Option<usize>,
+  #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
+  cache_ttl: Option<Duration>,
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   timeout: Duration,
@@ -24,6 +32,8 @@ impl Default for ClientConfig {
       set_cookie: None,
       referer: None,
       timeout: default_timeout(),
+      cache_size: None,
+      cache_ttl: None,
     }
   }
 }
@@ -67,11 +77,100 @@ impl ClientConfig {
     builder
   }
 
-  pub fn build(&self) -> Result<reqwest::Client> {
-    Ok(self.to_builder().build()?)
+  pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
+    let reqwest_client = self.to_builder().build()?;
+    Ok(Client::new(
+      self.cache_size.unwrap_or(0),
+      self.cache_ttl.unwrap_or(default_cache_ttl),
+      reqwest_client,
+    ))
+  }
+}
+
+pub struct Client {
+  cache: ResponseCache,
+  client: reqwest::Client,
+}
+
+impl Client {
+  fn new(
+    cache_size: usize,
+    cache_ttl: Duration,
+    client: reqwest::Client,
+  ) -> Self {
+    Self {
+      cache: ResponseCache::new(cache_size, cache_ttl),
+      client,
+    }
+  }
+
+  pub async fn get(&self, url: &Url) -> Result<Response> {
+    self.get_with(url, |req| req).await
+  }
+
+  pub async fn get_with(
+    &self,
+    url: &Url,
+    f: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
+  ) -> Result<Response> {
+    if let Some(resp) = self.cache.get_cached(url) {
+      return Ok(resp);
+    }
+
+    let resp = f(self.client.get(url.clone())).send().await?;
+    let resp = Response::from_reqwest_resp(resp).await?;
+    self.cache.insert(url.clone(), resp.clone());
+    Ok(resp)
+  }
+
+  #[cfg(test)]
+  pub fn insert(&self, url: Url, response: Response) {
+    self.cache.insert(url, response);
   }
 }
 
 fn default_timeout() -> Duration {
   Duration::from_secs(10)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[tokio::test]
+  async fn test_client_cache() {
+    let client = Client::new(1, Duration::from_secs(1), reqwest::Client::new());
+    let url = Url::parse("http://example.com").unwrap();
+    let body: Box<str> = "foo".into();
+    let response = Response::new(
+      url.clone(),
+      reqwest::StatusCode::OK,
+      HeaderMap::new(),
+      body.into(),
+    );
+
+    client.insert(url.clone(), response.clone());
+    let actual = client.get(&url).await.unwrap();
+    let expected = response;
+
+    assert_eq!(actual.url(), expected.url());
+    assert_eq!(actual.status(), expected.status());
+    assert_eq!(actual.headers(), expected.headers());
+    assert_eq!(actual.body(), expected.body());
+  }
+
+  const YT_SCISHOW_FEED_URL: &str = "https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow";
+
+  #[tokio::test]
+  async fn test_client() {
+    let client = Client::new(0, Duration::from_secs(1), reqwest::Client::new());
+    let url = Url::parse(YT_SCISHOW_FEED_URL).unwrap();
+    let resp = client.get(&url).await.unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+      resp.content_type().unwrap().to_string(),
+      "text/xml; charset=utf-8"
+    );
+    assert!(resp.text().unwrap().contains("<title>SciShow</title>"));
+  }
 }

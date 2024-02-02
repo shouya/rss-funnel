@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
@@ -11,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
 
-use crate::client::ClientConfig;
+use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter::{BoxedFilter, FeedFilter, FilterConfig};
 use crate::util::{Error, Result};
@@ -52,7 +53,7 @@ pub struct EndpointService {
   source: Option<Url>,
   content_type: Option<String>,
   filters: Arc<Vec<BoxedFilter>>,
-  client: Arc<reqwest::Client>,
+  client: Arc<Client>,
 }
 
 #[derive(Clone, Default)]
@@ -212,7 +213,8 @@ impl EndpointService {
       filters.push(filter);
     }
 
-    let client = config.client.unwrap_or_default().build()?;
+    let default_cache_ttl = Duration::from_secs(15 * 60);
+    let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
     let source = match config.source {
       Some(source) => Some(Url::parse(&source)?),
       None => None,
@@ -267,24 +269,20 @@ impl EndpointService {
   async fn fetch_feed(&self, source: &Url) -> Result<Feed> {
     let resp = self
       .client
-      .get(source.to_string())
-      .header("Accept", "text/html,application/xml")
-      .send()
+      .get_with(source, |builder| {
+        builder.header("Accept", "text/html,application/xml")
+      })
       .await?
       .error_for_status()?;
 
-    let resp_content_type = resp
-      .headers()
-      .get("content-type")
-      .and_then(|x| x.to_str().ok())
-      .and_then(|x| x.parse::<Mime>().ok())
-      .map(|x| x.essence_str().to_owned());
+    let resp_content_type =
+      resp.content_type().map(|x| x.essence_str().to_owned());
     let content_type = self
       .content_type
       .as_deref()
       .or(resp_content_type.as_deref());
 
-    let content = resp.text().await?;
+    let content = resp.text()?;
 
     let feed = match content_type {
       Some("text/html") => Feed::from_html_content(&content, source)?,
