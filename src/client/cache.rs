@@ -82,6 +82,23 @@ impl Response {
     })
   }
 
+  #[cfg(test)]
+  pub fn new(
+    url: Url,
+    status: reqwest::StatusCode,
+    headers: HeaderMap,
+    body: Box<[u8]>,
+  ) -> Self {
+    Self {
+      inner: Arc::new(InnerResponse {
+        url,
+        status,
+        headers,
+        body,
+      }),
+    }
+  }
+
   pub fn error_for_status(self) -> Result<Self> {
     let status = self.inner.status;
     if status.is_client_error() || status.is_server_error() {
@@ -117,5 +134,18 @@ impl Response {
 
   pub fn content_type(&self) -> Option<Mime> {
     self.header("content-type").and_then(|v| v.parse().ok())
+  }
+
+  pub fn url(&self) -> &Url {
+    &self.inner.url
+  }
+  pub fn status(&self) -> reqwest::StatusCode {
+    self.inner.status
+  }
+  pub fn headers(&self) -> &HeaderMap {
+    &self.inner.headers
+  }
+  pub fn body(&self) -> &[u8] {
+    &self.inner.body
   }
 }

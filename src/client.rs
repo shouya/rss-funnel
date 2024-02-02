@@ -122,8 +122,55 @@ impl Client {
     self.cache.insert(url.clone(), resp.clone());
     Ok(resp)
   }
+
+  #[cfg(test)]
+  pub fn insert(&self, url: Url, response: Response) {
+    self.cache.insert(url, response);
+  }
 }
 
 fn default_timeout() -> Duration {
   Duration::from_secs(10)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[tokio::test]
+  async fn test_client_cache() {
+    let client = Client::new(1, Duration::from_secs(1), reqwest::Client::new());
+    let url = Url::parse("http://example.com").unwrap();
+    let body: Box<str> = "foo".into();
+    let response = Response::new(
+      url.clone(),
+      reqwest::StatusCode::OK,
+      HeaderMap::new(),
+      body.into(),
+    );
+
+    client.insert(url.clone(), response.clone());
+    let actual = client.get(&url).await.unwrap();
+    let expected = response;
+
+    assert_eq!(actual.url(), expected.url());
+    assert_eq!(actual.status(), expected.status());
+    assert_eq!(actual.headers(), expected.headers());
+    assert_eq!(actual.body(), expected.body());
+  }
+
+  const YT_SCISHOW_FEED_URL: &str = "https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow";
+
+  #[tokio::test]
+  async fn test_client() {
+    let client = Client::new(0, Duration::from_secs(1), reqwest::Client::new());
+    let url = Url::parse(YT_SCISHOW_FEED_URL).unwrap();
+    let resp = client.get(&url).await.unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+      resp.content_type().unwrap().to_string(),
+      "text/xml; charset=utf-8"
+    );
+    assert!(resp.text().unwrap().contains("<title>SciShow</title>"));
+  }
 }
