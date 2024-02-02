@@ -1,10 +1,13 @@
 * RSS Funnel
 
-The RSS Funnel is a simple yet highly configurable RSS processing pipeline. It is designed to be used to modify existing RSS source in various interesting ways such as:
+The RSS Funnel is a modular RSS processing pipeline. It is designed to be used to modify existing RSS source in various interesting ways such as:
 
 - Fetch full content
 - Generate a RSS feed from an HTML page
 - Remove unwanted elements from the article (using a CSS selector)
+- Keep or remove articles matching keywords or patterns
+- Highlight keywords in articles
+- rich DOM manipulation on the feed
 - Redact or replace text in the article (using a regular expression)
 - Split a single RSS article into multiple articles
 - Run arbitrary JS code to transform the article
