@@ -95,3 +95,36 @@ impl FeedFilter for JsFilter {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::test_utils::fetch_endpoint;
+
+  #[tokio::test]
+  async fn test_parse_js_config() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: http://fixture/scishow.xml
+      filters:
+        - js: |
+            function modify_feed(feed) {
+              feed.title.value = "Modified Feed";
+              return feed;
+            }
+
+            function modify_post(feed, post) {
+              post.title += " (modified)";
+              return post;
+            }
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    assert_eq!(feed.title(), "Modified Feed");
+
+    let posts = feed.take_posts();
+    for post in posts {
+      assert!(post.title().unwrap().ends_with(" (modified)"));
+    }
+  }
+}

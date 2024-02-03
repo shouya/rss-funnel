@@ -31,8 +31,12 @@ where
   assert_eq!(actual_serialized, expected_serialized);
 }
 
-const VALID_CONTENT_TYPES: [&str; 3] =
-  ["application/xml", "text/xml", "application/rss+xml"];
+const VALID_CONTENT_TYPES: [&str; 4] = [
+  "application/xml",
+  "text/xml",
+  "application/rss+xml",
+  "application/atom+xml",
+];
 
 pub async fn fetch_endpoint(config: &str, query: &str) -> Feed {
   let endpoint_config =
