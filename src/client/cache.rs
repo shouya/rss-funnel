@@ -99,6 +99,26 @@ impl Response {
     }
   }
 
+  #[cfg(test)]
+  pub(super) fn from_fixture(content_type: &str, content: &str) -> Self {
+    let url = Url::parse("http://example.com").unwrap();
+    let status = reqwest::StatusCode::OK;
+    let mut headers = HeaderMap::new();
+    headers.insert(
+      "content-type",
+      content_type.parse().expect("invalid content_type"),
+    );
+    let body = content.as_bytes().to_vec().into_boxed_slice();
+    Self {
+      inner: Arc::new(InnerResponse {
+        url,
+        status,
+        headers,
+        body,
+      }),
+    }
+  }
+
   pub fn error_for_status(self) -> Result<Self> {
     let status = self.inner.status;
     if status.is_client_error() || status.is_server_error() {
@@ -123,8 +143,7 @@ impl Response {
     let encoding = encoding_rs::Encoding::for_label(encoding_name.as_bytes())
       .unwrap_or(encoding_rs::UTF_8);
 
-    let full = &self.inner.body;
-    let (text, _, _) = encoding.decode(full);
+    let (text, _, _) = encoding.decode(self.body());
     Ok(text.into_owned())
   }
 
@@ -136,15 +155,19 @@ impl Response {
     self.header("content-type").and_then(|v| v.parse().ok())
   }
 
+  #[allow(dead_code)]
   pub fn url(&self) -> &Url {
     &self.inner.url
   }
+  #[allow(dead_code)]
   pub fn status(&self) -> reqwest::StatusCode {
     self.inner.status
   }
+  #[allow(dead_code)]
   pub fn headers(&self) -> &HeaderMap {
     &self.inner.headers
   }
+
   pub fn body(&self) -> &[u8] {
     &self.inner.body
   }

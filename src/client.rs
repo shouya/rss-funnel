@@ -10,6 +10,14 @@ use crate::util::Result;
 
 use self::cache::{Response, ResponseCache};
 
+#[cfg(test)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct HttpFixture {
+  url: String,
+  content_type: String,
+  content: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientConfig {
   user_agent: Option<String>,
@@ -79,11 +87,12 @@ impl ClientConfig {
 
   pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
     let reqwest_client = self.to_builder().build()?;
-    Ok(Client::new(
+    let client = Client::new(
       self.cache_size.unwrap_or(0),
       self.cache_ttl.unwrap_or(default_cache_ttl),
       reqwest_client,
-    ))
+    );
+    Ok(client)
   }
 }
 
@@ -124,8 +133,15 @@ impl Client {
   }
 
   #[cfg(test)]
-  pub fn insert(&self, url: Url, response: Response) {
-    self.cache.insert(url, response);
+  pub fn insert_fixture(&self, url: &str, content_type: &str, content: &str) {
+    let url = url::Url::parse(url).expect("invalid url");
+    let resp = Response::from_fixture(content_type, content);
+    self.insert(url, resp);
+  }
+
+  #[cfg(test)]
+  pub fn insert(&self, url: Url, resp: Response) {
+    self.cache.insert(url, resp);
   }
 }
 
