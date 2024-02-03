@@ -300,12 +300,10 @@ impl EndpointService {
 
     let feed = match content_type {
       Some("text/html") => Feed::from_html_content(&content, source)?,
-      Some("application/rss+xml") => Feed::from_rss_content(&content)?,
+      Some("application/xml")
+      | Some("text/xml")
+      | Some("application/rss+xml") => Feed::from_rss_content(&content)?,
       Some("application/atom+xml") => Feed::from_atom_content(&content)?,
-      Some("application/xml") | Some("text/xml") => {
-        Feed::from_rss_content(&content)
-          .or_else(|_| Feed::from_atom_content(&content))?
-      }
 
       x => todo!("{:?}", x),
     };
