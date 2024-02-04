@@ -284,7 +284,7 @@ impl EndpointService {
     let resp = self
       .client
       .get_with(source, |builder| {
-        builder.header("Accept", "text/html,application/xml")
+        builder.header("Accept", "text/html,application/xml,text/xml,application/rss+xml,application/atom+xml")
       })
       .await?
       .error_for_status()?;
@@ -300,11 +300,11 @@ impl EndpointService {
 
     let feed = match content_type {
       Some("text/html") => Feed::from_html_content(&content, source)?,
-      Some("application/xml")
-      | Some("text/xml")
-      | Some("application/rss+xml") => Feed::from_rss_content(&content)?,
+      Some("application/rss+xml") => Feed::from_rss_content(&content)?,
       Some("application/atom+xml") => Feed::from_atom_content(&content)?,
-
+      Some("application/xml") | Some("text/xml") => {
+        Feed::from_xml_content(&content)?
+      }
       x => todo!("{:?}", x),
     };
 

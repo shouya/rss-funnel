@@ -99,7 +99,7 @@ fn dummy_client() -> Client {
 
   client.insert_fixture(
     "http://fixture/scishow.xml",
-    "application/atom+xml; charset=UTF-8",
+    "text/xml; charset=UTF-8",
     include_fixture!("scishow.xml"),
   );
 

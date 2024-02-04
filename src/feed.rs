@@ -28,6 +28,11 @@ impl Feed {
     Ok(Feed::Atom(feed))
   }
 
+  pub fn from_xml_content(content: &str) -> Result<Self> {
+    Feed::from_rss_content(content)
+      .or_else(|_| Feed::from_atom_content(content))
+  }
+
   #[allow(clippy::field_reassign_with_default)]
   pub fn from_html_content(content: &str, url: &Url) -> Result<Self> {
     let item = Post::from_html_content(content, url)?;
