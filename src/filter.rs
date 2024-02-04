@@ -126,4 +126,5 @@ define_filters!(
   KeepOnly => select::KeepOnlyConfig;
   Discard => select::DiscardConfig;
   Highlight => highlight::HighlightConfig;
+  Merge => merge::MergeConfig;
 );
