@@ -2,6 +2,7 @@ mod full_text;
 mod highlight;
 mod html;
 mod js;
+mod merge;
 mod sanitize;
 mod select;
 mod simplify_html;
@@ -40,6 +41,36 @@ impl BoxedFilter {
     T: FeedFilter + Send + Sync + 'static,
   {
     Self(Arc::new(filter))
+  }
+}
+
+pub struct Filters {
+  filters: Vec<BoxedFilter>,
+}
+
+impl Filters {
+  pub async fn from_config(filter_configs: Vec<FilterConfig>) -> Result<Self> {
+    let mut filters = Vec::new();
+    for filter_config in filter_configs {
+      let filter = filter_config.build().await?;
+      filters.push(filter);
+    }
+    Ok(Self { filters })
+  }
+
+  pub async fn process(&self, feed: &mut Feed) -> Result<()> {
+    self.process_partial(feed, self.filters.len()).await
+  }
+
+  pub async fn process_partial(
+    &self,
+    feed: &mut Feed,
+    limit_filters: usize,
+  ) -> Result<()> {
+    for filter in self.filters.iter().take(limit_filters) {
+      filter.run(feed).await?;
+    }
+    Ok(())
   }
 }
 

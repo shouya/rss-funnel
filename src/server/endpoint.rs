@@ -14,7 +14,7 @@ use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
-use crate::filter::{BoxedFilter, FeedFilter, FilterConfig};
+use crate::filter::{FilterConfig, Filters};
 use crate::util::{Error, Result};
 
 type Request = http::Request<Body>;
@@ -57,7 +57,7 @@ pub struct EndpointServiceConfig {
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<Url>,
-  filters: Arc<Vec<BoxedFilter>>,
+  filters: Arc<Filters>,
   client: Arc<Client>,
 }
 
@@ -219,11 +219,7 @@ impl EndpointService {
   }
 
   pub async fn from_config(config: EndpointServiceConfig) -> Result<Self> {
-    let mut filters = Vec::new();
-    for filter_config in config.filters {
-      let filter = filter_config.build().await?;
-      filters.push(filter);
-    }
+    let filters = Filters::from_config(config.filters).await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
@@ -245,12 +241,11 @@ impl EndpointService {
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
     let mut feed = self.fetch_feed(&source).await?;
-    let limited_filters = self
-      .filters
-      .iter()
-      .take(param.limit_filters.unwrap_or(usize::MAX));
-    for filter in limited_filters {
-      filter.run(&mut feed).await?;
+
+    if let Some(limit) = param.limit_filters {
+      self.filters.process_partial(&mut feed, limit).await?;
+    } else {
+      self.filters.process(&mut feed).await?;
     }
 
     if let Some(limit) = param.limit_posts {
