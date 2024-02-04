@@ -115,10 +115,10 @@ impl Feed {
         feed.entries.extend(other.entries);
       }
       (Feed::Rss(_), _) => {
-        return Err(Error::FeedParse("cannot merge atom into rss".into()));
+        return Err(Error::FeedMerge("cannot merge atom into rss"));
       }
       (Feed::Atom(_), _) => {
-        return Err(Error::FeedParse("cannot merge rss into atom".into()));
+        return Err(Error::FeedMerge("cannot merge rss into atom"));
       }
     }
 

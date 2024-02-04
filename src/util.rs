@@ -45,6 +45,9 @@ pub enum Error {
   #[error("Feed parsing error {0:?}")]
   FeedParse(&'static str),
 
+  #[error("Feed merge error {0:?}")]
+  FeedMerge(&'static str),
+
   #[error("Reqwest client error {0:?}")]
   Reqwest(#[from] reqwest::Error),
 
