@@ -129,13 +129,13 @@ impl Post {
       }
       (Post::Atom(item), PostField::Title) => Some(&item.title.value),
       (Post::Atom(item), PostField::Link) => {
-        item.links.get(0).map(|v| v.href.as_str())
+        item.links.first().map(|v| v.href.as_str())
       }
       (Post::Atom(item), PostField::Description) => {
         item.content.as_ref().and_then(|c| c.value.as_deref())
       }
       (Post::Atom(item), PostField::Author) => {
-        item.authors.get(0).map(|v| v.name.as_str())
+        item.authors.first().map(|v| v.name.as_str())
       }
       (Post::Atom(item), PostField::Guid) => Some(&item.id),
     }

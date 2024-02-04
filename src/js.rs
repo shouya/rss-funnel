@@ -91,6 +91,7 @@ impl Runtime {
   }
 
   // return exported names
+  #[allow(unused)]
   pub async fn eval_module(
     &self,
     name: &str,
