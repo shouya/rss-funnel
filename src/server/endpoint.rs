@@ -284,7 +284,7 @@ impl EndpointService {
     let resp = self
       .client
       .get_with(source, |builder| {
-        builder.header("Accept", "text/html,application/xml")
+        builder.header("Accept", "text/html,application/xml,text/xml,application/rss+xml,application/atom+xml")
       })
       .await?
       .error_for_status()?;
