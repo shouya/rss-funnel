@@ -13,7 +13,6 @@ use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
-use crate::feed::Feed;
 use crate::filter::{FilterConfig, Filters};
 use crate::util::{Error, Result};
 
@@ -240,7 +239,7 @@ impl EndpointService {
     param: EndpointParam,
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
-    let mut feed = self.fetch_feed(&source).await?;
+    let mut feed = self.client.fetch_feed(&source).await?;
 
     if let Some(limit) = param.limit_filters {
       self.filters.process_partial(&mut feed, limit).await?;
@@ -270,39 +269,5 @@ impl EndpointService {
         .ok_or(Error::Message("missing source".into()))
         .cloned(),
     }
-  }
-
-  const ACCEPTED_CONTENT_TYPES: [&'static str; 6] = [
-    "application/xml",
-    "text/xml",
-    "application/rss+xml",
-    "application/atom+xml",
-    "text/html",
-    "*/*",
-  ];
-
-  async fn fetch_feed(&self, source: &Url) -> Result<Feed> {
-    let resp = self
-      .client
-      .get_with(source, |builder| {
-        builder.header("Accept", Self::ACCEPTED_CONTENT_TYPES.join(", "))
-      })
-      .await?
-      .error_for_status()?;
-
-    let content_type = resp.content_type().map(|x| x.essence_str().to_owned());
-    let content = resp.text()?;
-
-    let feed = match content_type.as_deref() {
-      Some("text/html") => Feed::from_html_content(&content, source)?,
-      Some("application/rss+xml") => Feed::from_rss_content(&content)?,
-      Some("application/atom+xml") => Feed::from_atom_content(&content)?,
-      Some("application/xml") | Some("text/xml") => {
-        Feed::from_xml_content(&content)?
-      }
-      x => todo!("{:?}", x),
-    };
-
-    Ok(feed)
   }
 }
