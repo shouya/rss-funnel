@@ -105,7 +105,7 @@ mod test {
             filters:
               - js: |
                   function modify_post(feed, post) {
-                    post.title += " (modified)";
+                    post.title.value += " (modified)";
                     return post;
                   }
     "#;
