@@ -87,3 +87,47 @@ impl FeedFilter for Merge {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod test {
+  use crate::test_utils::fetch_endpoint;
+  use std::collections::HashMap;
+
+  #[tokio::test]
+  async fn test_merge_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow
+      filters:
+        - merge:
+            source: https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow
+            filters:
+              - js: |
+                  function modify_post(feed, post) {
+                    post.title += " (modified)";
+                    return post;
+                  }
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+
+    // First group posts by url. Then assert, in each group, one title
+    // is "modified" of another
+    let mut groups: HashMap<String, Vec<String>> = HashMap::new();
+    for post in posts {
+      let link = post.link().unwrap().into();
+      let title = post.title().unwrap().into();
+      groups.entry(link).or_default().push(title);
+    }
+
+    for (_, titles) in groups {
+      assert_eq!(titles.len(), 2);
+      assert!(
+        titles[0] == format!("{} (modified)", titles[1])
+          || titles[1] == format!("{} (modified)", titles[0])
+      );
+    }
+  }
+}
