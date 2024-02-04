@@ -155,16 +155,6 @@ impl Response {
     self.header("content-type").and_then(|v| v.parse().ok())
   }
 
-  // can only be called the first time the response is constructed
-  pub(super) fn set_content_type(&mut self, content_type: &str) {
-    let inner = Arc::get_mut(&mut self.inner).expect("response is shared");
-
-    inner.headers.insert(
-      "content-type",
-      content_type.parse().expect("invalid content_type"),
-    );
-  }
-
   #[allow(dead_code)]
   pub fn url(&self) -> &Url {
     &self.inner.url

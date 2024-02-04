@@ -30,9 +30,6 @@ pub struct ClientConfig {
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   timeout: Duration,
-  /// Sometimes the feed doesn't specify a
-  #[serde(default)]
-  assume_content_type: Option<String>,
 }
 
 impl Default for ClientConfig {
@@ -45,7 +42,6 @@ impl Default for ClientConfig {
       timeout: default_timeout(),
       cache_size: None,
       cache_ttl: None,
-      assume_content_type: None,
     }
   }
 }
@@ -95,7 +91,6 @@ impl ClientConfig {
       self.cache_size.unwrap_or(0),
       self.cache_ttl.unwrap_or(default_cache_ttl),
       reqwest_client,
-      self.assume_content_type.clone(),
     );
     Ok(client)
   }
@@ -104,7 +99,6 @@ impl ClientConfig {
 pub struct Client {
   cache: ResponseCache,
   client: reqwest::Client,
-  assume_content_type: Option<String>,
 }
 
 impl Client {
@@ -112,12 +106,10 @@ impl Client {
     cache_size: usize,
     cache_ttl: Duration,
     client: reqwest::Client,
-    assume_content_type: Option<String>,
   ) -> Self {
     Self {
       cache: ResponseCache::new(cache_size, cache_ttl),
       client,
-      assume_content_type,
     }
   }
 
@@ -136,18 +128,8 @@ impl Client {
 
     let resp = f(self.client.get(url.clone())).send().await?;
     let resp = Response::from_reqwest_resp(resp).await?;
-    let resp = self.modify_resp(resp);
     self.cache.insert(url.clone(), resp.clone());
     Ok(resp)
-  }
-
-  fn modify_resp(&self, mut resp: Response) -> Response {
-    let Some(assume_content_type) = &self.assume_content_type else {
-      return resp;
-    };
-
-    resp.set_content_type(assume_content_type);
-    resp
   }
 
   #[cfg(test)]
@@ -173,8 +155,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_client_cache() {
-    let client =
-      Client::new(1, Duration::from_secs(1), reqwest::Client::new(), None);
+    let client = Client::new(1, Duration::from_secs(1), reqwest::Client::new());
     let url = Url::parse("http://example.com").unwrap();
     let body: Box<str> = "foo".into();
     let response = Response::new(
@@ -198,8 +179,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_client() {
-    let client =
-      Client::new(0, Duration::from_secs(1), reqwest::Client::new(), None);
+    let client = Client::new(0, Duration::from_secs(1), reqwest::Client::new());
     let url = Url::parse(YT_SCISHOW_FEED_URL).unwrap();
     let resp = client.get(&url).await.unwrap();
     assert_eq!(resp.status(), reqwest::StatusCode::OK);
