@@ -105,6 +105,25 @@ impl Feed {
       Feed::Atom(feed) => feed.title.as_str(),
     }
   }
+
+  pub fn merge(&mut self, other: Feed) -> Result<()> {
+    match (self, other) {
+      (Feed::Rss(channel), Feed::Rss(other)) => {
+        channel.items.extend(other.items);
+      }
+      (Feed::Atom(feed), Feed::Atom(other)) => {
+        feed.entries.extend(other.entries);
+      }
+      (Feed::Rss(_), _) => {
+        return Err(Error::FeedParse("cannot merge atom into rss".into()));
+      }
+      (Feed::Atom(_), _) => {
+        return Err(Error::FeedParse("cannot merge rss into atom".into()));
+      }
+    }
+
+    Ok(())
+  }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
