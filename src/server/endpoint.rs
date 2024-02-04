@@ -49,7 +49,6 @@ impl EndpointConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EndpointServiceConfig {
   source: Option<String>,
-  content_type: Option<String>,
   filters: Vec<FilterConfig>,
   #[serde(default)]
   client: Option<ClientConfig>,
@@ -58,7 +57,6 @@ pub struct EndpointServiceConfig {
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<Url>,
-  content_type: Option<String>,
   filters: Arc<Vec<BoxedFilter>>,
   client: Arc<Client>,
 }
@@ -236,7 +234,6 @@ impl EndpointService {
 
     Ok(Self {
       source,
-      content_type: config.content_type,
       filters: Arc::new(filters),
       client: Arc::new(client),
     })
@@ -280,25 +277,28 @@ impl EndpointService {
     }
   }
 
+  const ACCEPTED_CONTENT_TYPES: [&'static str; 6] = [
+    "application/xml",
+    "text/xml",
+    "application/rss+xml",
+    "application/atom+xml",
+    "text/html",
+    "*/*",
+  ];
+
   async fn fetch_feed(&self, source: &Url) -> Result<Feed> {
     let resp = self
       .client
       .get_with(source, |builder| {
-        builder.header("Accept", "text/html,application/xml,text/xml,application/rss+xml,application/atom+xml")
+        builder.header("Accept", Self::ACCEPTED_CONTENT_TYPES.join(", "))
       })
       .await?
       .error_for_status()?;
 
-    let resp_content_type =
-      resp.content_type().map(|x| x.essence_str().to_owned());
-    let content_type = self
-      .content_type
-      .as_deref()
-      .or(resp_content_type.as_deref());
-
+    let content_type = resp.content_type().map(|x| x.essence_str().to_owned());
     let content = resp.text()?;
 
-    let feed = match content_type {
+    let feed = match content_type.as_deref() {
       Some("text/html") => Feed::from_html_content(&content, source)?,
       Some("application/rss+xml") => Feed::from_rss_content(&content)?,
       Some("application/atom+xml") => Feed::from_atom_content(&content)?,
