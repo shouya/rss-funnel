@@ -6,7 +6,7 @@ use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::util::Result;
+use crate::{feed::Feed, util::Result};
 
 use self::cache::{Response, ResponseCache};
 
@@ -119,6 +119,29 @@ impl Client {
       client,
       assume_content_type,
     }
+  }
+
+  pub async fn fetch_feed(&self, source: &Url) -> Result<Feed> {
+    let resp = self
+      .get_with(source, |builder| {
+        builder.header("Accept", "text/html,application/xml")
+      })
+      .await?
+      .error_for_status()?;
+
+    let content_type = resp.content_type().map(|x| x.essence_str().to_owned());
+    let content = resp.text()?;
+
+    let feed = match content_type.as_deref() {
+      Some("text/html") => Feed::from_html_content(&content, source)?,
+      Some("application/xml")
+      | Some("text/xml")
+      | Some("application/rss+xml") => Feed::from_rss_content(&content)?,
+      Some("application/atom+xml") => Feed::from_atom_content(&content)?,
+      x => todo!("{:?}", x),
+    };
+
+    Ok(feed)
   }
 
   pub async fn get(&self, url: &Url) -> Result<Response> {
