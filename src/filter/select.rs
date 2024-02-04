@@ -181,3 +181,84 @@ impl FeedFilter for Select {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use crate::test_utils::assert_filter_parse;
+
+  #[test]
+  fn test_config_keep_only_full() {
+    let config = r#"
+      keep_only:
+        matches:
+          - '\d+'
+          - '\bfoo\b'
+        field: title
+        case_sensitive: true
+    "#;
+
+    let expected = KeepOnlyConfig(AnyMatchConfig::MatchConfig(MatchConfig {
+      matches: SingleOrVec::Vec(vec![
+        Regex::new(r"\d+").unwrap().into(),
+        Regex::new(r"\bfoo\b").unwrap().into(),
+      ]),
+      contains: SingleOrVec::empty(),
+      field: Field::Title,
+      case_sensitive: true,
+    }));
+
+    assert_filter_parse(config, expected);
+  }
+
+  #[test]
+  fn test_config_keep_only_single() {
+    let config = r#"
+      keep_only: foo
+    "#;
+
+    let expected = KeepOnlyConfig(AnyMatchConfig::SingleContains("foo".into()));
+
+    assert_filter_parse(config, expected);
+  }
+
+  #[test]
+  fn test_config_keep_only_multiple() {
+    let config = r#"
+        keep_only:
+            - foo
+            - bar
+        "#;
+
+    let expected = KeepOnlyConfig(AnyMatchConfig::MultipleContains(vec![
+      "foo".into(),
+      "bar".into(),
+    ]));
+
+    assert_filter_parse(config, expected);
+  }
+
+  #[test]
+  fn test_config_discard_full() {
+    let config = r#"
+      discard:
+        matches:
+          - '\d+'
+          - '\bfoo\b'
+        field: title
+        case_sensitive: true
+    "#;
+
+    let expected = DiscardConfig(AnyMatchConfig::MatchConfig(MatchConfig {
+      matches: SingleOrVec::Vec(vec![
+        Regex::new(r"\d+").unwrap().into(),
+        Regex::new(r"\bfoo\b").unwrap().into(),
+      ]),
+      contains: SingleOrVec::empty(),
+      field: Field::Title,
+      case_sensitive: true,
+    }));
+
+    assert_filter_parse(config, expected);
+  }
+}

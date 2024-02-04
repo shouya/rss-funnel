@@ -29,6 +29,13 @@ pub struct EndpointConfig {
 }
 
 impl EndpointConfig {
+  #[cfg(test)]
+  pub fn parse_yaml(yaml: &str) -> Result<Self> {
+    use crate::util::ConfigError;
+
+    Ok(serde_yaml::from_str(yaml).map_err(ConfigError::from)?)
+  }
+
   pub async fn into_route(self) -> Result<axum::Router> {
     let endpoint_service = EndpointService::from_config(self.config).await?;
     Ok(axum::Router::new().nest_service(&self.path, endpoint_service))
@@ -206,6 +213,13 @@ impl Service<Request> for EndpointService {
 }
 
 impl EndpointService {
+  /// Used in tests for replacing the client with a mock
+  #[cfg(test)]
+  pub fn with_client(mut self, client: Client) -> Self {
+    self.client = Arc::new(client);
+    self
+  }
+
   pub async fn from_config(config: EndpointServiceConfig) -> Result<Self> {
     let mut filters = Vec::new();
     for filter_config in config.filters {
@@ -287,9 +301,10 @@ impl EndpointService {
     let feed = match content_type {
       Some("text/html") => Feed::from_html_content(&content, source)?,
       Some("application/xml")
-      | Some("application/rss+xml")
-      | Some("text/xml") => Feed::from_rss_content(&content)?,
+      | Some("text/xml")
+      | Some("application/rss+xml") => Feed::from_rss_content(&content)?,
       Some("application/atom+xml") => Feed::from_atom_content(&content)?,
+
       x => todo!("{:?}", x),
     };
 

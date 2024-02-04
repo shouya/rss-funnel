@@ -99,6 +99,16 @@ impl FeedFilter for RemoveElement {
   }
 }
 
+/// Keep only selected elements from HTML description.
+///
+/// You can specify the a CSS selector to keep a specific element.
+///
+/// # Example
+///
+/// ```yaml
+/// filters:
+///   - keep_element: img[src$=".gif"]
+/// ```
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct KeepElementConfig {
@@ -389,5 +399,34 @@ impl FeedFilter for Split {
 
     feed.set_posts(posts);
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use crate::test_utils::assert_filter_parse;
+
+  #[test]
+  fn test_parse_config() {
+    assert_filter_parse(
+      r#"
+remove_element:
+ - 'img[src$=".gif"]'
+ - 'span.ads'
+"#,
+      RemoveElementConfig {
+        selectors: vec!["img[src$=\".gif\"]".into(), "span.ads".into()],
+      },
+    );
+
+    assert_filter_parse(
+      r#"
+keep_element: img[src$=".gif"]
+    "#,
+      KeepElementConfig {
+        selector: "img[src$=\".gif\"]".into(),
+      },
+    );
   }
 }

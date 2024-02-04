@@ -92,6 +92,14 @@ impl Feed {
       }
     }
   }
+
+  #[allow(unused)]
+  pub fn title(&self) -> &str {
+    match self {
+      Feed::Rss(channel) => &channel.title,
+      Feed::Atom(feed) => feed.title.as_str(),
+    }
+  }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
