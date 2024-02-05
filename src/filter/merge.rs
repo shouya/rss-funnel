@@ -98,10 +98,10 @@ mod test {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow
+      source: fixture:///scishow.xml
       filters:
         - merge:
-            source: https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow
+            source: fixture:///scishow.xml
             filters:
               - js: |
                   function modify_post(feed, post) {
