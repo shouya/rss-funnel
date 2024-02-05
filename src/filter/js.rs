@@ -105,7 +105,7 @@ mod tests {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: http://fixture/scishow.xml
+      source: fixture:///scishow.xml
       filters:
         - js: |
             function modify_feed(feed) {
