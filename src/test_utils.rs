@@ -86,22 +86,8 @@ pub async fn fetch_endpoint(config: &str, query: &str) -> Feed {
     .expect("failed to parse feed")
 }
 
-macro_rules! include_fixture {
-  ($name:literal) => {
-    include_str!(concat!("../fixtures/", $name))
-  };
-}
-
 fn dummy_client() -> Client {
-  let client = ClientConfig::default()
+  ClientConfig::default()
     .build(Duration::from_secs(10))
-    .expect("failed to build client");
-
-  client.insert_fixture(
-    "http://fixture/scishow.xml",
-    "text/xml; charset=UTF-8",
-    include_fixture!("scishow.xml"),
-  );
-
-  client
+    .expect("failed to build client")
 }
