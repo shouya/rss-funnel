@@ -163,6 +163,11 @@ impl Client {
     url: &Url,
     f: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
   ) -> Result<Response> {
+    #[cfg(test)]
+    if url.scheme() == "fixture" {
+      return Ok(Response::from_fixture(url));
+    }
+
     if let Some(resp) = self.cache.get_cached(url) {
       return Ok(resp);
     }
@@ -181,13 +186,6 @@ impl Client {
 
     resp.set_content_type(assume_content_type);
     resp
-  }
-
-  #[cfg(test)]
-  pub fn insert_fixture(&self, url: &str, content_type: &str, content: &str) {
-    let url = url::Url::parse(url).expect("invalid url");
-    let resp = Response::from_fixture(content_type, content);
-    self.insert(url, resp);
   }
 
   #[cfg(test)]

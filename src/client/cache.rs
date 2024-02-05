@@ -100,18 +100,31 @@ impl Response {
   }
 
   #[cfg(test)]
-  pub(super) fn from_fixture(content_type: &str, content: &str) -> Self {
-    let url = Url::parse("http://example.com").unwrap();
+  pub(super) fn from_fixture(url: &Url) -> Self {
+    use std::path::PathBuf;
+
+    let path: PathBuf =
+      format!("{}/fixtures/{}", env!("CARGO_MANIFEST_DIR"), url.path()).into();
+
+    if !path.exists() {
+      panic!("fixture file does not exist: {}", path.display());
+    }
+
     let status = reqwest::StatusCode::OK;
     let mut headers = HeaderMap::new();
     headers.insert(
       "content-type",
-      content_type.parse().expect("invalid content_type"),
+      "text/xml; charset=utf-8"
+        .parse()
+        .expect("invalid content-type"),
     );
-    let body = content.as_bytes().to_vec().into_boxed_slice();
+    let body = std::fs::read(path)
+      .expect("failed to read fixture file")
+      .into_boxed_slice();
+
     Self {
       inner: Arc::new(InnerResponse {
-        url,
+        url: url.clone(),
         status,
         headers,
         body,
