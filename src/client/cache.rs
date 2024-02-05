@@ -105,18 +105,20 @@ impl Response {
 
     let path: PathBuf =
       format!("{}/fixtures/{}", env!("CARGO_MANIFEST_DIR"), url.path()).into();
+    let content_type = url
+      .query_pairs()
+      .find(|(k, _)| k == "content_type")
+      .map(|(_, v)| v.to_string())
+      .unwrap_or_else(|| "text/xml; charset=utf-8".into());
 
     if !path.exists() {
       panic!("fixture file does not exist: {}", path.display());
     }
 
-    let status = reqwest::StatusCode::OK;
     let mut headers = HeaderMap::new();
     headers.insert(
       "content-type",
-      "text/xml; charset=utf-8"
-        .parse()
-        .expect("invalid content-type"),
+      content_type.parse().expect("invalid content-type"),
     );
     let body = std::fs::read(path)
       .expect("failed to read fixture file")
@@ -125,7 +127,7 @@ impl Response {
     Self {
       inner: Arc::new(InnerResponse {
         url: url.clone(),
-        status,
+        status: reqwest::StatusCode::OK,
         headers,
         body,
       }),
