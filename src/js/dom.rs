@@ -488,6 +488,51 @@ mod test {
     assert_eq!(res, "p,p");
   }
 
+  #[tokio::test]
+  async fn test_node_parent() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      const [p] = dom.select('p');
+      p.parent().tag_name()
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "div");
+  }
+
+  #[tokio::test]
+  async fn test_node_siblings() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div>1</div><p>2</p><br><span>3</span>");
+      const [p] = dom.select('p');
+      const prev = p.previous_sibling().tag_name();
+      const next = p.next_sibling().tag_name();
+      `${prev},${next}`
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "div,br");
+  }
+
+  #[tokio::test]
+  async fn test_node_remove() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      const [p] = dom.select('p');
+      p.remove();
+      dom.to_html()
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "<div></div>");
+  }
+
   async fn run_js(code: &str) -> String {
     let rt = Runtime::new().await.unwrap();
     rt.eval(code).await.unwrap()
