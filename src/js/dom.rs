@@ -250,6 +250,63 @@ impl<'js> Node<'js> {
     Ok(nodes)
   }
 
+  fn previous_sibling(&self) -> Result<Option<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom)?;
+    let prev = node.prev_sibling().map(|n| Node {
+      dom: self.dom.clone(),
+      node_id: n.id(),
+    });
+    Ok(prev)
+  }
+
+  fn next_sibling(&self) -> Result<Option<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom)?;
+    let next = node.next_sibling().map(|n| Node {
+      dom: self.dom.clone(),
+      node_id: n.id(),
+    });
+    Ok(next)
+  }
+
+  fn parent(&self) -> Result<Option<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom)?;
+    let parent = node.parent().map(|n| Node {
+      dom: self.dom.clone(),
+      node_id: n.id(),
+    });
+    Ok(parent)
+  }
+
+  fn node_type(&self) -> String {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom).unwrap();
+    let val = node.value();
+    match val {
+      scraper::Node::Text(_) => "text".to_string(),
+      scraper::Node::Element(_) => "element".to_string(),
+      _ => "other".to_string(),
+    }
+  }
+
+  fn remove(&self) {
+    self.node_mut(&mut self.dom.borrow_mut()).unwrap().detach();
+  }
+
+  #[qjs(skip)]
+  fn node_ref<'a, 'b: 'a>(
+    &'a self,
+    dom: &'b DOM,
+  ) -> Result<NodeRef<'b, scraper::Node>, Error> {
+    let node_ref = dom.html.tree.get(self.node_id).ok_or_else(|| {
+      Exception::throw_message(self.dom.ctx(), "node not found")
+    })?;
+
+    Ok(node_ref)
+  }
+
   #[qjs(skip)]
   fn node_mut<'a, 'b: 'a>(
     &'a self,
@@ -429,6 +486,51 @@ mod test {
     .await;
 
     assert_eq!(res, "p,p");
+  }
+
+  #[tokio::test]
+  async fn test_node_parent() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      const [p] = dom.select('p');
+      p.parent().tag_name()
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "div");
+  }
+
+  #[tokio::test]
+  async fn test_node_siblings() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div>1</div><p>2</p><br><span>3</span>");
+      const [p] = dom.select('p');
+      const prev = p.previous_sibling().tag_name();
+      const next = p.next_sibling().tag_name();
+      `${prev},${next}`
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "div,br");
+  }
+
+  #[tokio::test]
+  async fn test_node_remove() {
+    let res = run_js(
+      r#"
+      const dom = DOM.parse_fragment("<div><p>hello</p></div>");
+      const [p] = dom.select('p');
+      p.remove();
+      dom.to_html()
+      "#,
+    )
+    .await;
+
+    assert_eq!(res, "<div></div>");
   }
 
   async fn run_js(code: &str) -> String {
