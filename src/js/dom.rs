@@ -280,6 +280,11 @@ impl<'js> Node<'js> {
     Ok(parent)
   }
 
+
+  fn remove(&self) {
+    self.node_mut(&mut self.dom.borrow_mut()).unwrap().detach();
+  }
+
   #[qjs(skip)]
   fn node_ref<'a, 'b: 'a>(
     &'a self,
