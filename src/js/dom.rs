@@ -250,6 +250,48 @@ impl<'js> Node<'js> {
     Ok(nodes)
   }
 
+  fn previous_sibling(&self) -> Result<Option<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom)?;
+    let prev = node.prev_sibling().map(|n| Node {
+      dom: self.dom.clone(),
+      node_id: n.id(),
+    });
+    Ok(prev)
+  }
+
+  fn next_sibling(&self) -> Result<Option<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom)?;
+    let next = node.next_sibling().map(|n| Node {
+      dom: self.dom.clone(),
+      node_id: n.id(),
+    });
+    Ok(next)
+  }
+
+  fn parent(&self) -> Result<Option<Node<'js>>, Error> {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom)?;
+    let parent = node.parent().map(|n| Node {
+      dom: self.dom.clone(),
+      node_id: n.id(),
+    });
+    Ok(parent)
+  }
+
+  #[qjs(skip)]
+  fn node_ref<'a, 'b: 'a>(
+    &'a self,
+    dom: &'b DOM,
+  ) -> Result<NodeRef<'b, scraper::Node>, Error> {
+    let node_ref = dom.html.tree.get(self.node_id).ok_or_else(|| {
+      Exception::throw_message(self.dom.ctx(), "node not found")
+    })?;
+
+    Ok(node_ref)
+  }
+
   #[qjs(skip)]
   fn node_mut<'a, 'b: 'a>(
     &'a self,
