@@ -280,6 +280,16 @@ impl<'js> Node<'js> {
     Ok(parent)
   }
 
+  fn node_type(&self) -> String {
+    let dom = self.dom.borrow();
+    let node = self.node_ref(&dom).unwrap();
+    let val = node.value();
+    match val {
+      scraper::Node::Text(_) => "text".to_string(),
+      scraper::Node::Element(_) => "element".to_string(),
+      _ => "other".to_string(),
+    }
+  }
 
   fn remove(&self) {
     self.node_mut(&mut self.dom.borrow_mut()).unwrap().detach();
