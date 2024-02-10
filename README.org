@@ -25,7 +25,7 @@ services:
       - 4080:4080
     volumes:
       - ./funnel.yaml:/funnel.yaml
-    command: /rss-funnel -c /funnel.yaml server
+    command: /rss-funnel -c /funnel.yaml server -b 0.0.0.0:4080
 #+end_src
 
 Alternatively, you can build it directly from source:
