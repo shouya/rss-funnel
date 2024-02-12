@@ -31,6 +31,9 @@ http = "1.0.0"
 url = "2.5.0"
 mime = "0.3.17"
 
+# webui
+maud = { version = "0.26.0", features = ["axum"] }
+
 # HTML manipulation in the feeds
 scraper = "0.18.1"
 ego-tree = "0.6.2"
