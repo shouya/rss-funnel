@@ -72,19 +72,6 @@ impl FeedDefinition {
   }
 }
 
-#[derive(Serialize, Deserialize)]
-struct FollowLinkFilterConfig {
-  /// Selector for the link elements from an html page
-  link_selector: String,
-  /// the attribute to look in the element for the link, defaults to "href"
-  #[serde(default = "default_href_attr")]
-  href_attr: String,
-}
-
-fn default_href_attr() -> String {
-  "href".to_string()
-}
-
 impl Cli {
   fn load_feed_definition(&self) -> Result<FeedDefinition> {
     let f = std::fs::File::open(&self.config)?;
