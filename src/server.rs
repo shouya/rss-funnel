@@ -1,4 +1,4 @@
-mod endpoint;
+pub(crate) mod endpoint;
 
 use axum::{routing::get, Router};
 use clap::Parser;
