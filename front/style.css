@@ -1,0 +1,30 @@
+.navigation-panel {
+  width: 30%;
+  position: absolute;
+}
+
+ul.endpoint-list li {
+  list-style-type: none;
+}
+
+.feed-preview-panel {
+  width: 70%;
+  position: absolute;
+  right: 0;
+}
+
+.endpoint {
+  padding: 0.2rem;
+  background-color: #f4f4f4;
+  margin: 0.2rem;
+}
+
+.endpoint.loading {
+  background-color: #f4f4f4;
+  opacity: 0.5;
+}
+
+.endpoint-note {
+  font-size: 0.8em;
+  color: #666;
+}
