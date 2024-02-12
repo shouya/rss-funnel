@@ -1,16 +1,16 @@
 .navigation-panel {
   width: 30%;
-  position: absolute;
+  float: left;
 }
 
-ul.endpoint-list li {
-  list-style-type: none;
+ul.endpoint-list {
+  list-style: none;
+  padding-left: 0;
 }
 
 .feed-preview-panel {
+  float: left;
   width: 70%;
-  position: absolute;
-  right: 0;
 }
 
 .endpoint {

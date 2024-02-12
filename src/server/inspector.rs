@@ -25,7 +25,6 @@ async fn main_page(
       head {
         meta charset="utf-8";
         title { "RSS Funnel Inspector" }
-        link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css";
         style { (PreEscaped(include_str!("../../front/style.css"))) }
       }
       body {
