@@ -26,6 +26,16 @@ async fn main_page(
         meta charset="utf-8";
         title { "RSS Funnel Inspector" }
         style { (PreEscaped(include_str!("../../front/style.css"))) }
+
+        link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css";
+        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js" defer {};
+        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js" defer {};
+        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/xml-fold.min.js" defer {};
+        link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldgutter.min.css";
+        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldgutter.min.js" defer {};
+        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldcode.min.js" defer {};
+
+
       }
       body {
         div {
@@ -61,7 +71,7 @@ pub fn endpoint_selector_panel(feed_definition: &FeedDefinition) -> Markup {
 pub fn feed_preview_panel_placeholder() -> Markup {
   html! {
     div class="feed-preview-panel" {
-      div class="feed-preview" {
+      div #"feed-preview" {
         "Please select an endpoint."
       }
     }
@@ -72,28 +82,20 @@ pub fn feed_preview_panel_placeholder() -> Markup {
 async fn feed_preview_panel(
   Path(endpoint): Path<String>,
   Extension(feed_definition): Extension<Arc<FeedDefinition>>,
-) -> Result<Markup, PreviewError> {
+) -> Result<String, PreviewError> {
   let endpoint_config = feed_definition
     .endpoints
     .iter()
     .find(|e| e.path.trim_start_matches('/') == endpoint);
   let Some(endpoint_config) = endpoint_config else {
-    return Ok(html! { "endpoint not found" });
+    return Ok("endpoint not found".into());
   };
 
   let mut service = endpoint_config.clone().into_service().await?;
   let param = EndpointParam::new(None, None, None, true);
   let outcome = service.call(param).await?;
 
-  let html = html! {
-    pre {
-      code {
-        (outcome.feed_xml())
-      }
-    }
-  };
-
-  Ok(html)
+  Ok(outcome.feed_xml().into())
 }
 
 #[derive(Debug, thiserror::Error)]
