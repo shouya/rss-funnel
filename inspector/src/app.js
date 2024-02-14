@@ -20,6 +20,7 @@ class FeedInspector {
   }
 
   async setup_feed_editor() {
+    $("#feed-preview").style.visibility = "hidden";
     this.editor = new EditorView({
       extensions: [basicSetup, xml(), EditorState.readOnly.of(true)],
       parent: $("#feed-preview"),
@@ -62,6 +63,8 @@ class FeedInspector {
     this.editor.dispatch({
       changes: { from: 0, to: this.editor.state.doc.length, insert: text },
     });
+
+    $("#feed-preview").style.visibility = "visible";
   }
 }
 
