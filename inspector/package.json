@@ -1,0 +1,24 @@
+{
+  "devDependencies": {
+    "parcel": "^2.11.0",
+    "process": "^0.11.10"
+  },
+  "source": "src/index.html",
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "publicUrl": "/_inspector/dist/"
+    }
+  },
+  "scripts": {
+    "watch": "parcel watch --no-hmr",
+    "build": "rm -rf ./dist/* && parcel build"
+  },
+  "dependencies": {
+    "@codemirror/lang-xml": "^6.0.2",
+    "@codemirror/language": "^6.10.1",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.24.0",
+    "codemirror": "^6.0.1"
+  }
+}

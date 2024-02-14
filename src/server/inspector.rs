@@ -1,101 +1,78 @@
 use std::sync::Arc;
 
-use axum::response::{IntoResponse, Response};
-use axum::{extract::Path, routing::get, Extension, Router};
-use maud::{html, Markup, PreEscaped, DOCTYPE};
-use tower::Service;
+use axum::response::{IntoResponse, Redirect, Response};
+use axum::Json;
+use axum::{routing::get, Extension, Router};
+use http::{StatusCode, Uri};
+// use maud::{html, Markup};
 
-use super::EndpointParam;
 use crate::config::{self, FeedDefinition};
-use crate::util::{Error, Result};
+use crate::util::Error;
+
+#[derive(rust_embed::RustEmbed)]
+#[folder = "inspector/dist/"]
+// #[include = "*.js"]
+// #[include = "*.css"]
+// #[include = "*.html"]
+// #[include = "*.map"]
+struct Asset;
 
 pub fn router(feed_definition: config::FeedDefinition) -> Router {
   Router::new()
-    .route("/", get(main_page))
-    .route("/_inspector/preview/:endpoint", get(feed_preview_panel))
+    .route("/_inspector/index.html", get(index_handler))
+    .route("/_inspector/dist/*file", get(static_handler))
+    .route("/_inspector/config", get(config_handler))
+    .route(
+      "/",
+      get(|| async { Redirect::temporary("/_inspector/index.html") }),
+    )
     .layer(Extension(Arc::new(feed_definition)))
 }
 
-async fn main_page(
+async fn index_handler() -> impl IntoResponse {
+  static_handler("/index.html".parse().unwrap()).await
+}
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+  let mut path = uri.path().trim_start_matches('/').to_string();
+
+  if path.starts_with("_inspector/dist/") {
+    path = path.replace("_inspector/dist/", "");
+  }
+
+  let mime = path.split('.').last().and_then(|ext| match ext {
+    "js" => Some([("Content-Type", "application/javascript")]),
+    "css" => Some([("Content-Type", "text/css")]),
+    "html" => Some([("Content-Type", "text/html")]),
+    "map" => Some([("Content-Type", "application/json")]),
+    _ => None,
+  });
+
+  let content = Asset::get(path.as_str()).map(|content| content.data);
+
+  match (mime, content) {
+    (Some(mime), Some(content)) => {
+      (StatusCode::OK, mime, content).into_response()
+    }
+    (None, _) => (
+      StatusCode::BAD_REQUEST,
+      [("Content-Type", "text/plain")],
+      "Invalid file extension",
+    )
+      .into_response(),
+    (_, None) => (
+      StatusCode::NOT_FOUND,
+      [("Content-Type", "text/plain")],
+      "File not found",
+    )
+      .into_response(),
+  }
+}
+
+async fn config_handler(
   Extension(feed_definition): Extension<Arc<FeedDefinition>>,
-) -> Markup {
-  html! {
-    (DOCTYPE)
-    html {
-      head {
-        meta charset="utf-8";
-        title { "RSS Funnel Inspector" }
-        style { (PreEscaped(include_str!("../../front/style.css"))) }
-
-        link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css";
-        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js" defer {};
-        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js" defer {};
-        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/xml-fold.min.js" defer {};
-        link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldgutter.min.css";
-        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldgutter.min.js" defer {};
-        script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldcode.min.js" defer {};
-
-
-      }
-      body {
-        div {
-          (endpoint_selector_panel(&feed_definition))
-          (feed_preview_panel_placeholder())
-        }
-        script { (PreEscaped(include_str!("../../front/inspector.js"))) }
-      }
-    }
-  }
-}
-
-pub fn endpoint_selector_panel(feed_definition: &FeedDefinition) -> Markup {
-  html! {
-    div class="navigation-panel" {
-      h4 { "Endpoints" }
-      ul class="endpoint-list" {
-        @for feed in &feed_definition.endpoints {
-          li {
-            div class="endpoint" {
-              div class="endpoint-path" { (feed.path) }
-              @if let Some(note) = &feed.note {
-                div class="endpoint-note" { (note) }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-pub fn feed_preview_panel_placeholder() -> Markup {
-  html! {
-    div class="feed-preview-panel" {
-      div #"feed-preview" {
-        "Please select an endpoint."
-      }
-    }
-  }
-}
-
-#[axum_macros::debug_handler]
-async fn feed_preview_panel(
-  Path(endpoint): Path<String>,
-  Extension(feed_definition): Extension<Arc<FeedDefinition>>,
-) -> Result<String, PreviewError> {
-  let endpoint_config = feed_definition
-    .endpoints
-    .iter()
-    .find(|e| e.path.trim_start_matches('/') == endpoint);
-  let Some(endpoint_config) = endpoint_config else {
-    return Ok("endpoint not found".into());
-  };
-
-  let mut service = endpoint_config.clone().into_service().await?;
-  let param = EndpointParam::new(None, None, None, true);
-  let outcome = service.call(param).await?;
-
-  Ok(outcome.feed_xml().into())
+) -> impl IntoResponse {
+  Json(feed_definition)
 }
 
 #[derive(Debug, thiserror::Error)]

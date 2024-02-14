@@ -60,7 +60,7 @@ pub struct EndpointService {
   client: Arc<Client>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Deserialize)]
 pub struct EndpointParam {
   source: Option<Url>,
   /// Only process the initial N filter steps

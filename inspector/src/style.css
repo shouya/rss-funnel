@@ -1,0 +1,45 @@
+body {
+  margin: 0;
+}
+
+.container {
+  display: flex;
+  overflow: hidden;
+  flex-direction: row;
+  position: absolute;
+  padding: 10px;
+}
+
+#navigation-panel {
+  width: 20rem;
+}
+
+#main {
+  flex: 1;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+ul.endpoint-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+#feed-preview {
+}
+
+.endpoint {
+  padding: 0.2rem;
+  background-color: #f4f4f4;
+  margin: 0.2rem;
+}
+
+.endpoint.loading {
+  background-color: #f4f4f4;
+  opacity: 0.5;
+}
+
+.endpoint-note {
+  font-size: 0.8em;
+  color: #666;
+}
