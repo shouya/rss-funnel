@@ -100,4 +100,8 @@ body {
   height: 100%;
   width: 100%;
   overflow: auto;
+
+  .cm-editor.cm-focused {
+    outline: 0;
+  }
 }
