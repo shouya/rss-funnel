@@ -58,10 +58,7 @@ class FeedInspector {
       );
       copy_url_node.addEventListener("click", (e) => {
         e.preventDefault();
-        navigator.clipboard.writeText(
-          new URL(endpoint.path, window.location).href,
-        );
-        alert("URL copied to clipboard");
+        this.copy_feed_url(endpoint);
       });
 
       const node = elt("li", { class: "endpoint" }, [
@@ -105,6 +102,20 @@ class FeedInspector {
 
     params.push("pp=1");
     return params.join("&");
+  }
+
+  async copy_feed_url(endpoint) {
+    const parent = $("#request-param");
+    const source = $("#source", parent).value;
+    let base = new URL(endpoint.path, window.location);
+
+    if (!endpoint.source) {
+      base.searchParams.set("source", source);
+    }
+
+    const url = base.href;
+    navigator.clipboard.writeText(url);
+    alert("URL copied to clipboard");
   }
 }
 
