@@ -1,0 +1,24 @@
+* Inspector front-end
+
+I typically run the following command to watch for any front-end source changes and rebuild the assets.
+
+#+begin_src
+cd inspector && pnpm watch
+#+end_src
+
+The built assets will be under =inspector/dist= directory. The asset files will be picked up in the =inspector.rs= module via [[https://github.com/pyrossh/rust-embed/tree/master][rust-embed]] and served at =/_inspector/dist= path prefix.
+
+* Watch and re-build automatically
+
+I typically run the following command to rebuild on changes.
+
+#+begin_src bash
+RUST_BACKTRACE=1 cargo watch -c -x 'run -- -c ~/.config/rss-funnel/funnel.yaml server' -w ~/.config/rss-funnel/funnel.yaml -w src/ -w Cargo.toml
+#+end_src
+
+Note that I didn't watch the =inspector/dist= directory because in debug mode the assets are served from the file system.
+
+* Building the project
+
+1. build the inspector front-end: =cd inspector && pnpm build=
+2. build the rust project: =cargo build --release=
