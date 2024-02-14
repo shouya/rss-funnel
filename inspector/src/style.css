@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
 }
@@ -8,6 +12,10 @@ body {
   flex-direction: row;
   position: absolute;
   padding: 10px;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 #navigation-panel {
@@ -16,8 +24,8 @@ body {
 
 #main {
   flex: 1;
-  flex-grow: 1;
   overflow: hidden;
+  margin-left: 1rem;
 }
 
 #endpoint-list {
@@ -58,6 +66,32 @@ body {
   .endpoint-note {
     font-size: 0.8em;
     color: #666;
+  }
+}
+
+#request-param {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 1rem;
+
+  label[for="source"] {
+    margin-left: 0;
+    flex: 1;
+    display: flex;
+    input {
+      margin-left: 0.5rem;
+      flex: 1;
+      width: 100%;
+    }
+  }
+
+  label {
+    margin: 0 0.5rem;
+    width: auto;
+
+    input[type="number"] {
+      width: 3rem;
+    }
   }
 }
 

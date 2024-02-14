@@ -12,6 +12,42 @@
         <ul id="endpoint-list"></ul>
       </div>
       <div id="main">
+        <div id="request-param" style="visibility: hidden">
+          <label for="source"
+            >Source
+            <input
+              type="text"
+              placeholder="http://your-source/feed.xml"
+              id="source"
+            />
+          </label>
+
+          <label for="limit-posts"
+            >Limit Posts
+            <input
+              type="checkbox"
+              id="limit-posts-checkbox"
+              onclick="document.getElementById('limit-posts').disabled = !this.checked"
+            />
+            <input type="number" id="limit-posts" value="1" min="0" disabled />
+          </label>
+
+          <label for="limit-filters"
+            >Limit Filters
+            <input
+              type="checkbox"
+              id="limit-filters-checkbox"
+              onclick="document.getElementById('limit-filters').disabled = !this.checked"
+            />
+            <input
+              type="number"
+              id="limit-filters"
+              value="1"
+              min="0"
+              disabled
+            />
+          </label>
+        </div>
         <div id="feed-preview"></div>
       </div>
     </div>

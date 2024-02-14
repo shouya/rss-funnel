@@ -15,8 +15,19 @@ class FeedInspector {
     const resp = await fetch("/_inspector/config");
     this.config = await resp.json();
 
-    this.setup_feed_editor();
-    this.update_endpoints();
+    await Promise.all([
+      this.setup_feed_editor(),
+      this.update_endpoints(),
+      this.setup_param_event_handler(),
+    ]);
+  }
+
+  async setup_param_event_handler() {
+    $("#request-param")
+      .querySelectorAll("input")
+      .forEach((input) => {
+        input.addEventListener("change", () => this.load_preview());
+      });
   }
 
   async setup_feed_editor() {
@@ -36,9 +47,10 @@ class FeedInspector {
     $("#endpoint-list").innerHTML = "";
     for (const endpoint of this.config.endpoints) {
       const path_node = elt("div", { class: "endpoint-path" }, endpoint.path);
-      path_node.addEventListener("click", () =>
-        this.load_preview(endpoint.path),
-      );
+      path_node.addEventListener("click", () => {
+        this.current_endpoint = endpoint;
+        this.load_preview();
+      });
       const copy_url_node = elt(
         "a",
         { class: "tool", href: endpoint.path },
@@ -60,9 +72,12 @@ class FeedInspector {
     }
   }
 
-  async load_preview(path) {
-    this.current_endpoint = path;
-    const resp = await fetch(`${path}?pp=1`);
+  async load_preview() {
+    if (!this.current_endpoint) return;
+
+    const path = this.current_endpoint.path;
+    const params = this.feed_request_param();
+    const resp = await fetch(`${path}?${params}`);
     const text = await resp.text();
 
     this.editor.dispatch({
@@ -70,6 +85,26 @@ class FeedInspector {
     });
 
     $("#feed-preview").style.visibility = "visible";
+    $("#request-param").style.visibility = "visible";
+  }
+
+  feed_request_param() {
+    const parent = $("#request-param");
+    const source = $("#source", parent).value;
+    const limit_posts =
+      $("#limit-posts-checkbox", parent).checked &&
+      $("#limit-posts", parent).value;
+    const limit_filters =
+      $("#limit-filters-checkbox", parent).checked &&
+      $("#limit-filters", parent).value;
+
+    const params = [];
+    if (source) params.push(`source=${source}`);
+    if (limit_posts) params.push(`limit_posts=${limit_posts}`);
+    if (limit_filters) params.push(`limit_filters=${limit_filters}`);
+
+    params.push("pp=1");
+    return params.join("&");
   }
 }
 
