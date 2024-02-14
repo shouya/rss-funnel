@@ -20,26 +20,46 @@ body {
   overflow: hidden;
 }
 
-ul.endpoint-list {
-  list-style: none;
+#endpoint-list {
   padding-left: 0;
+  list-style: none;
+
+  .endpoint {
+    padding: 0.2rem;
+    background-color: #f4f4f4;
+    margin: 0.2rem;
+
+    .endpoint-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .endpoint-path {
+        font-size: 1.2em;
+        margin: 0;
+        flex: 1;
+        cursor: pointer;
+      }
+
+      .tool {
+        font-size: 0.8em;
+        color: #666;
+        cursor: pointer;
+        margin: 0 0.3rem;
+      }
+    }
+  }
+
+  .endpoint.loading {
+    background-color: #f4f4f4;
+    opacity: 0.5;
+  }
+
+  .endpoint-note {
+    font-size: 0.8em;
+    color: #666;
+  }
 }
 
 #feed-preview {
-}
-
-.endpoint {
-  padding: 0.2rem;
-  background-color: #f4f4f4;
-  margin: 0.2rem;
-}
-
-.endpoint.loading {
-  background-color: #f4f4f4;
-  opacity: 0.5;
-}
-
-.endpoint-note {
-  font-size: 0.8em;
-  color: #666;
 }

@@ -33,9 +33,21 @@ class FeedInspector {
       path_node.addEventListener("click", () =>
         this.load_preview(endpoint.path),
       );
+      const copy_url_node = elt(
+        "a",
+        { class: "tool", href: endpoint.path },
+        "copy",
+      );
+      copy_url_node.addEventListener("click", (e) => {
+        e.preventDefault();
+        navigator.clipboard.writeText(
+          new URL(endpoint.path, window.location).href,
+        );
+        alert("URL copied to clipboard");
+      });
 
       const node = elt("li", { class: "endpoint" }, [
-        path_node,
+        elt("div", { class: "endpoint-header" }, [path_node, copy_url_node]),
         endpoint.note && elt("div", { class: "endpoint-note" }, endpoint.note),
       ]);
       $("#endpoint-list").appendChild(node);
