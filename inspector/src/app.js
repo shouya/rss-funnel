@@ -22,7 +22,12 @@ class FeedInspector {
   async setup_feed_editor() {
     $("#feed-preview").style.visibility = "hidden";
     this.editor = new EditorView({
-      extensions: [basicSetup, xml(), EditorState.readOnly.of(true)],
+      extensions: [
+        basicSetup,
+        xml(),
+        EditorState.readOnly.of(true),
+        EditorView.lineWrapping,
+      ],
       parent: $("#feed-preview"),
     });
   }
