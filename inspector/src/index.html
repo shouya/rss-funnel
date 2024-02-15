@@ -8,11 +8,22 @@
   <body>
     <div class="container">
       <div id="navigation-panel">
-        <h4>Endpoints</h4>
-        <ul id="endpoint-list"></ul>
+        <div id="nav-endpoints">
+          <div class="nav-header">
+            <h4>Endpoints</h4>
+          </div>
+          <ul id="endpoint-list" class="nav-body"></ul>
+        </div>
+        <div id="nav-filters" class="hidden">
+          <div class="nav-header">
+            <h4>Filters</h4>
+            <a id="back-to-endpoints">(Back)</a>
+          </div>
+          <ul id="filter-list" class="nav-body"></ul>
+        </div>
       </div>
       <div id="main">
-        <div id="request-param" style="visibility: hidden">
+        <div id="request-param" class="hidden">
           <label for="source"
             >Source
             <input

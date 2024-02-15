@@ -1,4 +1,5 @@
 import { elt, $ } from "./util.js";
+import { Filter } from "./Filter.js";
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { xml } from "@codemirror/lang-xml";
@@ -17,7 +18,7 @@ export class FeedInspector {
 
     await Promise.all([
       this.setup_feed_editor(),
-      this.update_endpoints(),
+      this.load_endpoints(),
       this.setup_param_event_handler(),
     ]);
   }
@@ -26,12 +27,12 @@ export class FeedInspector {
     $("#request-param")
       .querySelectorAll("input")
       .forEach((input) => {
-        input.addEventListener("change", () => this.load_preview());
+        input.addEventListener("change", () => this.load_endpoint());
       });
   }
 
   async setup_feed_editor() {
-    $("#feed-preview").style.visibility = "hidden";
+    $("#feed-preview").classList.add("hidden");
     this.editor = new EditorView({
       extensions: [
         basicSetup,
@@ -43,13 +44,15 @@ export class FeedInspector {
     });
   }
 
-  async update_endpoints() {
+  async load_endpoints() {
+    $("#nav-endpoints").classList.remove("hidden");
     $("#endpoint-list").innerHTML = "";
+
     for (const endpoint of this.config.endpoints) {
       const path_node = elt("div", { class: "endpoint-path" }, endpoint.path);
       path_node.addEventListener("click", () => {
         this.current_endpoint = endpoint;
-        this.load_preview();
+        this.load_endpoint();
       });
       const copy_url_node = elt(
         "a",
@@ -67,12 +70,13 @@ export class FeedInspector {
       ]);
       $("#endpoint-list").appendChild(node);
     }
+    $("#nav-endpoints").classList.remove("hidden");
   }
 
-  async load_preview() {
+  async load_endpoint() {
     if (!this.current_endpoint) return;
 
-    const path = this.current_endpoint.path;
+    const { path, source, filters } = this.current_endpoint;
     const params = this.feed_request_param();
     const resp = await fetch(`${path}?${params}`);
     const text = await resp.text();
@@ -81,8 +85,33 @@ export class FeedInspector {
       changes: { from: 0, to: this.editor.state.doc.length, insert: text },
     });
 
-    $("#feed-preview").style.visibility = "visible";
-    $("#request-param").style.visibility = "visible";
+    $("input#source", $("#request-param")).disabled = !!source;
+    $("#request-param").classList.remove("hidden");
+    $("#feed-preview").classList.remove("hidden");
+
+    $("#nav-endpoints").classList.add("hidden");
+    $("#nav-filters").classList.remove("hidden");
+
+    const filter_ul_node = $("#filter-list");
+    filter_ul_node.innerHTML = "";
+    for (const filter of filters) {
+      console.log(filter);
+      const [name, conf] = Object.entries(filter)[0];
+      const conf_node = new Filter(name, conf).render_config();
+
+      const node = elt("li", { class: "filter" }, [
+        elt("div", { class: "filter-header" }, name),
+        // if conf_node is empty, just skip it
+        conf_node && elt("div", { class: "filter-config" }, conf_node),
+      ]);
+
+      filter_ul_node.appendChild(node);
+    }
+
+    $("#back-to-endpoints").addEventListener("click", () => {
+      this.current_endpoint = null;
+      this.load_endpoints();
+    });
   }
 
   feed_request_param() {

@@ -6,6 +6,10 @@ body {
   margin: 0;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .container {
   display: flex;
   overflow: hidden;
@@ -19,7 +23,25 @@ body {
 }
 
 #navigation-panel {
-  width: 20rem;
+  --nav-panel-width: 20rem;
+  width: var(--nav-panel-width);
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .nav-header {
+  }
+
+  .nav-body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0.3rem;
+  }
 
   h4 {
     margin: 0.5rem 0;
@@ -27,17 +49,55 @@ body {
   }
 }
 
-#main {
-  flex: 1;
+#nav-filters {
+  .nav-header {
+    display: flex;
+    align-items: baseline;
+
+    h4 {
+      display: inline-block;
+      margin-right: auto;
+    }
+
+    #back-to-endpoints {
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+  }
+}
+
+ul#filter-list {
+  list-style: none;
+  padding-left: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  margin-left: 1rem;
+  gap: 0.3rem;
+  overflow: scroll;
+
+  .filter {
+    background-color: #f4f4f4;
+    padding: 0.5rem 0.9rem;
+    border: 1px dotted #ddd;
+    border-radius: 1rem;
+    max-width: var(--nav-panel-width);
+
+    .filter-header {
+      font-size: 1.2em;
+      font-family: monospace;
+      color: #3498db;
+      margin: 0;
+      text-shadow: 1px 0px 1px #ddd;
+    }
+
+    .filter-config {
+      overflow-x: auto;
+    }
+  }
 }
 
 #endpoint-list {
-  padding-left: 0;
   list-style: none;
+  padding-left: 0;
   display: flex;
   flex-direction: column;
   place-content: flex-start;
@@ -77,6 +137,14 @@ body {
     font-size: 0.8em;
     color: #666;
   }
+}
+
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-left: 1rem;
 }
 
 #request-param {
