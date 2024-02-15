@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "watch": "parcel watch --no-hmr",
+    "watch": "parcel watch",
     "build": "rm -rf ./dist/* && parcel build"
   },
   "dependencies": {
