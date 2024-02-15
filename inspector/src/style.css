@@ -20,10 +20,17 @@ body {
 
 #navigation-panel {
   width: 20rem;
+
+  h4 {
+    margin: 0.5rem 0;
+    padding-bottom: 0.5rem;
+  }
 }
 
 #main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   margin-left: 1rem;
 }
@@ -31,11 +38,14 @@ body {
 #endpoint-list {
   padding-left: 0;
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  place-content: flex-start;
+  gap: 0.3rem;
 
   .endpoint {
-    padding: 0.2rem;
     background-color: #f4f4f4;
-    margin: 0.2rem;
+    padding: 0.3rem;
 
     .endpoint-header {
       display: flex;
@@ -72,23 +82,22 @@ body {
 #request-param {
   display: flex;
   flex-direction: row;
-  margin-bottom: 1rem;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.3rem;
+  border-bottom: 1px solid #ddd;
 
   label[for="source"] {
-    margin-left: 0;
-    flex: 1;
+    flex-grow: 1;
     display: flex;
     input {
-      margin-left: 0.5rem;
       flex: 1;
-      width: 100%;
+      margin-left: 0.5rem;
     }
   }
 
   label {
-    margin: 0 0.5rem;
-    width: auto;
-
     input[type="number"] {
       width: 3rem;
     }
@@ -97,7 +106,6 @@ body {
 
 #feed-preview {
   /* enable scrolling */
-  height: 100%;
   width: 100%;
   overflow: auto;
 
