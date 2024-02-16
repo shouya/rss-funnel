@@ -45,6 +45,7 @@ export class FeedInspector {
   }
 
   async load_endpoints() {
+    $("#nav-filters").classList.add("hidden");
     $("#nav-endpoints").classList.remove("hidden");
     $("#endpoint-list").innerHTML = "";
 

@@ -94,9 +94,9 @@ ul#filter-list {
 
   .filter {
     background-color: #fafafa;
-    padding: 0.5rem 0.9rem;
+    padding: 0.4rem 0.6rem 0.6rem 0.6rem;
     border: 1px dotted #ddd;
-    border-radius: 0.5rem;
+    border-radius: 0.3rem;
     max-width: var(--nav-panel-width);
 
     .filter-header {
@@ -108,7 +108,36 @@ ul#filter-list {
     }
 
     .filter-config {
+      margin-top: 0.5rem;
       overflow-x: auto;
+
+      code {
+        white-space: pre;
+      }
+      ul {
+        list-style: square;
+        padding-left: 1.6rem;
+      }
+
+      /* object type */
+      dl {
+        dt {
+          padding-left: 0;
+          font-family: monospace;
+        }
+        dt::after {
+          content: ":";
+        }
+        dd {
+          margin-left: 0.1rem;
+          padding-left: 0.5rem;
+          border-left: 0.3rem solid #eeeeee;
+        }
+        dd::after {
+          display: block;
+          content: "";
+        }
+      }
     }
   }
 }
