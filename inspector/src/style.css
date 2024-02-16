@@ -93,10 +93,10 @@ ul#filter-list {
   overflow: scroll;
 
   .filter {
-    background-color: #f4f4f4;
+    background-color: #fafafa;
     padding: 0.5rem 0.9rem;
     border: 1px dotted #ddd;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     max-width: var(--nav-panel-width);
 
     .filter-header {
@@ -122,7 +122,6 @@ ul#filter-list {
   gap: 0.3rem;
 
   .endpoint {
-    background-color: #f4f4f4;
     padding: 0.3rem;
 
     .endpoint-header {

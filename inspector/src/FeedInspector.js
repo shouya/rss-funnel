@@ -55,9 +55,9 @@ export class FeedInspector {
         this.load_endpoint();
       });
       const copy_url_node = elt(
-        "a",
-        { class: "tool", href: endpoint.path },
-        "copy",
+        "div",
+        { class: "button", href: endpoint.path },
+        "Copy URL",
       );
       copy_url_node.addEventListener("click", (e) => {
         e.preventDefault();
@@ -159,7 +159,7 @@ export class FeedInspector {
     return url.href;
   }
 
-  async copy_endpoint_url(endpoint) {
+  copy_endpoint_url(endpoint) {
     const url = this.full_feed_url(endpoint);
     navigator.clipboard.writeText(url);
     const node = elt("div", { class: "popup-alert", style: "opacity: 1" }, [
