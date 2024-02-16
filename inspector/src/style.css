@@ -194,9 +194,20 @@ ul#filter-list {
   /* enable scrolling */
   width: 100%;
   overflow: auto;
-  flex-grow: 1;
 
   .cm-editor.cm-focused {
     outline: 0;
   }
+}
+
+.popup-alert {
+  position: fixed;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ddd;
+  box-shadow: 0 0 5px #ddd;
+  background-color: lightyellow;
+  transition: all 0.1s ease-in-out;
 }

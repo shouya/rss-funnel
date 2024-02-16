@@ -61,7 +61,7 @@ export class FeedInspector {
       );
       copy_url_node.addEventListener("click", (e) => {
         e.preventDefault();
-        this.copy_feed_url(endpoint);
+        this.copy_endpoint_url(endpoint);
       });
 
       const node = elt("li", { class: "endpoint" }, [
@@ -83,6 +83,9 @@ export class FeedInspector {
     $("#back-to-endpoints").addEventListener("click", () => {
       this.current_endpoint = null;
       this.load_endpoints();
+    });
+    $("#copy-endpoint-url").addEventListener("click", () => {
+      this.copy_endpoint_url(this.current_endpoint);
     });
     $("#nav-filters").classList.remove("hidden");
 
@@ -144,7 +147,7 @@ export class FeedInspector {
     return params.join("&");
   }
 
-  async full_feed_url(endpoint) {
+  full_feed_url(endpoint) {
     const parent = $("#request-param");
     const source = $("#source", parent).value;
     let url = new URL(endpoint.path, window.location);
@@ -156,9 +159,15 @@ export class FeedInspector {
     return url.href;
   }
 
-  async copy_feed_url(endpoint) {
+  async copy_endpoint_url(endpoint) {
     const url = this.full_feed_url(endpoint);
     navigator.clipboard.writeText(url);
-    alert("URL copied to clipboard");
+    const node = elt("div", { class: "popup-alert", style: "opacity: 1" }, [
+      elt("div", { class: "alert-header" }, "URL Copied"),
+      elt("div", { class: "alert-body" }, url),
+    ]);
+    document.body.appendChild(node);
+    setTimeout(() => (node.style.opacity = 0), 3000);
+    setTimeout(() => node.remove(), 4000);
   }
 }
