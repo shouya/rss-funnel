@@ -111,6 +111,9 @@ ul#filter-list {
       margin-top: 0.5rem;
       overflow-x: auto;
 
+      pre {
+        margin: 0;
+      }
       code {
         white-space: pre;
       }

@@ -95,6 +95,9 @@ export class FeedInspector {
     if (source) {
       $("input#source", $("#request-param")).placeholder = source;
       $("input#source", $("#request-param")).value = "";
+    } else {
+      $("input#source", $("#request-param")).placeholder =
+        "Source not configured. Please specify it here.";
     }
     $("#request-param").classList.remove("hidden");
 
