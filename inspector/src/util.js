@@ -17,5 +17,18 @@ export function elt(type, props, children) {
   return dom;
 }
 
+export function isBlankValue(value) {
+  if (!value) {
+    return true;
+  }
+  if (Array.isArray(value) && value.length === 0) {
+    return true;
+  }
+  if (typeof value === "object" && !Object.hasOwn(value)) {
+    return true;
+  }
+  return false;
+}
+
 export const $ = (selector, parent = document) =>
   parent.querySelector(selector);

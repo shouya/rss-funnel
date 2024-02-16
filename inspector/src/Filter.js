@@ -1,4 +1,4 @@
-import { elt } from "./util.js";
+import { elt, isBlankValue } from "./util.js";
 import Prism from "prismjs";
 import "prismjs/themes/prism.css";
 
@@ -27,6 +27,10 @@ export class Filter {
   }
 
   render_default_config() {
+    if (isBlankValue(this.config)) {
+      return null;
+    }
+
     return highlight_json(JSON.stringify(this.config, null, 2));
   }
 
