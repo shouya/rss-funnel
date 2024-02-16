@@ -166,6 +166,10 @@ ul#filter-list {
         margin: 0;
         flex: 1;
         cursor: pointer;
+
+        &:hover {
+          text-decoration: underline;
+        }
       }
 
       .tool {
@@ -225,6 +229,23 @@ ul#filter-list {
   /* enable scrolling */
   width: 100%;
   overflow: auto;
+
+  &.loading {
+    background-color: #f4f4f4;
+    opacity: 0.5;
+    pointer-events: none;
+
+    /* TODO: center the loading text to the middle of the container */
+    &::after {
+      content: "Loading...";
+      position: relative;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2em;
+      color: #666;
+    }
+  }
 
   .cm-editor.cm-focused {
     outline: 0;
