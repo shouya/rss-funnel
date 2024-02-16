@@ -75,24 +75,26 @@ export class FeedInspector {
 
   async load_endpoint() {
     if (!this.current_endpoint) return;
-
     const { path, source, filters } = this.current_endpoint;
-    const params = this.feed_request_param();
-    const resp = await fetch(`${path}?${params}`);
-    const text = await resp.text();
 
-    this.editor.dispatch({
-      changes: { from: 0, to: this.editor.state.doc.length, insert: text },
-    });
-
-    $("input#source", $("#request-param")).disabled = !!source;
-    $("#request-param").classList.remove("hidden");
-    $("#feed-preview").classList.remove("hidden");
-
+    // switch navigation ui
     $("#nav-endpoints").classList.add("hidden");
     $("#endpoint-name").textContent = path;
+    $("#back-to-endpoints").addEventListener("click", () => {
+      this.current_endpoint = null;
+      this.load_endpoints();
+    });
     $("#nav-filters").classList.remove("hidden");
 
+    // switch main ui
+    $("input#source", $("#request-param")).disabled = !!source;
+    if (source) {
+      $("input#source", $("#request-param")).placeholder = source;
+      $("input#source", $("#request-param")).value = "";
+    }
+    $("#request-param").classList.remove("hidden");
+
+    // show filter list
     const filter_ul_node = $("#filter-list");
     filter_ul_node.innerHTML = "";
     for (const filter of filters) {
@@ -101,10 +103,26 @@ export class FeedInspector {
       filter_ul_node.appendChild(node);
     }
 
-    $("#back-to-endpoints").addEventListener("click", () => {
-      this.current_endpoint = null;
-      this.load_endpoints();
+    // show feed preview
+    const params = this.feed_request_param();
+    $("#feed-preview").classList.remove("hidden");
+    $("#feed-preview").classList.add("loading");
+
+    const time_start = performance.now();
+    const request_path = `${path}?${params}`;
+    $("#fetch-status").innerText = `Fetching ${request_path}...`;
+    const resp = await fetch(`${path}?${params}`);
+    const content_type = resp.headers.get("content-type");
+    const text = await resp.text();
+
+    $("#fetch-status").innerText = `Fetched ${request_path} in ${
+      performance.now() - time_start
+    }ms. Content-type: ${content_type}`;
+
+    this.editor.dispatch({
+      changes: { from: 0, to: this.editor.state.doc.length, insert: text },
     });
+    $("#feed-preview").classList.remove("loading");
   }
 
   feed_request_param() {
@@ -126,16 +144,20 @@ export class FeedInspector {
     return params.join("&");
   }
 
-  async copy_feed_url(endpoint) {
+  async full_feed_url(endpoint) {
     const parent = $("#request-param");
     const source = $("#source", parent).value;
-    let base = new URL(endpoint.path, window.location);
+    let url = new URL(endpoint.path, window.location);
 
     if (!endpoint.source) {
-      base.searchParams.set("source", source);
+      url.searchParams.set("source", source);
     }
 
-    const url = base.href;
+    return url.href;
+  }
+
+  async copy_feed_url(endpoint) {
+    const url = this.full_feed_url(endpoint);
     navigator.clipboard.writeText(url);
     alert("URL copied to clipboard");
   }

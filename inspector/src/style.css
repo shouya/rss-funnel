@@ -46,11 +46,25 @@ body {
   }
 }
 
+.button {
+  cursor: pointer;
+  border: 1px solid #ddd;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.3rem;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: #f4f4f4;
+  }
+}
+
 #nav-filters {
   .nav-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.5rem;
+    flex-wrap: nowrap;
+    margin-bottom: 0.5rem;
 
     h4 {
       display: inline-block;
@@ -62,13 +76,12 @@ body {
       flex-grow: 1;
       font-size: 1.2em;
     }
-
-    #back-to-endpoints {
-      margin-bottom: 1rem;
-      text-decoration: underline;
-      cursor: pointer;
-    }
   }
+}
+
+#fetch-status {
+  margin-top: 0.3rem;
+  font-size: 0.9em;
 }
 
 ul#filter-list {
@@ -181,6 +194,7 @@ ul#filter-list {
   /* enable scrolling */
   width: 100%;
   overflow: auto;
+  flex-grow: 1;
 
   .cm-editor.cm-focused {
     outline: 0;
