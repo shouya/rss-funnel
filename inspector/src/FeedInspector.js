@@ -95,16 +95,8 @@ export class FeedInspector {
     const filter_ul_node = $("#filter-list");
     filter_ul_node.innerHTML = "";
     for (const filter of filters) {
-      console.log(filter);
       const [name, conf] = Object.entries(filter)[0];
-      const conf_node = new Filter(name, conf).render_config();
-
-      const node = elt("li", { class: "filter" }, [
-        elt("div", { class: "filter-header" }, name),
-        // if conf_node is empty, just skip it
-        conf_node && elt("div", { class: "filter-config" }, conf_node),
-      ]);
-
+      const node = new Filter(name, conf).render_node();
       filter_ul_node.appendChild(node);
     }
 
