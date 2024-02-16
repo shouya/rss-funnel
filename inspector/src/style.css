@@ -32,9 +32,6 @@ body {
     height: 100%;
   }
 
-  .nav-header {
-  }
-
   .nav-body {
     overflow-x: hidden;
     overflow-y: auto;
@@ -53,14 +50,22 @@ body {
   .nav-header {
     display: flex;
     align-items: baseline;
+    gap: 0.5rem;
 
     h4 {
       display: inline-block;
       margin-right: auto;
     }
 
+    #endpoint-name {
+      font-family: monospace;
+      flex-grow: 1;
+      font-size: 1.2em;
+    }
+
     #back-to-endpoints {
       margin-bottom: 1rem;
+      text-decoration: underline;
       cursor: pointer;
     }
   }

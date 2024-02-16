@@ -90,6 +90,7 @@ export class FeedInspector {
     $("#feed-preview").classList.remove("hidden");
 
     $("#nav-endpoints").classList.add("hidden");
+    $("#endpoint-name").textContent = path;
     $("#nav-filters").classList.remove("hidden");
 
     const filter_ul_node = $("#filter-list");
