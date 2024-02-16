@@ -24,7 +24,10 @@ export function isBlankValue(value) {
   if (Array.isArray(value) && value.length === 0) {
     return true;
   }
-  if (typeof value === "object" && !Object.hasOwn(value)) {
+  if (
+    typeof value === "object" &&
+    Object.getOwnPropertyNames(value).length == 0
+  ) {
     return true;
   }
   return false;
