@@ -6,9 +6,14 @@ IMAGE_NAME ?= $(IMAGE_HOST)/$(IMAGE_USER)/$(APP_NAME)
 PLATFORM ?= linux/amd64
 TARGET ?= x86_64-unknown-linux-musl
 BINARY = target/$(TARGET)/release/$(APP_NAME)
-SOURCES = $(wildcard **/*.rs) Cargo.toml Cargo.lock
+SOURCES = $(wildcard **/*.rs) Cargo.toml Cargo.lock inspector-assets
 
 VERSION ?= v$(shell git describe --tags --always --dirty)
+
+.PHONY: inspector-assets
+inspector-assets:
+	cd inspector
+	pnpm build
 
 target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES)
 	cargo build --release --target x86_64-unknown-linux-musl
