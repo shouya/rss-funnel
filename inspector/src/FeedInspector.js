@@ -13,16 +13,30 @@ export class FeedInspector {
     this.current_preview = null;
     this.view_mode = "rendered";
     this.raw_editor = null;
+    this.raw_feed_xml = null;
   }
 
   async init() {
     await this.setup_raw_editor();
     await this.setup_splitter();
+    await this.setup_view_mode_selector();
 
     const resp = await fetch("/_inspector/config");
     this.config = await resp.json();
 
     await Promise.all([this.load_endpoints(), this.setup_param()]);
+  }
+
+  async setup_view_mode_selector() {
+    $("#view-mode-selector #rendered-radio").addEventListener("change", () => {
+      this.view_mode = "rendered";
+      this.render_feed();
+    });
+
+    $("#view-mode-selector #raw-radio").addEventListener("change", () => {
+      this.view_mode = "raw";
+      this.render_feed();
+    });
   }
 
   async setup_param() {
@@ -118,24 +132,24 @@ export class FeedInspector {
     }
   }
 
-  async render_feed(raw_xml) {
-    ["rendered", "raw", "json"].forEach((mode) => {
+  async render_feed() {
+    ["rendered", "raw"].forEach((mode) => {
       if (mode === this.view_mode) {
         $(`#feed-preview #${mode}`).classList.remove("hidden");
       } else {
         $(`#feed-preview #${mode}`).classList.add("hidden");
       }
 
+      const raw_feed_xml_xml = this.raw_feed_xml;
       const function_name = `render_feed_${mode}`;
       if (this[function_name]) {
-        this[function_name](raw_xml);
+        this[function_name](raw_feed_xml_xml);
       }
     });
   }
 
-  async render_feed_rendered(raw_xml) {
-    const parsed = parse_feed(raw_xml);
-    window.parsed = parsed;
+  async render_feed_rendered(raw_feed_xml_xml) {
+    const parsed = parse_feed(raw_feed_xml_xml);
     if (!parsed) {
       console.error("Failed to parse feed");
       return;
@@ -151,8 +165,11 @@ export class FeedInspector {
       const post_content = elt("p", { class: "feed-post-content" }, []);
       post_content.innerHTML = sanitizer.sanitizeHtml(post.content);
       const post_node = elt("div", { class: "feed-post" }, [
-        elt("h3", { class: "feed-post-title" }, post.title),
-        elt("a", { class: "feed-post-link", href: post.link }, post.link),
+        elt(
+          "h3",
+          { class: "feed-post-title" },
+          elt("a", { class: "feed-post-link", href: post.link }, post.title),
+        ),
         post_content,
         elt("p", { class: "feed-post-date" }, post.date),
       ]);
@@ -160,12 +177,12 @@ export class FeedInspector {
     }
   }
 
-  async render_feed_raw(raw_xml) {
+  async render_feed_raw(raw_feed_xml_xml) {
     this.raw_editor.dispatch({
       changes: {
         from: 0,
         to: this.raw_editor.state.doc.length,
-        insert: raw_xml,
+        insert: raw_feed_xml_xml,
       },
     });
   }
@@ -174,7 +191,7 @@ export class FeedInspector {
     if (!this.current_endpoint) return;
     const { path, source, filters } = this.current_endpoint;
 
-    // switch sidebarigation ui
+    // switch sidebar ui
     $("#sidebar-endpoints").classList.add("hidden");
     $("#endpoint-name").textContent = path;
     $("#back-to-endpoints").addEventListener("click", () => {
@@ -206,8 +223,8 @@ export class FeedInspector {
     this.render_filters();
 
     // show feed preview
-    const feed = await this.fetch_feed();
-    this.render_feed(feed);
+    await this.fetch_feed();
+    await this.render_feed();
   }
 
   async fetch_feed() {
@@ -222,16 +239,15 @@ export class FeedInspector {
     const request_path = `${path}?${params}`;
     $("#fetch-status").innerText = `Fetching ${request_path}...`;
     const resp = await fetch(`${path}?${params}`);
-    const content_type = resp.headers.get("content-type");
     const text = await resp.text();
 
     $("#fetch-status").innerText = `Fetched ${request_path} in ${
       performance.now() - time_start
-    }ms. Content-type: ${content_type}`;
+    }ms.`;
 
     $("#feed-preview").classList.remove("loading");
 
-    return text;
+    this.raw_feed_xml = text;
   }
 
   feed_request_param() {
@@ -267,7 +283,7 @@ export class FeedInspector {
 
   copy_endpoint_url(endpoint) {
     const url = this.full_feed_url(endpoint);
-    sidebarigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(url);
     const node = elt("div", { class: "popup-alert", style: "opacity: 1" }, [
       elt("div", { class: "alert-header" }, "URL Copied"),
       elt("div", { class: "alert-body" }, url),
@@ -283,9 +299,6 @@ export class FeedInspector {
 function parse_feed(xml) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xml, "text/xml");
-
-  // for debugging
-  window.doc = doc;
 
   if (doc.documentElement.tagName == "rss") {
     const title = doc.querySelector("channel > title").textContent.trim();

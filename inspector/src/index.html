@@ -61,9 +61,24 @@
           </label>
         </div>
         <div id="feed-preview">
+          <header id="view-mode-selector">
+            <!-- radio buttons to switch between rendered and raw -->
+            <div id="rendered-radio" class="radio-button">
+              <input
+                type="radio"
+                id="rendered-radio-input"
+                name="view"
+                selected
+              />
+              <label for="rendered-radio-input">Rendered</label>
+            </div>
+            <div id="raw-radio" class="radio-button">
+              <input type="radio" id="raw-radio-input" name="view" />
+              <label for="raw-radio-input">Raw</label>
+            </div>
+          </header>
           <div id="rendered"></div>
           <div id="raw"></div>
-          <div id="json"></div>
         </div>
         <div id="fetch-status"></div>
       </div>
