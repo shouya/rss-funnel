@@ -304,10 +304,10 @@ function parse_feed(xml) {
     const title = doc.querySelector("channel > title").textContent.trim();
     const posts = Array.from(doc.querySelectorAll("item")).map((item) => {
       return {
-        title: item.querySelector("title").textContent.trim(),
-        link: item.querySelector("link").textContent.trim(),
-        date: item.querySelector("pubDate").textContent.trim(),
-        content: item.querySelector("description").textContent.trim(),
+        title: item.querySelector("title")?.textContent?.trim(),
+        link: item.querySelector("link")?.textContent?.trim(),
+        date: item.querySelector("pubDate")?.textContent?.trim(),
+        content: item.querySelector("description")?.textContent?.trim(),
       };
     });
 
@@ -316,10 +316,10 @@ function parse_feed(xml) {
     const title = doc.querySelector("feed > title").textContent.trim();
     const posts = Array.from(doc.querySelectorAll("entry")).map((entry) => {
       return {
-        title: entry.querySelector("title").textContent.trim(),
-        link: entry.querySelector("link").getAttribute("href"),
-        date: entry.querySelector("updated").textContent.trim(),
-        content: entry.querySelector("summary").textContent.trim(),
+        title: entry.querySelector("title")?.textContent?.trim(),
+        link: entry.querySelector("link")?.getAttribute("href"),
+        date: entry.querySelector("updated")?.textContent?.trim(),
+        content: entry.querySelector("summary")?.textContent?.trim(),
       };
     });
 
