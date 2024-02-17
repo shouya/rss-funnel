@@ -23,6 +23,7 @@
     "@codemirror/state": "^6.4.0",
     "@codemirror/view": "^6.24.0",
     "codemirror": "^6.0.1",
+    "jitbit-html-sanitizer": "^0.2.1",
     "prismjs": "^1.29.0",
     "split.js": "^1.6.5"
   }

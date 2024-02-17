@@ -264,9 +264,41 @@ ul#filter-list {
       color: #666;
     }
   }
+}
 
-  .cm-editor.cm-focused {
-    outline: 0;
+#feed-preview .cm-editor.cm-focused {
+  outline: 0;
+}
+
+#feed-preview #rendered {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .feed-title {
+    margin: 0;
+    padding: 0.5rem;
+    width: 100%;
+    background-color: #fff;
+  }
+
+  .feed-post {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.3rem;
+    background-color: #fafafa;
+
+    .feed-post-title {
+      margin: 0;
+      padding-bottom: 0.5rem;
+      font-size: 1.2em;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .feed-post-link {
+      font-size: 0.8em;
+      margin-top: 0.5rem;
+    }
   }
 }
 

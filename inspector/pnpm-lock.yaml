@@ -20,6 +20,9 @@ dependencies:
   codemirror:
     specifier: ^6.0.1
     version: 6.0.1(@lezer/common@1.2.1)
+  jitbit-html-sanitizer:
+    specifier: ^0.2.1
+    version: 0.2.1
   prismjs:
     specifier: ^1.29.0
     version: 1.29.0
@@ -1851,6 +1854,10 @@ packages:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
     engines: {node: '>=0.12.0'}
     dev: true
+
+  /jitbit-html-sanitizer@0.2.1:
+    resolution: {integrity: sha512-ZKQCtzlgxApqxBW7TqNZPjnCoYc10nVZM+v55K8zAgHHb6Sbc7aQEsj2o6n4Xx3dIvtofdnwRKhG5dbUilQ68A==}
+    dev: false
 
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}

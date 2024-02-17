@@ -4,17 +4,19 @@ import { basicSetup, EditorView } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { xml } from "@codemirror/lang-xml";
 import Split from "split.js";
+import HtmlSanitizer from "jitbit-html-sanitizer";
 
 export class FeedInspector {
   constructor() {
     this.config = null;
     this.current_endpoint = null;
     this.current_preview = null;
-    this.editor = null;
+    this.view_mode = "rendered";
+    this.raw_editor = null;
   }
 
   async init() {
-    await this.setup_feed_editor();
+    await this.setup_raw_editor();
     await this.setup_splitter();
 
     const resp = await fetch("/_inspector/config");
@@ -29,32 +31,32 @@ export class FeedInspector {
       $("#request-param #limit-posts"),
       $("#request-param #limit-posts-checkbox"),
     ].forEach((input) => {
-      input.addEventListener("change", () => this.render_preview());
+      input.addEventListener("change", () => this.render_feed());
     });
 
     $("#request-param #limit-filters").addEventListener("change", () => {
       this.render_filters();
-      this.render_preview();
+      this.render_feed();
     });
     $("#request-param #limit-filters-checkbox").addEventListener(
       "change",
       () => {
         this.render_filters();
-        this.render_preview();
+        this.render_feed();
       },
     );
   }
 
-  async setup_feed_editor() {
+  async setup_raw_editor() {
     $("#feed-preview").classList.add("hidden");
-    this.editor = new EditorView({
+    this.raw_editor = new EditorView({
       extensions: [
         basicSetup,
         xml(),
         EditorState.readOnly.of(true),
         EditorView.lineWrapping,
       ],
-      parent: $("#feed-preview"),
+      parent: $("#feed-preview #raw"),
     });
   }
 
@@ -116,29 +118,56 @@ export class FeedInspector {
     }
   }
 
-  async render_preview() {
-    if (!this.current_endpoint) return;
-    const { path } = this.current_endpoint;
+  async render_feed(raw_xml) {
+    ["rendered", "raw", "json"].forEach((mode) => {
+      if (mode === this.view_mode) {
+        $(`#feed-preview #${mode}`).classList.remove("hidden");
+      } else {
+        $(`#feed-preview #${mode}`).classList.add("hidden");
+      }
 
-    const params = this.feed_request_param();
-    $("#feed-preview").classList.remove("hidden");
-    $("#feed-preview").classList.add("loading");
-
-    const time_start = performance.now();
-    const request_path = `${path}?${params}`;
-    $("#fetch-status").innerText = `Fetching ${request_path}...`;
-    const resp = await fetch(`${path}?${params}`);
-    const content_type = resp.headers.get("content-type");
-    const text = await resp.text();
-
-    $("#fetch-status").innerText = `Fetched ${request_path} in ${
-      performance.now() - time_start
-    }ms. Content-type: ${content_type}`;
-
-    this.editor.dispatch({
-      changes: { from: 0, to: this.editor.state.doc.length, insert: text },
+      const function_name = `render_feed_${mode}`;
+      if (this[function_name]) {
+        this[function_name](raw_xml);
+      }
     });
-    $("#feed-preview").classList.remove("loading");
+  }
+
+  async render_feed_rendered(raw_xml) {
+    const parsed = parse_feed(raw_xml);
+    window.parsed = parsed;
+    if (!parsed) {
+      console.error("Failed to parse feed");
+      return;
+    }
+
+    $("#feed-preview #rendered").innerHTML = "";
+    const title_node = elt("h2", { class: "feed-title" }, parsed.title);
+    $("#feed-preview #rendered").appendChild(title_node);
+
+    const sanitizer = new HtmlSanitizer({});
+
+    for (const post of parsed.posts) {
+      const post_content = elt("p", { class: "feed-post-content" }, []);
+      post_content.innerHTML = sanitizer.sanitizeHtml(post.content);
+      const post_node = elt("div", { class: "feed-post" }, [
+        elt("h3", { class: "feed-post-title" }, post.title),
+        elt("a", { class: "feed-post-link", href: post.link }, post.link),
+        post_content,
+        elt("p", { class: "feed-post-date" }, post.date),
+      ]);
+      $("#feed-preview #rendered").appendChild(post_node);
+    }
+  }
+
+  async render_feed_raw(raw_xml) {
+    this.raw_editor.dispatch({
+      changes: {
+        from: 0,
+        to: this.raw_editor.state.doc.length,
+        insert: raw_xml,
+      },
+    });
   }
 
   async load_endpoint() {
@@ -177,7 +206,32 @@ export class FeedInspector {
     this.render_filters();
 
     // show feed preview
-    this.render_preview();
+    const feed = await this.fetch_feed();
+    this.render_feed(feed);
+  }
+
+  async fetch_feed() {
+    if (!this.current_endpoint) return;
+    const { path } = this.current_endpoint;
+
+    const params = this.feed_request_param();
+    $("#feed-preview").classList.remove("hidden");
+    $("#feed-preview").classList.add("loading");
+
+    const time_start = performance.now();
+    const request_path = `${path}?${params}`;
+    $("#fetch-status").innerText = `Fetching ${request_path}...`;
+    const resp = await fetch(`${path}?${params}`);
+    const content_type = resp.headers.get("content-type");
+    const text = await resp.text();
+
+    $("#fetch-status").innerText = `Fetched ${request_path} in ${
+      performance.now() - time_start
+    }ms. Content-type: ${content_type}`;
+
+    $("#feed-preview").classList.remove("loading");
+
+    return text;
   }
 
   feed_request_param() {
@@ -222,4 +276,42 @@ export class FeedInspector {
     setTimeout(() => (node.style.opacity = 0), 3000);
     setTimeout(() => node.remove(), 4000);
   }
+}
+
+// return {title: string, posts: [post]}
+// post: {title: string, link: string, date: string, content: string}
+function parse_feed(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, "text/xml");
+
+  // for debugging
+  window.doc = doc;
+
+  if (doc.documentElement.tagName == "rss") {
+    const title = doc.querySelector("channel > title").textContent.trim();
+    const posts = Array.from(doc.querySelectorAll("item")).map((item) => {
+      return {
+        title: item.querySelector("title").textContent.trim(),
+        link: item.querySelector("link").textContent.trim(),
+        date: item.querySelector("pubDate").textContent.trim(),
+        content: item.querySelector("description").textContent.trim(),
+      };
+    });
+
+    return { title, posts };
+  } else if (doc.documentElement.tagName == "feed") {
+    const title = doc.querySelector("feed > title").textContent.trim();
+    const posts = Array.from(doc.querySelectorAll("entry")).map((entry) => {
+      return {
+        title: entry.querySelector("title").textContent.trim(),
+        link: entry.querySelector("link").getAttribute("href"),
+        date: entry.querySelector("updated").textContent.trim(),
+        content: entry.querySelector("summary").textContent.trim(),
+      };
+    });
+
+    return { title, posts };
+  }
+
+  return null;
 }
