@@ -66,3 +66,7 @@ axum-macros = "0.4.1"
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }
+
+[profile.release]
+lto = "fat"
+strip = true
