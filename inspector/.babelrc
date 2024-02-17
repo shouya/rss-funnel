@@ -1,0 +1,10 @@
+{
+  "plugins": [
+    ["prismjs", {
+        "languages": ["javascript", "json"],
+        "plugins": [],
+        "theme": "twilight",
+        "css": true
+    }]
+  ]
+}
