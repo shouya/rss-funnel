@@ -3,6 +3,7 @@ import { Filter } from "./Filter.js";
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { xml } from "@codemirror/lang-xml";
+import Split from "split.js";
 
 export class FeedInspector {
   constructor() {
@@ -13,11 +14,13 @@ export class FeedInspector {
   }
 
   async init() {
+    await this.setup_feed_editor();
+    await this.setup_splitter();
+
     const resp = await fetch("/_inspector/config");
     this.config = await resp.json();
 
     await Promise.all([
-      this.setup_feed_editor(),
       this.load_endpoints(),
       this.setup_param_event_handler(),
     ]);
@@ -41,6 +44,15 @@ export class FeedInspector {
         EditorView.lineWrapping,
       ],
       parent: $("#feed-preview"),
+    });
+  }
+
+  async setup_splitter() {
+    Split(["#nav-panel", "#main-panel"], {
+      sizes: [20, 80],
+      snapOffset: 0,
+      gutterSize: 3,
+      minSize: [300, 500],
     });
   }
 
