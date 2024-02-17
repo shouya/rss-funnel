@@ -12,8 +12,7 @@ VERSION ?= v$(shell git describe --tags --always --dirty)
 
 .PHONY: inspector-assets
 inspector-assets:
-	cd inspector
-	pnpm build
+	cd inspector && pnpm build
 
 target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES)
 	cargo build --release --target x86_64-unknown-linux-musl
