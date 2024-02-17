@@ -1,0 +1,30 @@
+{
+  "devDependencies": {
+    "@babel/core": "^7.12.0",
+    "@parcel/reporter-bundle-analyzer": "^2.11.0",
+    "babel-plugin-prismjs": "^2.1.0",
+    "parcel": "^2.11.0",
+    "process": "^0.11.10"
+  },
+  "source": "src/index.html",
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "publicUrl": "/_inspector/dist/"
+    }
+  },
+  "scripts": {
+    "watch": "parcel watch",
+    "build": "rm -rf ./dist/* && parcel build --no-source-maps"
+  },
+  "dependencies": {
+    "@codemirror/lang-xml": "^6.0.2",
+    "@codemirror/language": "^6.10.1",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.24.0",
+    "codemirror": "^6.0.1",
+    "jitbit-html-sanitizer": "^0.2.1",
+    "prismjs": "^1.29.0",
+    "split.js": "^1.6.5"
+  }
+}

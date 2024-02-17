@@ -25,12 +25,14 @@ pub struct ClientConfig {
   set_cookie: Option<String>,
   referer: Option<String>,
   cache_size: Option<usize>,
+  #[serde(default)]
   #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
   cache_ttl: Option<Duration>,
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   timeout: Duration,
-  /// Sometimes the feed doesn't specify a
+  /// Sometimes the feed doesn't report a correct content type, so we
+  /// need to override it.
   #[serde(default)]
   assume_content_type: Option<String>,
 }
@@ -92,7 +94,7 @@ impl ClientConfig {
   pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
     let reqwest_client = self.to_builder().build()?;
     let client = Client::new(
-      self.cache_size.unwrap_or(0),
+      self.cache_size.unwrap_or(64),
       self.cache_ttl.unwrap_or(default_cache_ttl),
       reqwest_client,
       self.assume_content_type.clone(),

@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>RSS Funnel Inspector</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="-45 -50 140 140"%3E%3Ccircle cx="306.7" cy="343.7" r="11.4" fill="%23ff7b00" transform="translate(-282 -331)"/%3E%3Cpath fill="none" stroke="%23ff7b00" stroke-width="15" d="M-3 16a29 29 0 1 1 56 0"/%3E%3Cpath fill="none" stroke="%23ff7b00" stroke-width="15" d="M-23 18a49 49 0 1 1 96-1"/%3E%3Cpath fill="%23ff7b00" d="m-24 29 98-1-1 10-40 28 1 19H17l1-20-42-27z"/%3E%3C/svg%3E%0A'
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div id="sidebar-panel">
+        <div id="sidebar-endpoints">
+          <div class="sidebar-header">
+            <h4>Endpoints</h4>
+          </div>
+          <ul id="endpoint-list" class="sidebar-body"></ul>
+        </div>
+        <div id="sidebar-filters" class="hidden">
+          <div class="sidebar-header">
+            <div class="button" id="back-to-endpoints">Back</div>
+            <span id="endpoint-name"></span>
+            <div class="button" id="copy-endpoint-url">Copy URL</div>
+          </div>
+          <ul id="filter-list" class="sidebar-body"></ul>
+        </div>
+      </div>
+      <div id="main-panel">
+        <div id="request-param" class="hidden">
+          <label for="source"
+            >Source
+            <input
+              type="text"
+              placeholder="http://your-source/feed.xml"
+              id="source"
+            />
+          </label>
+
+          <label for="limit-posts"
+            >Limit Posts
+            <input
+              type="checkbox"
+              id="limit-posts-checkbox"
+              onclick="document.getElementById('limit-posts').disabled = !this.checked"
+            />
+            <input type="number" id="limit-posts" value="1" min="0" disabled />
+          </label>
+
+          <label for="limit-filters"
+            >Limit Filters
+            <input
+              type="checkbox"
+              id="limit-filters-checkbox"
+              onclick="document.getElementById('limit-filters').disabled = !this.checked"
+            />
+            <input
+              type="number"
+              id="limit-filters"
+              value="1"
+              min="0"
+              disabled
+            />
+          </label>
+        </div>
+        <div id="feed-preview">
+          <header id="view-mode-selector">
+            <div id="rendered-radio" class="radio-button">
+              <input
+                type="radio"
+                id="rendered-radio-input"
+                name="view"
+                checked
+              />
+              <label for="rendered-radio-input">Rendered</label>
+            </div>
+            <div id="raw-radio" class="radio-button">
+              <input type="radio" id="raw-radio-input" name="view" />
+              <label for="raw-radio-input">Raw</label>
+            </div>
+          </header>
+          <div id="rendered"></div>
+          <div id="raw"></div>
+        </div>
+        <div id="fetch-status"></div>
+      </div>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
