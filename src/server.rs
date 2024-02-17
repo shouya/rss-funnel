@@ -5,6 +5,7 @@ use axum::{routing::get, Router};
 use clap::Parser;
 pub use endpoint::{EndpointConfig, EndpointOutcome, EndpointParam};
 use http::StatusCode;
+use tower_http::compression::CompressionLayer;
 use tracing::info;
 
 use crate::{cli::FeedDefinition, util::Result};
@@ -35,7 +36,8 @@ pub async fn serve(
     .route("/health", get(|| async { "ok" }))
     .fallback(get(|| async {
       (StatusCode::NOT_FOUND, "Endpoint not found")
-    }));
+    }))
+    .layer(CompressionLayer::new().gzip(true));
 
   info!("starting server");
   Ok(axum::serve(listener, app).await?)
