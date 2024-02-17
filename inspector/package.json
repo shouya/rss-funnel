@@ -15,7 +15,7 @@
   },
   "scripts": {
     "watch": "parcel watch",
-    "build": "rm -rf ./dist/* && parcel build"
+    "build": "rm -rf ./dist/* && parcel build --no-source-maps"
   },
   "dependencies": {
     "@codemirror/lang-xml": "^6.0.2",

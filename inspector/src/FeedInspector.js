@@ -186,7 +186,6 @@ export class FeedInspector {
 
   async render_feed_raw(raw_feed_xml_xml) {
     if (this.raw_editor.state.doc.toString() === raw_feed_xml_xml) {
-      console.log("No need to update raw editor");
       return;
     }
     this.raw_editor.dispatch({
