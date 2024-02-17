@@ -11,9 +11,9 @@ use crate::util::Error;
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "inspector/dist/"]
-// #[include = "*.js"]
-// #[include = "*.css"]
-// #[include = "*.html"]
+#[include = "*.js"]
+#[include = "*.css"]
+#[include = "*.html"]
 // #[include = "*.map"]
 struct Asset;
 
