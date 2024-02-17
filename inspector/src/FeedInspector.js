@@ -47,13 +47,13 @@ export class FeedInspector {
 
     $("#request-param #limit-filters").addEventListener("change", () => {
       this.render_filters();
-      this.render_feed();
+      this.fetch_and_render_feed();
     });
     $("#request-param #limit-filters-checkbox").addEventListener(
       "change",
       () => {
         this.render_filters();
-        this.render_feed();
+        this.fetch_and_render_feed();
       },
     );
   }
@@ -129,6 +129,11 @@ export class FeedInspector {
     }
   }
 
+  async fetch_and_render_feed() {
+    await this.fetch_feed();
+    this.render_feed();
+  }
+
   async render_feed() {
     const view_mode =
       ($("#view-mode-selector #rendered-radio-input").checked && "rendered") ||
@@ -165,7 +170,7 @@ export class FeedInspector {
 
     for (const post of parsed.posts) {
       const post_content = elt("p", { class: "feed-post-content" }, []);
-      post_content.innerHTML = sanitizer.sanitizeHtml(post.content);
+      post_content.innerHTML = sanitizer.sanitizeHtml(post.content || "");
       const post_node = elt("div", { class: "feed-post" }, [
         elt(
           "h3",
@@ -324,8 +329,8 @@ function parse_feed(xml) {
       return {
         title: entry.querySelector("title")?.textContent?.trim(),
         link: entry.querySelector("link")?.getAttribute("href"),
-        date: entry.querySelector("updated")?.textContent?.trim(),
-        content: entry.querySelector("summary")?.textContent?.trim(),
+        date: entry.querySelector("published")?.textContent?.trim(),
+        content: entry.querySelector("content")?.textContent?.trim(),
       };
     });
 
