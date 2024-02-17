@@ -11,7 +11,6 @@ export class FeedInspector {
     this.config = null;
     this.current_endpoint = null;
     this.current_preview = null;
-    this.view_mode = "rendered";
     this.raw_editor = null;
     this.raw_feed_xml = null;
   }
@@ -29,12 +28,10 @@ export class FeedInspector {
 
   async setup_view_mode_selector() {
     $("#view-mode-selector #rendered-radio").addEventListener("change", () => {
-      this.view_mode = "rendered";
       this.render_feed();
     });
 
     $("#view-mode-selector #raw-radio").addEventListener("change", () => {
-      this.view_mode = "raw";
       this.render_feed();
     });
   }
@@ -133,8 +130,13 @@ export class FeedInspector {
   }
 
   async render_feed() {
+    const view_mode =
+      ($("#view-mode-selector #rendered-radio-input").checked && "rendered") ||
+      ($("#view-mode-selector #raw-radio-input").checked && "raw") ||
+      "rendered";
+
     ["rendered", "raw"].forEach((mode) => {
-      if (mode === this.view_mode) {
+      if (mode === view_mode) {
         $(`#feed-preview #${mode}`).classList.remove("hidden");
       } else {
         $(`#feed-preview #${mode}`).classList.add("hidden");
@@ -178,6 +180,10 @@ export class FeedInspector {
   }
 
   async render_feed_raw(raw_feed_xml_xml) {
+    if (this.raw_editor.state.doc.toString() === raw_feed_xml_xml) {
+      console.log("No need to update raw editor");
+      return;
+    }
     this.raw_editor.dispatch({
       changes: {
         from: 0,
@@ -224,7 +230,7 @@ export class FeedInspector {
 
     // show feed preview
     await this.fetch_feed();
-    await this.render_feed();
+    this.render_feed();
   }
 
   async fetch_feed() {
