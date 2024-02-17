@@ -25,6 +25,7 @@ pub struct ClientConfig {
   set_cookie: Option<String>,
   referer: Option<String>,
   cache_size: Option<usize>,
+  #[serde(default)]
   #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
   cache_ttl: Option<Duration>,
   #[serde(default = "default_timeout")]
