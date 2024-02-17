@@ -33,14 +33,14 @@ body {
   border-radius: 10px;
 }
 
-#nav-panel {
+#sidebar-panel {
   > div {
     display: flex;
     flex-direction: column;
     height: 100%;
   }
 
-  .nav-body {
+  .sidebar-body {
     overflow-x: hidden;
     overflow-y: auto;
     margin-top: 0;
@@ -65,8 +65,8 @@ body {
   }
 }
 
-#nav-filters {
-  .nav-header {
+#sidebar-filters {
+  .sidebar-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;

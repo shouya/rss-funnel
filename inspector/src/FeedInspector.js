@@ -48,7 +48,7 @@ export class FeedInspector {
   }
 
   async setup_splitter() {
-    Split(["#nav-panel", "#main-panel"], {
+    Split(["#sidebar-panel", "#main-panel"], {
       sizes: [20, 80],
       snapOffset: 0,
       gutterSize: 3,
@@ -57,8 +57,8 @@ export class FeedInspector {
   }
 
   async load_endpoints() {
-    $("#nav-filters").classList.add("hidden");
-    $("#nav-endpoints").classList.remove("hidden");
+    $("#sidebar-filters").classList.add("hidden");
+    $("#sidebar-endpoints").classList.remove("hidden");
     $("#endpoint-list").innerHTML = "";
 
     for (const endpoint of this.config.endpoints) {
@@ -83,15 +83,15 @@ export class FeedInspector {
       ]);
       $("#endpoint-list").appendChild(node);
     }
-    $("#nav-endpoints").classList.remove("hidden");
+    $("#sidebar-endpoints").classList.remove("hidden");
   }
 
   async load_endpoint() {
     if (!this.current_endpoint) return;
     const { path, source, filters } = this.current_endpoint;
 
-    // switch navigation ui
-    $("#nav-endpoints").classList.add("hidden");
+    // switch sidebarigation ui
+    $("#sidebar-endpoints").classList.add("hidden");
     $("#endpoint-name").textContent = path;
     $("#back-to-endpoints").addEventListener("click", () => {
       this.current_endpoint = null;
@@ -100,7 +100,7 @@ export class FeedInspector {
     $("#copy-endpoint-url").addEventListener("click", () => {
       this.copy_endpoint_url(this.current_endpoint);
     });
-    $("#nav-filters").classList.remove("hidden");
+    $("#sidebar-filters").classList.remove("hidden");
 
     // switch main ui
     $("input#source", $("#request-param")).disabled = !!source;
@@ -177,7 +177,7 @@ export class FeedInspector {
 
   copy_endpoint_url(endpoint) {
     const url = this.full_feed_url(endpoint);
-    navigator.clipboard.writeText(url);
+    sidebarigator.clipboard.writeText(url);
     const node = elt("div", { class: "popup-alert", style: "opacity: 1" }, [
       elt("div", { class: "alert-header" }, "URL Copied"),
       elt("div", { class: "alert-body" }, url),
