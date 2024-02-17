@@ -106,7 +106,19 @@ ul#filter-list {
     border-radius: 0.3rem;
     width: 100%;
 
+    &.inactive {
+      background-color: #f4f4f4;
+      opacity: 0.5;
+    }
+
+    &.inactive .filter-header::after {
+      content: "Inactive";
+      margin-left: auto;
+      color: #666;
+    }
+
     .filter-header {
+      display: flex;
       font-size: 1.2em;
       font-family: monospace;
       color: #3498db;

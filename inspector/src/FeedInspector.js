@@ -20,18 +20,29 @@ export class FeedInspector {
     const resp = await fetch("/_inspector/config");
     this.config = await resp.json();
 
-    await Promise.all([
-      this.load_endpoints(),
-      this.setup_param_event_handler(),
-    ]);
+    await Promise.all([this.load_endpoints(), this.setup_param()]);
   }
 
-  async setup_param_event_handler() {
-    $("#request-param")
-      .querySelectorAll("input")
-      .forEach((input) => {
-        input.addEventListener("change", () => this.load_endpoint());
-      });
+  async setup_param() {
+    [
+      $("#request-param #source"),
+      $("#request-param #limit-posts"),
+      $("#request-param #limit-posts-checkbox"),
+    ].forEach((input) => {
+      input.addEventListener("change", () => this.render_preview());
+    });
+
+    $("#request-param #limit-filters").addEventListener("change", () => {
+      this.render_filters();
+      this.render_preview();
+    });
+    $("#request-param #limit-filters-checkbox").addEventListener(
+      "change",
+      () => {
+        this.render_filters();
+        this.render_preview();
+      },
+    );
   }
 
   async setup_feed_editor() {
@@ -86,6 +97,50 @@ export class FeedInspector {
     $("#sidebar-endpoints").classList.remove("hidden");
   }
 
+  render_filters() {
+    if (!this.current_endpoint) return;
+    const { filters } = this.current_endpoint;
+    const limit =
+      $("#limit-filters-checkbox").checked && $("#limit-filters").value;
+    const filter_ul_node = $("#filter-list");
+    filter_ul_node.innerHTML = "";
+    for (const [index, filter] of filters.entries()) {
+      const [name, conf] = Object.entries(filter)[0];
+      const node = new Filter(name, conf).render_node();
+
+      if (limit !== false && index >= limit) {
+        node.classList.add("inactive");
+      }
+
+      filter_ul_node.appendChild(node);
+    }
+  }
+
+  async render_preview() {
+    if (!this.current_endpoint) return;
+    const { path } = this.current_endpoint;
+
+    const params = this.feed_request_param();
+    $("#feed-preview").classList.remove("hidden");
+    $("#feed-preview").classList.add("loading");
+
+    const time_start = performance.now();
+    const request_path = `${path}?${params}`;
+    $("#fetch-status").innerText = `Fetching ${request_path}...`;
+    const resp = await fetch(`${path}?${params}`);
+    const content_type = resp.headers.get("content-type");
+    const text = await resp.text();
+
+    $("#fetch-status").innerText = `Fetched ${request_path} in ${
+      performance.now() - time_start
+    }ms. Content-type: ${content_type}`;
+
+    this.editor.dispatch({
+      changes: { from: 0, to: this.editor.state.doc.length, insert: text },
+    });
+    $("#feed-preview").classList.remove("loading");
+  }
+
   async load_endpoint() {
     if (!this.current_endpoint) return;
     const { path, source, filters } = this.current_endpoint;
@@ -113,35 +168,16 @@ export class FeedInspector {
     }
     $("#request-param").classList.remove("hidden");
 
+    // update parameter input
+    $("#limit-filters").setAttribute("max", filters.length);
+    $("#limit-filters").value = filters.length;
+    $("#limit-filters-checkbox").checked = false;
+
     // show filter list
-    const filter_ul_node = $("#filter-list");
-    filter_ul_node.innerHTML = "";
-    for (const filter of filters) {
-      const [name, conf] = Object.entries(filter)[0];
-      const node = new Filter(name, conf).render_node();
-      filter_ul_node.appendChild(node);
-    }
+    this.render_filters();
 
     // show feed preview
-    const params = this.feed_request_param();
-    $("#feed-preview").classList.remove("hidden");
-    $("#feed-preview").classList.add("loading");
-
-    const time_start = performance.now();
-    const request_path = `${path}?${params}`;
-    $("#fetch-status").innerText = `Fetching ${request_path}...`;
-    const resp = await fetch(`${path}?${params}`);
-    const content_type = resp.headers.get("content-type");
-    const text = await resp.text();
-
-    $("#fetch-status").innerText = `Fetched ${request_path} in ${
-      performance.now() - time_start
-    }ms. Content-type: ${content_type}`;
-
-    this.editor.dispatch({
-      changes: { from: 0, to: this.editor.state.doc.length, insert: text },
-    });
-    $("#feed-preview").classList.remove("loading");
+    this.render_preview();
   }
 
   feed_request_param() {
