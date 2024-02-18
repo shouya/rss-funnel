@@ -151,7 +151,6 @@ async fn fs_watcher(
     }
     Ok(_) => {}
     Err(_) => {
-      dbg!(&event);
       error!("file watcher error: {:?}", event);
     }
   };
