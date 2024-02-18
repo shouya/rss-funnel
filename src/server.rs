@@ -14,6 +14,15 @@ use crate::{cli::FeedDefinition, util::Result};
 pub struct ServerConfig {
   #[clap(long, short, default_value = "127.0.0.1:4080")]
   bind: String,
+  #[clap(
+    long,
+    action = clap::ArgAction::Set,
+    num_args = 0..=1,
+    require_equals = true,
+    default_value = "true",
+    default_missing_value = "true"
+  )]
+  inspector_ui: bool,
 }
 
 pub async fn serve(
@@ -31,8 +40,13 @@ pub async fn serve(
     app = app.merge(endpoint_route);
   }
 
+  if server_config.inspector_ui {
+    app = app.nest("/", inspector::router(feed_definition))
+  } else {
+    app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
+  }
+
   app = app
-    .nest("/", inspector::router(feed_definition))
     .route("/health", get(|| async { "ok" }))
     .fallback(get(|| async {
       (StatusCode::NOT_FOUND, "Endpoint not found")
