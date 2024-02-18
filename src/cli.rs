@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -63,6 +63,13 @@ pub struct FeedDefinition {
 }
 
 impl FeedDefinition {
+  pub fn load_from_file(path: &Path) -> Result<Self> {
+    let f = std::fs::File::open(path)?;
+    let feed_definition =
+      serde_yaml::from_reader(f).map_err(ConfigError::from)?;
+    Ok(feed_definition)
+  }
+
   fn get_endpoint(&self, endpoint: &str) -> Option<EndpointConfig> {
     self.endpoints.iter().find(|e| e.path == endpoint).cloned()
   }
@@ -73,20 +80,13 @@ impl FeedDefinition {
 }
 
 impl Cli {
-  fn load_feed_definition(&self) -> Result<FeedDefinition> {
-    let f = std::fs::File::open(&self.config)?;
-    let feed_definition =
-      serde_yaml::from_reader(f).map_err(ConfigError::from)?;
-    Ok(feed_definition)
-  }
-
   pub async fn run(self) -> Result<()> {
-    let feed_defn = self.load_feed_definition()?;
     match self.subcmd {
       SubCommand::Server(server_config) => {
-        server::serve(server_config, feed_defn).await
+        server_config.run(&self.config).await
       }
       SubCommand::Test(test_config) => {
+        let feed_defn = FeedDefinition::load_from_file(&self.config)?;
         test_endpoint(feed_defn, &test_config).await;
         Ok(())
       }
