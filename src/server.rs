@@ -57,6 +57,8 @@ impl ServerConfig {
     while let Some(new_config) = config_update.recv().await {
       info!("config updated, restarting server");
       task_handle.abort();
+      task_handle.await.ok();
+
       task_handle = tokio::task::spawn(self.clone().serve(new_config));
     }
 
