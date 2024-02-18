@@ -37,19 +37,25 @@ export class FeedInspector {
       return;
     }
 
-    let endpoint_still_exists = this.config.endpoints.find((endpoint) => {
-      return endpoint.path === this.current_endpoint?.path;
-    });
-
-    if (!endpoint_still_exists) {
-      this.current_endpoint = null;
+    if (!this.current_endpoint) {
       await this.load_endpoints();
       await this.reset_main_ui();
-    } else {
-      this.update_request_param_controls();
-      this.render_filters();
-      this.fetch_and_render_feed();
     }
+
+    for (const endpoint of this.config.endpoints) {
+      if (this.current_endpoint?.path === endpoint.path) {
+        this.current_endpoint = endpoint;
+        this.update_request_param_controls();
+        this.render_filters();
+        this.fetch_and_render_feed();
+        return;
+      }
+    }
+
+    // current endpoint was deleted, reset everything
+    this.current_endpoint = null;
+    await this.load_endpoints();
+    await this.reset_main_ui();
   }
 
   async setup_reload_config_handler() {
