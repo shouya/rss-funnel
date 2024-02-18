@@ -52,6 +52,7 @@ impl ServerConfig {
       );
     };
     let mut task_handle = tokio::task::spawn(self.clone().serve(config));
+    let mut config_update = debounce(Duration::from_millis(500), config_update);
 
     while let Some(new_config) = config_update.recv().await {
       info!("config updated, restarting server");
@@ -133,4 +134,27 @@ async fn fs_watcher(
     })?;
 
   Ok((watcher, rx))
+}
+
+fn debounce<T: Send + 'static>(
+  duration: std::time::Duration,
+  mut rx: mpsc::Receiver<T>,
+) -> mpsc::Receiver<T> {
+  let (debounced_tx, debounced_rx) = mpsc::channel(1);
+  tokio::task::spawn(async move {
+    let mut last = None;
+    loop {
+      tokio::select! {
+        val = rx.recv() => {
+          last = val;
+        }
+        _ = tokio::time::sleep(duration) => {
+          if let Some(val) = last.take() {
+            debounced_tx.send(val).await.unwrap();
+          }
+        }
+      }
+    }
+  });
+  debounced_rx
 }
