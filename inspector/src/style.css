@@ -34,7 +34,8 @@ body {
 }
 
 #sidebar-panel {
-  > div {
+  #sidebar-endpoints,
+  #main-panel {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -51,6 +52,11 @@ body {
     margin: 0.5rem 0;
     padding-bottom: 0.5rem;
   }
+}
+
+#reload-config-button {
+  text-align: center;
+  margin-bottom: 0.5rem;
 }
 
 .button {
