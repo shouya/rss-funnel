@@ -42,7 +42,7 @@ export class FeedInspector {
       $("#request-param #limit-posts"),
       $("#request-param #limit-posts-checkbox"),
     ].forEach((input) => {
-      input.addEventListener("change", () => this.render_feed());
+      input.addEventListener("change", () => this.fetch_and_render_feed());
     });
 
     $("#request-param #limit-filters").addEventListener("change", () => {
