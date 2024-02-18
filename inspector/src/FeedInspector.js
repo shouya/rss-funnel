@@ -205,7 +205,6 @@ export class FeedInspector {
     $("#sidebar-endpoints").classList.add("hidden");
     $("#endpoint-name").textContent = path;
     $("#back-to-endpoints").addEventListener("click", () => {
-      this.current_endpoint = null;
       this.load_endpoints();
     });
     $("#copy-endpoint-url").addEventListener("click", () => {
