@@ -8,7 +8,7 @@ use clap::Parser;
 use http::StatusCode;
 use tokio::sync::mpsc;
 use tower_http::compression::CompressionLayer;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::{
   cli::FeedDefinition,
@@ -123,8 +123,14 @@ async fn fs_watcher(
   let path = config_path.to_owned();
   let event_handler = move |event: Result<Event, notify::Error>| match event {
     Ok(event) if event.kind.is_modify() => {
-      let feed_definition = FeedDefinition::load_from_file(&path).unwrap();
-      tx.blocking_send(feed_definition).unwrap();
+      match FeedDefinition::load_from_file(&path) {
+        Ok(feed_definition) => {
+          tx.blocking_send(feed_definition).unwrap();
+        }
+        Err(e) => {
+          warn!("Invalid config: {:?}", e);
+        }
+      }
     }
     Ok(_) => {}
     Err(_) => {
