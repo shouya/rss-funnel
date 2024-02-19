@@ -47,7 +47,7 @@ pub fn convert_relative_url(html: &mut Html, base_url: &str) {
 }
 
 pub fn html_body(html: &str) -> String {
-  Html::parse_document(&html)
+  Html::parse_document(html)
     .select(&Selector::parse("body").unwrap())
     .next()
     .map(|body| body.inner_html().trim().to_string())
