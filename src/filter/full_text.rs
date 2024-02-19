@@ -107,7 +107,9 @@ impl FullTextFilter {
 
     if self.simplify {
       text = super::simplify_html::simplify(&text, link).unwrap_or(text);
-    };
+    } else {
+      text = crate::html::html_body(&text);
+    }
 
     let description = post.description_or_insert();
     if self.append_mode {
