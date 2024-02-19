@@ -7,10 +7,12 @@ The RSS Funnel is a modular RSS processing pipeline. It is designed to be used t
 - Remove unwanted elements from the article (using a CSS selector)
 - Keep or remove articles matching keywords or patterns
 - Highlight keywords in articles
-- rich DOM manipulation on the feed
 - Redact or replace text in the article (using a regular expression)
 - Split a single RSS article into multiple articles
-- Run arbitrary JS code to transform the article
+- Merge multiple feeds into a single feed
+- Run arbitrary JS code to transform the feed or articles (with [[https://github.com/shouya/rss-funnel/wiki/JS-DOM-API][DOM API support]])
+
+[[https://rss-funnel-demo.fly.dev/][Try out the live demo!]]
 
 ** Installation
 
@@ -30,11 +32,18 @@ services:
 
 Alternatively, you can build it directly from source:
 
-#+begin_src
+#+begin_src bash
 git clone https://github.com/shouya/rss-funnel.git
 cd rss-funnel
+
+# first build the front-end assets
+cd inspector && npm i && npm run build && cd ..
+
+# then build the binary
 cargo build --release
 #+end_src
+
+Or if you prefer not to build from source, you can download the pre-built artifacts from [[https://github.com/shouya/rss-funnel/releases][release page]].
 
 ** Usage
 
