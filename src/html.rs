@@ -46,6 +46,14 @@ pub fn convert_relative_url(html: &mut Html, base_url: &str) {
   }
 }
 
+pub fn html_body(html: &str) -> String {
+  Html::parse_document(html)
+    .select(&Selector::parse("body").unwrap())
+    .next()
+    .map(|body| body.inner_html().trim().to_string())
+    .unwrap_or_else(|| html.to_string())
+}
+
 pub fn fragment_root_node_id(mut node: NodeRef<'_, scraper::Node>) -> NodeId {
   let val = node.value();
   if val.is_fragment() || val.is_document() {
@@ -59,4 +67,25 @@ pub fn fragment_root_node_id(mut node: NodeRef<'_, scraper::Node>) -> NodeId {
   }
 
   node.id()
+}
+
+#[cfg(test)]
+mod test {
+  #[test]
+  fn test_html_body() {
+    let html = r#"
+      <html>
+        <head>
+          <title>Test</title>
+        </head>
+        <body>
+          <p>Test</p>
+        </body>
+      </html>
+    "#;
+
+    let expected = r#"<p>Test</p>"#;
+
+    assert_eq!(super::html_body(html), expected);
+  }
 }

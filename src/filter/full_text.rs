@@ -89,25 +89,25 @@ impl FullTextFilter {
     convert_relative_url(&mut html, link);
     let mut text = html.html();
 
-    match self
-      .keep_element
-      .as_ref()
-      .and_then(|k| k.filter_description(&text))
-    {
-      Some(filtered) => {
-        text = filtered;
-      }
-      None => {
-        text = format!(
-          "<p>Failed to filter description with keep_element</p>\n{}",
-          text
-        );
-      }
-    }
-
     if self.simplify {
       text = super::simplify_html::simplify(&text, link).unwrap_or(text);
-    };
+    } else {
+      text = crate::html::html_body(&text);
+    }
+
+    if let Some(k) = self.keep_element.as_ref() {
+      match k.filter_description(&text) {
+        Some(filtered) => {
+          text = filtered;
+        }
+        None => {
+          text = format!(
+            "<p>Failed to filter description with keep_element</p>\n{}",
+            text
+          );
+        }
+      }
+    }
 
     let description = post.description_or_insert();
     if self.append_mode {
