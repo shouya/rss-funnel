@@ -1,0 +1,153 @@
+# Modified from https://github.com/SpectralOps/rust-ci-release-template
+name: Release
+on:
+  push:
+    tags:
+      - "*.*.*"
+      - "*.*.*-pre.*"
+
+permissions:
+  contents: write
+
+env:
+  BIN_NAME: rss-funnel
+  PROJECT_NAME: rss-funnel
+  REPO_NAME: shouya/rss-funnel
+
+jobs:
+  build:
+    name: Dist
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust: stable
+            target: x86_64-unknown-linux-musl
+            cross: false
+          - os: ubuntu-latest
+            rust: stable
+            target: aarch64-unknown-linux-musl
+            cross: true
+          - os: macos-latest
+            rust: stable
+            target: x86_64-apple-darwin
+            cross: false
+          - os: windows-2019
+            rust: stable
+            target: x86_64-pc-windows-msvc
+            cross: false
+          - os: macos-latest
+            rust: stable
+            target: aarch64-apple-darwin
+            cross: false
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+      - name: Build inspector front-end
+        run: |
+          cd inspector
+          npm install
+          npm run build
+
+      - name: Install ${{ matrix.rust }} toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install musl build tools
+        # https://github.com/rust-lang/backtrace-rs/issues/34
+        # required for any musl targets
+        if: ${{ endsWith(matrix.target, '-musl') }}
+        run: sudo apt-get install -y musl-tools
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        # binary incompatible with aarch64-macos on host
+        if: ${{ matrix.traget != 'aarch64-apple-darwin' }}
+        with:
+          use-cross: ${{ matrix.cross }}
+          command: test
+          args: --release --locked --target ${{ matrix.target }}
+
+      - name: Build release binary
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.cross }}
+          command: build
+          args: --release --locked --target ${{ matrix.target }}
+
+      - name: Parse release version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" =~ ^refs/tags/* ]]; then
+            echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echo "No tag found"
+            exit 1
+          fi
+
+      - name: Set DIST_BINARY
+        shell: bash
+        run: |
+          set -ex
+          dist_binary="target/${{ matrix.target }}/release/$BIN_NAME"
+
+          case "${{ matrix.target }}" in
+            *-windows-* )
+              dist_binary="$dist_binary.exe"
+              ;;
+          esac
+
+          echo "DIST_BINARY=$dist_binary" >> $GITHUB_ENV
+
+      - name: Build archive
+        shell: bash
+        run: |
+          set -ex
+
+          mkdir -p dist
+
+          pkgname="${PROJECT_NAME}-$RELEASE_VERSION-${{matrix.target}}"
+          archive_dir="archive/$pkgname"
+          mkdir -p "$archive_dir"
+          cp -a LICENSE README.org "$archive_dir/"
+          mv "$DIST_BINARY" "$archive_dir/"
+
+          cd archive
+
+          case "${{ matrix.target }}" in
+            *-windows-*)
+              7z a -r ../dist/$pkgname.zip $pkgname
+              echo "PKG_NAME=$pkgname.zip" >> $GITHUB_ENV
+              echo "PKG_PATH=dist/$pkgname.zip" >> $GITHUB_ENV
+              ;;
+
+            *)
+              tar cJf ../dist/$pkgname.tar.xz $pkgname
+              echo "PKG_NAME=$pkgname.tar.xz" >> $GITHUB_ENV
+              echo "PKG_PATH=dist/$pkgname.tar.xz" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ env.PKG_NAME }}"
+          path: "${{ env.PKG_PATH }}"
+
+      - name: Publish archives
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            ${{ env.PKG_PATH }}
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
