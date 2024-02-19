@@ -5,6 +5,7 @@ use std::{path::Path, sync::Arc, time::Duration};
 
 use axum::{routing::get, Router};
 use clap::Parser;
+use futures::{future, Future};
 use http::StatusCode;
 use tokio::sync::mpsc;
 use tower_http::compression::CompressionLayer;
@@ -50,7 +51,7 @@ impl ServerConfig {
   #[allow(unused)]
   pub async fn run_without_fs_watcher(self, config_path: &Path) -> Result<()> {
     let config = FeedDefinition::load_from_file(config_path)?;
-    self.serve(config).await
+    self.serve(config, future::pending()).await
   }
 
   pub async fn run_with_fs_watcher(self, config_path: &Path) -> Result<()> {
@@ -62,21 +63,36 @@ impl ServerConfig {
           .into(),
       );
     };
-    let mut task_handle = tokio::task::spawn(self.clone().serve(config));
+    let (mut tx, mut rx) = mpsc::channel(1);
+
+    let mut task_handle = tokio::task::spawn(
+      self
+        .clone()
+        .serve(config, async move { rx.recv().await.unwrap() }),
+    );
     let mut config_update = debounce(Duration::from_millis(500), config_update);
 
     while let Some(new_config) = config_update.recv().await {
       info!("config updated, restarting server");
-      task_handle.abort();
+      tx.send(()).await.ok();
       task_handle.await.ok();
 
-      task_handle = tokio::task::spawn(self.clone().serve(new_config));
+      (tx, rx) = mpsc::channel(1);
+      task_handle = tokio::task::spawn(
+        self
+          .clone()
+          .serve(new_config, async move { rx.recv().await.unwrap() }),
+      );
     }
 
     Ok(())
   }
 
-  pub async fn serve(self, feed_definition: FeedDefinition) -> Result<()> {
+  pub async fn serve(
+    self,
+    feed_definition: FeedDefinition,
+    shutdown_signal: impl Future<Output = ()> + Send + 'static,
+  ) -> Result<()> {
     info!("listening on {}", &self.bind);
     let listener = tokio::net::TcpListener::bind(&*self.bind).await?;
 
@@ -103,6 +119,7 @@ impl ServerConfig {
 
     info!("starting server");
     let server = axum::serve(listener, app);
+    let server = server.with_graceful_shutdown(shutdown_signal);
 
     Ok(server.await?)
   }
@@ -134,7 +151,6 @@ async fn fs_watcher(
     }
     Ok(_) => {}
     Err(_) => {
-      dbg!(&event);
       error!("file watcher error: {:?}", event);
     }
   };

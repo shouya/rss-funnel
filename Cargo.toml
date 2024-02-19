@@ -24,7 +24,7 @@ serde_regex = "1.1.0"
 
 # webserver
 axum-macros = "0.4.1"
-axum = { version = "0.7.2", features = ["json"] }
+axum = { version = "0.7.4", features = ["json"] }
 tower = "0.4.13"
 
 # Feed formats support

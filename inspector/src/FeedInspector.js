@@ -16,14 +16,52 @@ export class FeedInspector {
   }
 
   async init() {
-    await this.setup_raw_editor();
-    await this.setup_splitter();
-    await this.setup_view_mode_selector();
+    this.setup_raw_editor();
+    this.setup_splitter();
+    this.setup_view_mode_selector();
+    this.setup_reload_config_handler();
 
+    window.debug = this;
+
+    await this.reload_config();
+
+    await Promise.all([this.load_endpoints(), this.setup_param()]);
+  }
+
+  async reload_config() {
     const resp = await fetch("/_inspector/config");
     this.config = await resp.json();
 
-    await Promise.all([this.load_endpoints(), this.setup_param()]);
+    if (!this.config) {
+      console.error("Failed to load config");
+      return;
+    }
+
+    if (!this.current_endpoint) {
+      await this.load_endpoints();
+      await this.reset_main_ui();
+    }
+
+    for (const endpoint of this.config.endpoints) {
+      if (this.current_endpoint?.path === endpoint.path) {
+        this.current_endpoint = endpoint;
+        this.update_request_param_controls();
+        this.render_filters();
+        this.fetch_and_render_feed();
+        return;
+      }
+    }
+
+    // current endpoint was deleted, reset everything
+    this.current_endpoint = null;
+    await this.load_endpoints();
+    await this.reset_main_ui();
+  }
+
+  async setup_reload_config_handler() {
+    $("#reload-config-button").addEventListener("click", () => {
+      this.reload_config();
+    });
   }
 
   async setup_view_mode_selector() {
@@ -59,7 +97,6 @@ export class FeedInspector {
   }
 
   async setup_raw_editor() {
-    $("#feed-preview").classList.add("hidden");
     this.raw_editor = new EditorView({
       extensions: [
         basicSetup,
@@ -108,6 +145,11 @@ export class FeedInspector {
       $("#endpoint-list").appendChild(node);
     }
     $("#sidebar-endpoints").classList.remove("hidden");
+  }
+
+  async reset_main_ui() {
+    $("#endpoint-name").textContent = "";
+    $("#main-panel").classList.add("hidden");
   }
 
   render_filters() {
@@ -197,9 +239,30 @@ export class FeedInspector {
     });
   }
 
+  update_request_param_controls() {
+    if (!this.current_endpoint) return;
+
+    const { source, filters } = this.current_endpoint;
+
+    // switch main ui
+    $("input#source", $("#request-param")).disabled = !!source;
+    if (source) {
+      $("input#source", $("#request-param")).placeholder = source;
+      $("input#source", $("#request-param")).value = "";
+    } else {
+      $("input#source", $("#request-param")).placeholder =
+        "Source not configured. Please specify it here.";
+    }
+
+    // update parameter input
+    $("#limit-filters").setAttribute("max", filters.length);
+    $("#limit-filters").value = filters.length;
+    $("#limit-filters-checkbox").checked = false;
+  }
+
   async load_endpoint() {
     if (!this.current_endpoint) return;
-    const { path, source, filters } = this.current_endpoint;
+    const { path } = this.current_endpoint;
 
     // switch sidebar ui
     $("#sidebar-endpoints").classList.add("hidden");
@@ -212,24 +275,12 @@ export class FeedInspector {
     });
     $("#sidebar-filters").classList.remove("hidden");
 
-    // switch main ui
-    $("input#source", $("#request-param")).disabled = !!source;
-    if (source) {
-      $("input#source", $("#request-param")).placeholder = source;
-      $("input#source", $("#request-param")).value = "";
-    } else {
-      $("input#source", $("#request-param")).placeholder =
-        "Source not configured. Please specify it here.";
-    }
-    $("#request-param").classList.remove("hidden");
-
-    // update parameter input
-    $("#limit-filters").setAttribute("max", filters.length);
-    $("#limit-filters").value = filters.length;
-    $("#limit-filters-checkbox").checked = false;
-
     // show filter list
     this.render_filters();
+
+    // show main ui
+    this.update_request_param_controls();
+    $("#main-panel").classList.remove("hidden");
 
     // show feed preview
     await this.fetch_feed();
@@ -241,7 +292,6 @@ export class FeedInspector {
     const { path } = this.current_endpoint;
 
     const params = this.feed_request_param();
-    $("#feed-preview").classList.remove("hidden");
     $("#feed-preview").classList.add("loading");
 
     const time_start = performance.now();
