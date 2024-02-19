@@ -43,6 +43,7 @@ commit_preprocessors = [
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
+  { field = "author.name", pattern = ".*\\[bot\\].*", skip = true },
   { message = "^feat", group = "Features" },
   { message = "support", group = "Features" },
   { message = "^fix", group = "Bug Fixes" },
