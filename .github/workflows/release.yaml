@@ -71,7 +71,7 @@ jobs:
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         # binary incompatible with aarch64-macos on host
-        if: ${{ matrix.traget != 'aarch64-apple-darwin' }}
+        if: ${{ matrix.target != 'aarch64-apple-darwin' }}
         with:
           use-cross: ${{ matrix.cross }}
           command: test
