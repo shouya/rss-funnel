@@ -1,9 +1,15 @@
 [package]
 name = "rss-funnel"
+description = "A composable feed processing pipeline"
 version = "0.0.5"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license-file = "LICENSE"
+readme = "README.org"
+repository = "https://github.com/shouya/rss-funnel"
+homepage = "https://github.com/shouya/rss-funnel"
+documentation = "https://docs.rs/rss-funnel"
+keywords = ["rss", "feed", "cli"]
+categories = ["command-line-interface", "web-programming"]
 
 [dependencies]
 # Async runtime, utility and helper crates
