@@ -17,7 +17,23 @@ pub enum Feed {
   Atom(atom_syndication::Feed),
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum FeedFormat {
+  Rss,
+  Atom,
+}
+
 impl Feed {
+  // currently only used in tests.
+  #[cfg(test)]
+  pub fn format(&self) -> FeedFormat {
+    match self {
+      Feed::Rss(_) => FeedFormat::Rss,
+      Feed::Atom(_) => FeedFormat::Atom,
+    }
+  }
+
   pub fn from_rss_content(content: &str) -> Result<Self> {
     let cursor = std::io::Cursor::new(content);
     let channel = rss::Channel::read_from(cursor)?;
@@ -130,7 +146,7 @@ impl Feed {
 
 impl From<&BlankFeed> for Feed {
   fn from(config: &BlankFeed) -> Self {
-    use crate::source::FeedFormat::*;
+    use FeedFormat::*;
     match config.format {
       Rss => {
         let mut channel = rss::Channel {
