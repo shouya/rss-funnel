@@ -5,10 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::body::Body;
-use axum::extract::FromRequestParts;
 use axum::response::IntoResponse;
-use http::request::Parts;
-use http::{StatusCode, Uri};
+use http::StatusCode;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use tower::Service;
