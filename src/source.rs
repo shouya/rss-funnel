@@ -1,5 +1,5 @@
-use axum::extract::Request;
-use serde::Deserialize;
+use http::request::Parts;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
@@ -8,27 +8,27 @@ use crate::{
   util::{ConfigError, Error, Result},
 };
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
-enum SourceConfig {
+pub enum SourceConfig {
   Simple(String),
   FromScratch(BlankFeed),
 }
 
-enum Source {
+pub enum Source {
   AbsoluteUrl(Url),
   RelativeUrl(String),
   FromScratch(BlankFeed),
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
   Rss,
   Atom,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BlankFeed {
   pub format: FeedFormat,
   pub title: String,
@@ -56,7 +56,7 @@ impl TryFrom<SourceConfig> for Source {
 impl Source {
   pub async fn fetch_feed(
     &self,
-    request: Option<&Request>,
+    request: Option<&Parts>,
     client: Option<&Client>,
   ) -> Result<Feed> {
     if let Source::FromScratch(config) = self {
@@ -71,7 +71,7 @@ impl Source {
       Source::RelativeUrl(path) => {
         let request =
           request.ok_or_else(|| Error::Message("request not set".into()))?;
-        let this_url: Url = request.uri().to_string().parse()?;
+        let this_url: Url = request.uri.to_string().parse()?;
         this_url.join(path)?
       }
       Source::FromScratch(_) => unreachable!(),
