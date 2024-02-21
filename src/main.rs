@@ -6,6 +6,7 @@ mod filter;
 mod html;
 mod js;
 mod server;
+mod source;
 #[cfg(test)]
 mod test_utils;
 mod util;
