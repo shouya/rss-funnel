@@ -15,6 +15,7 @@ pub enum SourceConfig {
   FromScratch(BlankFeed),
 }
 
+#[derive(Clone, Debug)]
 pub enum Source {
   AbsoluteUrl(Url),
   RelativeUrl(String),
@@ -34,6 +35,12 @@ pub struct BlankFeed {
   pub title: String,
   pub link: Option<String>,
   pub description: Option<String>,
+}
+
+impl From<Url> for Source {
+  fn from(url: Url) -> Self {
+    Source::AbsoluteUrl(url)
+  }
 }
 
 impl TryFrom<SourceConfig> for Source {
@@ -56,8 +63,8 @@ impl TryFrom<SourceConfig> for Source {
 impl Source {
   pub async fn fetch_feed(
     &self,
-    request: Option<&Parts>,
     client: Option<&Client>,
+    request: Option<&Parts>,
   ) -> Result<Feed> {
     if let Source::FromScratch(config) = self {
       let feed = Feed::from(config);

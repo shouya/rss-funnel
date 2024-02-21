@@ -81,7 +81,7 @@ pub struct Merge {
 #[async_trait::async_trait]
 impl FeedFilter for Merge {
   async fn run(&self, feed: &mut Feed) -> Result<()> {
-    let mut new_feed = self.source.fetch_feed(None, Some(&self.client)).await?;
+    let mut new_feed = self.source.fetch_feed(Some(&self.client), None).await?;
     self.filters.process(&mut new_feed).await?;
     feed.merge(new_feed)?;
     Ok(())

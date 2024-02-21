@@ -5,8 +5,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::body::Body;
+use axum::extract::FromRequestParts;
 use axum::response::IntoResponse;
-use http::StatusCode;
+use http::request::Parts;
+use http::{StatusCode, Uri};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use tower::Service;
@@ -14,6 +16,7 @@ use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::filter::{FilterConfig, Filters};
+use crate::source::{Source, SourceConfig};
 use crate::util::{Error, Result};
 
 type Request = http::Request<Body>;
@@ -47,7 +50,8 @@ impl EndpointConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EndpointServiceConfig {
-  source: Option<String>,
+  #[serde(default)]
+  source: Option<SourceConfig>,
   filters: Vec<FilterConfig>,
   #[serde(default)]
   client: Option<ClientConfig>,
@@ -55,7 +59,7 @@ pub struct EndpointServiceConfig {
 
 #[derive(Clone)]
 pub struct EndpointService {
-  source: Option<Url>,
+  source: Option<Source>,
   filters: Arc<Filters>,
   client: Arc<Client>,
 }
@@ -222,10 +226,7 @@ impl EndpointService {
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
-    let source = match config.source {
-      Some(source) => Some(Url::parse(&source)?),
-      None => None,
-    };
+    let source = config.source.map(|s| s.try_into()).transpose()?;
 
     Ok(Self {
       source,
@@ -239,7 +240,7 @@ impl EndpointService {
     param: EndpointParam,
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
-    let mut feed = self.client.fetch_feed(&source).await?;
+    let mut feed = source.fetch_feed(Some(&self.client), None).await?;
 
     if let Some(limit) = param.limit_filters {
       self.filters.process_partial(&mut feed, limit).await?;
@@ -260,14 +261,15 @@ impl EndpointService {
     Ok(outcome)
   }
 
-  fn find_source(&self, param: &Option<Url>) -> Result<Url> {
-    match self.source {
+  fn find_source(&self, param: &Option<Url>) -> Result<Source> {
+    match &self.source {
       // ignore the source from param if it's already specified in config
-      Some(ref source) => Ok(source.clone()),
+      Some(source) => Ok(source.clone()),
       None => param
         .as_ref()
         .ok_or(Error::Message("missing source".into()))
-        .cloned(),
+        .cloned()
+        .map(Source::from),
     }
   }
 }
