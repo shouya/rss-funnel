@@ -128,8 +128,19 @@ impl EndpointParam {
   }
 
   fn get_base(req: &Request) -> Option<Url> {
-    let host = req.headers().get(HOST)?.to_str().ok()?;
-    let base = format!("http://{}/", host);
+    let host = req
+      .headers()
+      .get("X-Forwarded-Host")
+      .or_else(|| req.headers().get(HOST))
+      .and_then(|x| x.to_str().ok())?;
+
+    let proto = req
+      .headers()
+      .get("X-Forwarded-Proto")
+      .and_then(|x| x.to_str().ok())
+      .unwrap_or("http");
+
+    let base = format!("{proto}://{host}/");
     let base = base.parse().ok()?;
     Some(base)
   }
