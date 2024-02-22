@@ -13,9 +13,28 @@ use serde::{Deserialize, Serialize};
 
 use crate::{feed::Feed, util::Result};
 
+#[derive(Clone)]
+pub struct FilterContext {
+  pub(crate) limit_filters: Option<usize>,
+}
+
+impl FilterContext {
+  pub fn new() -> Self {
+    Self {
+      limit_filters: None,
+    }
+  }
+
+  pub fn subcontext(&self) -> Self {
+    Self {
+      limit_filters: None,
+    }
+  }
+}
+
 #[async_trait::async_trait]
 pub trait FeedFilter {
-  async fn run(&self, feed: &mut Feed) -> Result<()>;
+  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed>;
 }
 
 #[async_trait::async_trait]
@@ -30,8 +49,8 @@ pub struct BoxedFilter(Arc<dyn FeedFilter + Send + Sync>);
 
 #[async_trait::async_trait]
 impl FeedFilter for BoxedFilter {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
-    self.0.run(feed).await
+  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed> {
+    self.0.run(ctx, feed).await
   }
 }
 
@@ -41,36 +60,6 @@ impl BoxedFilter {
     T: FeedFilter + Send + Sync + 'static,
   {
     Self(Arc::new(filter))
-  }
-}
-
-pub struct Filters {
-  filters: Vec<BoxedFilter>,
-}
-
-impl Filters {
-  pub async fn from_config(filter_configs: Vec<FilterConfig>) -> Result<Self> {
-    let mut filters = Vec::new();
-    for filter_config in filter_configs {
-      let filter = filter_config.build().await?;
-      filters.push(filter);
-    }
-    Ok(Self { filters })
-  }
-
-  pub async fn process(&self, feed: &mut Feed) -> Result<()> {
-    self.process_partial(feed, self.filters.len()).await
-  }
-
-  pub async fn process_partial(
-    &self,
-    feed: &mut Feed,
-    limit_filters: usize,
-  ) -> Result<()> {
-    for filter in self.filters.iter().take(limit_filters) {
-      filter.run(feed).await?;
-    }
-    Ok(())
   }
 }
 

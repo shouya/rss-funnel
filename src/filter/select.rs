@@ -1,9 +1,12 @@
 use regex::{Regex, RegexSet};
 use serde::{Deserialize, Serialize};
 
-use crate::util::{ConfigError, Result, SingleOrVec};
+use crate::{
+  feed::Feed,
+  util::{ConfigError, Result, SingleOrVec},
+};
 
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
@@ -167,7 +170,11 @@ impl Select {
 
 #[async_trait::async_trait]
 impl FeedFilter for Select {
-  async fn run(&self, feed: &mut crate::feed::Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let posts = feed.take_posts();
     let mut new_posts = vec![];
 
@@ -178,7 +185,7 @@ impl FeedFilter for Select {
     }
 
     feed.set_posts(new_posts);
-    Ok(())
+    Ok(feed)
   }
 }
 

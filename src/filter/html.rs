@@ -14,7 +14,7 @@ use crate::feed::Post;
 use crate::util::{Error, Result};
 use crate::{feed::Feed, util::ConfigError};
 
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 /// Remove elements from HTML description.
 ///
@@ -84,7 +84,11 @@ impl RemoveElement {
 
 #[async_trait::async_trait]
 impl FeedFilter for RemoveElement {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -95,7 +99,7 @@ impl FeedFilter for RemoveElement {
     }
 
     feed.set_posts(posts);
-    Ok(())
+    Ok(feed)
   }
 }
 
@@ -171,7 +175,11 @@ impl KeepElement {
 
 #[async_trait::async_trait]
 impl FeedFilter for KeepElement {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -182,7 +190,7 @@ impl FeedFilter for KeepElement {
     }
 
     feed.set_posts(posts);
-    Ok(())
+    Ok(feed)
   }
 }
 
@@ -390,7 +398,11 @@ fn transpose_option_vec<T: Clone>(
 
 #[async_trait::async_trait]
 impl FeedFilter for Split {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let mut posts = vec![];
     for post in &feed.take_posts() {
       let mut split_posts = self.split(post)?;
@@ -398,7 +410,7 @@ impl FeedFilter for Split {
     }
 
     feed.set_posts(posts);
-    Ok(())
+    Ok(feed)
   }
 }
 

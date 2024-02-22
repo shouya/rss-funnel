@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
+use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
 use crate::util::Result;
 
-use super::{FeedFilter, FeedFilterConfig, FilterConfig, Filters};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
@@ -28,7 +29,7 @@ pub struct MergeFullConfig {
   #[serde(default)]
   client: ClientConfig,
   #[serde(default)]
-  filters: Vec<FilterConfig>,
+  filters: FilterPipelineConfig,
 }
 
 impl From<MergeSimpleConfig> for MergeFullConfig {
@@ -61,7 +62,7 @@ impl FeedFilterConfig for MergeConfig {
       source,
     } = self.into();
     let client = client.build(Duration::from_secs(15 * 60))?;
-    let filters = Filters::from_config(filters).await?;
+    let filters = filters.build().await?;
     let source = source.try_into()?;
 
     Ok(Merge {
@@ -75,16 +76,17 @@ impl FeedFilterConfig for MergeConfig {
 pub struct Merge {
   client: Client,
   source: Source,
-  filters: Filters,
+  filters: FilterPipeline,
 }
 
 #[async_trait::async_trait]
 impl FeedFilter for Merge {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
-    let mut new_feed = self.source.fetch_feed(Some(&self.client), None).await?;
-    self.filters.process(&mut new_feed).await?;
-    feed.merge(new_feed)?;
-    Ok(())
+  async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
+    let new_feed = self.source.fetch_feed(Some(&self.client), None).await?;
+    let ctx = ctx.subcontext();
+    let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
+    feed.merge(filtered_new_feed)?;
+    Ok(feed)
   }
 }
 

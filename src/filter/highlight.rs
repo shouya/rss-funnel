@@ -1,10 +1,11 @@
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use ego_tree::{NodeId, NodeMut};
 use regex::{Regex, RegexBuilder, RegexSet, RegexSetBuilder};
 use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+  feed::Feed,
   html::fragment_root_node_id,
   util::{ConfigError, Result},
 };
@@ -209,7 +210,11 @@ impl Highlight {
 
 #[async_trait::async_trait]
 impl FeedFilter for Highlight {
-  async fn run(&self, feed: &mut crate::feed::Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -220,7 +225,7 @@ impl FeedFilter for Highlight {
 
     feed.set_posts(posts);
 
-    Ok(())
+    Ok(feed)
   }
 }
 

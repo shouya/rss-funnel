@@ -5,7 +5,7 @@ use url::Url;
 use crate::feed::Feed;
 use crate::util::Result;
 
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SimplifyHtmlConfig {}
@@ -23,7 +23,11 @@ impl FeedFilterConfig for SimplifyHtmlConfig {
 
 #[async_trait::async_trait]
 impl FeedFilter for SimplifyHtmlFilter {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -36,7 +40,7 @@ impl FeedFilter for SimplifyHtmlFilter {
     }
 
     feed.set_posts(posts);
-    Ok(())
+    Ok(feed)
   }
 }
 

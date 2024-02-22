@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
+use axum_macros::FromRequestParts;
 use http::StatusCode;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,8 @@ use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
-use crate::filter::{FilterConfig, Filters};
+use crate::filter::FilterContext;
+use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
 use crate::util::{Error, Result};
 
@@ -50,15 +52,20 @@ impl EndpointConfig {
 pub struct EndpointServiceConfig {
   #[serde(default)]
   source: Option<SourceConfig>,
-  filters: Vec<FilterConfig>,
+  filters: FilterPipelineConfig,
   #[serde(default)]
   client: Option<ClientConfig>,
 }
 
+// Ideally I would implement this endpoint service to include a
+// RequestContext field, and make an separate type that implements
+// MakeService<http::Request, Response=EndpointService>. But axum
+// Router doesn't support nest_make_service yet, so I will just
+// approximate it by making request_context part of the Service input.
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<Source>,
-  filters: Arc<Filters>,
+  filters: Arc<FilterPipeline>,
   client: Arc<Client>,
 }
 
@@ -175,7 +182,8 @@ impl Service<EndpointParam> for EndpointService {
     std::task::Poll::Ready(Ok(()))
   }
 
-  fn call(&mut self, req: EndpointParam) -> Self::Future {
+  fn call(&mut self, input: EndpointParam) -> Self::Future {
+    let req = input;
     let this = self.clone();
     let fut = async { this.call_internal(req).await };
     Box::pin(fut)
@@ -220,7 +228,7 @@ impl EndpointService {
   }
 
   pub async fn from_config(config: EndpointServiceConfig) -> Result<Self> {
-    let filters = Filters::from_config(config.filters).await?;
+    let filters = config.filters.build().await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
@@ -238,13 +246,11 @@ impl EndpointService {
     param: EndpointParam,
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
-    let mut feed = source.fetch_feed(Some(&self.client), None).await?;
+    let feed = source.fetch_feed(Some(&self.client), None).await?;
+    let mut context = FilterContext::new();
+    context.limit_filters = param.limit_filters;
 
-    if let Some(limit) = param.limit_filters {
-      self.filters.process_partial(&mut feed, limit).await?;
-    } else {
-      self.filters.process(&mut feed).await?;
-    }
+    let mut feed = self.filters.run(context, feed).await?;
 
     if let Some(limit) = param.limit_posts {
       let mut posts = feed.take_posts();
@@ -271,3 +277,8 @@ impl EndpointService {
     }
   }
 }
+
+// Add more fields depending on what you need from the request in the
+// filters.
+#[derive(Default, FromRequestParts)]
+pub struct RequestContext {}
