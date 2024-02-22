@@ -6,13 +6,17 @@ body {
   margin: 0;
 }
 
+table th {
+  text-align: right;
+  vertical-align: top;
+}
+
 .hidden {
   display: none !important;
 }
 
 .container {
   display: flex;
-  overflow: hidden;
   flex-direction: row;
   position: absolute;
   padding: 10px;
@@ -34,8 +38,12 @@ body {
 }
 
 #sidebar-panel {
+  display: flex;
+  flex-direction: column;
+
   #sidebar-endpoints,
-  #main-panel {
+  #main-panel,
+  #sidebar-endpoint {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -43,7 +51,6 @@ body {
 
   .sidebar-body {
     overflow-x: hidden;
-    overflow-y: auto;
     margin-top: 0;
     margin-bottom: 0;
   }
@@ -71,7 +78,26 @@ body {
   }
 }
 
-#sidebar-filters {
+.info-box {
+  padding: 0.5rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.3rem;
+
+  > header {
+    background-color: white;
+    width: fit-content;
+    padding: 0 0.3rem;
+    position: relative;
+    /* half (padding-y + border) + half font height */
+    margin-top: -1rem;
+    font-size: 0.8em;
+  }
+
+  > content {
+  }
+}
+
+#sidebar-endpoint {
   .sidebar-header {
     display: flex;
     align-items: center;
@@ -90,6 +116,33 @@ body {
       font-size: 1.2em;
     }
   }
+
+  .sidebar-content {
+    flex-grow: 1;
+    overflow-y: scroll;
+  }
+
+  #filter-info {
+  }
+
+  #source-info {
+    margin: 1rem 0;
+
+    content {
+      position: relative;
+
+      .format-tag {
+        position: absolute;
+        right: 0;
+        top: 0;
+        background-color: #f60;
+        padding: 0.2rem 0.5rem;
+        color: #fff;
+        border-radius: 0.5rem;
+        font-size: 0.8em;
+      }
+    }
+  }
 }
 
 #fetch-status {
@@ -98,17 +151,16 @@ body {
 }
 
 ul#filter-list {
+  margin: 0.3rem 0;
   list-style: none;
   padding-left: 0;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  overflow: scroll;
 
   .filter {
     background-color: #fafafa;
     padding: 0.4rem 0.6rem 0.6rem 0.6rem;
-    border: 1px dotted #ddd;
     border-radius: 0.3rem;
     width: 100%;
 

@@ -18,15 +18,27 @@
           <div class="sidebar-header">
             <h4>Endpoints</h4>
           </div>
-          <ul id="endpoint-list" class="sidebar-body"></ul>
+          <ul id="endpoint-list"></ul>
         </div>
-        <div id="sidebar-filters" class="hidden">
+
+        <div id="sidebar-endpoint" class="hidden">
           <div class="sidebar-header">
             <div class="button" id="back-to-endpoints">Back</div>
             <span id="endpoint-name"></span>
             <div class="button" id="copy-endpoint-url">Copy URL</div>
           </div>
-          <ul id="filter-list" class="sidebar-body"></ul>
+          <div class="sidebar-content">
+            <div id="source-info" class="info-box">
+              <header></header>
+              <content></content>
+            </div>
+            <div id="filter-info" class="info-box">
+              <header>Filters</header>
+              <content>
+                <ul id="filter-list"></ul>
+              </content>
+            </div>
+          </div>
         </div>
       </div>
       <div id="main-panel" class="hidden">
