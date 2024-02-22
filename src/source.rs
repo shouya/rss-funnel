@@ -1,4 +1,3 @@
-use http::request::Parts;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -57,7 +56,7 @@ impl Source {
   pub async fn fetch_feed(
     &self,
     client: Option<&Client>,
-    request: Option<&Parts>,
+    base: Option<&str>,
   ) -> Result<Feed> {
     if let Source::FromScratch(config) = self {
       let feed = Feed::from(config);
@@ -69,9 +68,9 @@ impl Source {
     let source_url = match self {
       Source::AbsoluteUrl(url) => url.clone(),
       Source::RelativeUrl(path) => {
-        let request =
-          request.ok_or_else(|| Error::Message("request not set".into()))?;
-        let this_url: Url = request.uri.to_string().parse()?;
+        let base =
+          base.ok_or_else(|| Error::Message("base_url not set".into()))?;
+        let this_url: Url = base.to_string().parse()?;
         this_url.join(path)?
       }
       Source::FromScratch(_) => unreachable!(),

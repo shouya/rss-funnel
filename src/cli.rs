@@ -22,7 +22,8 @@ pub struct Cli {
 #[derive(Parser)]
 enum SubCommand {
   Server(ServerConfig),
-  Test(TestConfig),
+  // boxed because of the clippy::large_enum_variant warning
+  Test(Box<TestConfig>),
 }
 
 #[derive(Parser)]
@@ -44,6 +45,8 @@ struct TestConfig {
   /// Don't print XML output (Useful for checking console.log in JS filters)
   #[clap(long, short)]
   quiet: bool,
+  #[clap(long, short)]
+  base: Option<Url>,
 }
 
 impl TestConfig {
@@ -53,6 +56,7 @@ impl TestConfig {
       self.limit_filters,
       self.limit_posts,
       !self.compact_output,
+      self.base.clone(),
     )
   }
 }

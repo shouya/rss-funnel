@@ -10,24 +10,46 @@ mod simplify_html;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::{feed::Feed, util::Result};
 
 #[derive(Clone)]
 pub struct FilterContext {
-  pub(crate) limit_filters: Option<usize>,
+  limit_filters: Option<usize>,
+  /// The base URL of the application. Used to construct absolute URLs
+  /// from a relative path.
+  base: Option<Url>,
 }
 
 impl FilterContext {
   pub fn new() -> Self {
     Self {
       limit_filters: None,
+      base: None,
     }
+  }
+
+  pub fn limit_filters(&self) -> Option<usize> {
+    self.limit_filters
+  }
+
+  pub fn base(&self) -> Option<&Url> {
+    self.base.as_ref()
+  }
+
+  pub fn set_limit_filters(&mut self, limit: usize) {
+    self.limit_filters = Some(limit);
+  }
+
+  pub fn set_base(&mut self, base: Url) {
+    self.base = Some(base);
   }
 
   pub fn subcontext(&self) -> Self {
     Self {
       limit_filters: None,
+      base: self.base.clone(),
     }
   }
 }

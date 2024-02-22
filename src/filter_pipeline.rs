@@ -34,8 +34,9 @@ impl FilterPipeline {
     mut context: FilterContext,
     mut feed: Feed,
   ) -> Result<Feed> {
-    let limit_filters =
-      context.limit_filters.unwrap_or_else(|| self.num_filters());
+    let limit_filters = context
+      .limit_filters()
+      .unwrap_or_else(|| self.num_filters());
     for filter in self.filters.iter().take(limit_filters) {
       feed = filter.run(&mut context, feed).await?;
     }

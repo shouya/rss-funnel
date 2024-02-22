@@ -7,6 +7,7 @@ use std::time::Duration;
 use axum::body::Body;
 use axum::response::IntoResponse;
 use axum_macros::FromRequestParts;
+use http::header::HOST;
 use http::StatusCode;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
@@ -77,6 +78,8 @@ pub struct EndpointParam {
   /// Limit the number of items in the feed
   limit_posts: Option<usize>,
   pretty_print: bool,
+  /// The url base of the feed, used for resolving relative urls
+  base: Option<Url>,
 }
 
 impl EndpointParam {
@@ -85,12 +88,14 @@ impl EndpointParam {
     limit_filters: Option<usize>,
     limit_posts: Option<usize>,
     pretty_print: bool,
+    base: Option<Url>,
   ) -> Self {
     Self {
       source,
       limit_filters,
       limit_posts,
       pretty_print,
+      base,
     }
   }
 
@@ -100,6 +105,7 @@ impl EndpointParam {
       limit_filters: Self::parse_limit_filters(req),
       limit_posts: Self::parse_limit_posts(req),
       pretty_print: Self::parse_pretty_print(req),
+      base: Self::get_base(req),
     }
   }
 
@@ -119,6 +125,13 @@ impl EndpointParam {
     Self::get_query(req, "pp")
       .map(|x| x == "1" || x == "true")
       .unwrap_or(false)
+  }
+
+  fn get_base(req: &Request) -> Option<Url> {
+    let host = req.headers().get(HOST)?.to_str().ok()?;
+    let base = format!("http://{}/", host);
+    let base = base.parse().ok()?;
+    Some(base)
   }
 
   fn get_query(req: &Request, name: &str) -> Option<String> {
@@ -248,7 +261,12 @@ impl EndpointService {
     let source = self.find_source(&param.source)?;
     let feed = source.fetch_feed(Some(&self.client), None).await?;
     let mut context = FilterContext::new();
-    context.limit_filters = param.limit_filters;
+    if let Some(limit_filters) = param.limit_filters {
+      context.set_limit_filters(limit_filters);
+    }
+    if let Some(base) = param.base {
+      context.set_base(base);
+    }
 
     let mut feed = self.filters.run(context, feed).await?;
 
