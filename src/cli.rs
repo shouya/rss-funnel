@@ -46,7 +46,7 @@ struct TestConfig {
   #[clap(long, short)]
   quiet: bool,
   /// The base URL of the feed, used for resolving relative urls
-  #[clap(long, short)]
+  #[clap(long)]
   base: Option<Url>,
 }
 
