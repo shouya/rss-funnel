@@ -34,7 +34,7 @@ impl FilterContext {
 
 #[async_trait::async_trait]
 pub trait FeedFilter {
-  async fn run(&self, ctx: &mut FilterContext, feed: &mut Feed) -> Result<()>;
+  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed>;
 }
 
 #[async_trait::async_trait]
@@ -49,7 +49,7 @@ pub struct BoxedFilter(Arc<dyn FeedFilter + Send + Sync>);
 
 #[async_trait::async_trait]
 impl FeedFilter for BoxedFilter {
-  async fn run(&self, ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed> {
     self.0.run(ctx, feed).await
   }
 }

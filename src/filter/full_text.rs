@@ -154,10 +154,14 @@ impl FullTextFilter {
 
 #[async_trait::async_trait]
 impl FeedFilter for FullTextFilter {
-  async fn run(&self, _ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &mut FilterContext,
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let posts = feed.take_posts();
     let posts = self.fetch_all_posts(posts).await?;
     feed.set_posts(posts);
-    Ok(())
+    Ok(feed)
   }
 }

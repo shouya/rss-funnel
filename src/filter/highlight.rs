@@ -5,6 +5,7 @@ use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+  feed::Feed,
   html::fragment_root_node_id,
   util::{ConfigError, Result},
 };
@@ -212,8 +213,8 @@ impl FeedFilter for Highlight {
   async fn run(
     &self,
     _ctx: &mut FilterContext,
-    feed: &mut crate::feed::Feed,
-  ) -> Result<()> {
+    mut feed: Feed,
+  ) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -224,7 +225,7 @@ impl FeedFilter for Highlight {
 
     feed.set_posts(posts);
 
-    Ok(())
+    Ok(feed)
   }
 }
 
