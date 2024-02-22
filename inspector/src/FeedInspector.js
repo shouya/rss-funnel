@@ -246,13 +246,20 @@ export class FeedInspector {
     const { source, filters } = this.current_endpoint;
 
     // switch main ui
-    $("input#source", $("#request-param")).disabled = !!source;
-    if (source) {
-      $("input#source", $("#request-param")).placeholder = source;
-      $("input#source", $("#request-param")).value = "";
+    $("#request-param input#source").disabled = !!source;
+    if (!source) {
+      $("#request-param input#source").value = "";
+      $("#request-param input#source").placeholder =
+        "Please specify the feed source here.";
+      $("#request-param input#source").readOnly = false;
+    } else if (typeof source === "string") {
+      $("#request-param input#source").value = source;
+      $("#request-param input#source").readOnly = true;
     } else {
-      $("input#source", $("#request-param")).placeholder =
-        "Source not configured. Please specify it here.";
+      $("#request-param input#source").value = "";
+      $("#request-param input#source").placeholder =
+        "The source is a feed from scratch";
+      $("#request-param input#source").readOnly = true;
     }
 
     // update parameter input
