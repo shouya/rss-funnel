@@ -56,7 +56,7 @@ impl Source {
   pub async fn fetch_feed(
     &self,
     client: Option<&Client>,
-    base: Option<&str>,
+    base: Option<&Url>,
   ) -> Result<Feed> {
     if let Source::FromScratch(config) = self {
       let feed = Feed::from(config);
@@ -70,8 +70,7 @@ impl Source {
       Source::RelativeUrl(path) => {
         let base =
           base.ok_or_else(|| Error::Message("base_url not set".into()))?;
-        let this_url: Url = base.to_string().parse()?;
-        this_url.join(path)?
+        base.join(path)?
       }
       Source::FromScratch(_) => unreachable!(),
     };

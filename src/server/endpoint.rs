@@ -259,7 +259,9 @@ impl EndpointService {
     param: EndpointParam,
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
-    let feed = source.fetch_feed(Some(&self.client), None).await?;
+    let feed = source
+      .fetch_feed(Some(&self.client), param.base.as_ref())
+      .await?;
     let mut context = FilterContext::new();
     if let Some(limit_filters) = param.limit_filters {
       context.set_limit_filters(limit_filters);
