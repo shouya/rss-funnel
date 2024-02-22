@@ -14,7 +14,8 @@ use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
-use crate::filter::{FilterConfig, FilterContext, Filters};
+use crate::filter::FilterContext;
+use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
 use crate::util::{Error, Result};
 
@@ -51,7 +52,7 @@ impl EndpointConfig {
 pub struct EndpointServiceConfig {
   #[serde(default)]
   source: Option<SourceConfig>,
-  filters: Vec<FilterConfig>,
+  filters: FilterPipelineConfig,
   #[serde(default)]
   client: Option<ClientConfig>,
 }
@@ -64,7 +65,7 @@ pub struct EndpointServiceConfig {
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<Source>,
-  filters: Arc<Filters>,
+  filters: Arc<FilterPipeline>,
   client: Arc<Client>,
 }
 
@@ -227,7 +228,7 @@ impl EndpointService {
   }
 
   pub async fn from_config(config: EndpointServiceConfig) -> Result<Self> {
-    let filters = Filters::from_config(config.filters).await?;
+    let filters = config.filters.build().await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;

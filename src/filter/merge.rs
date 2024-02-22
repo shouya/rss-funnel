@@ -4,12 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
+use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
 use crate::util::Result;
 
-use super::{
-  FeedFilter, FeedFilterConfig, FilterConfig, FilterContext, Filters,
-};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
@@ -30,7 +29,7 @@ pub struct MergeFullConfig {
   #[serde(default)]
   client: ClientConfig,
   #[serde(default)]
-  filters: Vec<FilterConfig>,
+  filters: FilterPipelineConfig,
 }
 
 impl From<MergeSimpleConfig> for MergeFullConfig {
@@ -63,7 +62,7 @@ impl FeedFilterConfig for MergeConfig {
       source,
     } = self.into();
     let client = client.build(Duration::from_secs(15 * 60))?;
-    let filters = Filters::from_config(filters).await?;
+    let filters = filters.build().await?;
     let source = source.try_into()?;
 
     Ok(Merge {
@@ -77,7 +76,7 @@ impl FeedFilterConfig for MergeConfig {
 pub struct Merge {
   client: Client,
   source: Source,
-  filters: Filters,
+  filters: FilterPipeline,
 }
 
 #[async_trait::async_trait]

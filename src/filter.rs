@@ -52,41 +52,6 @@ impl BoxedFilter {
   }
 }
 
-pub struct Filters {
-  filters: Vec<BoxedFilter>,
-}
-
-impl Filters {
-  pub async fn from_config(filter_configs: Vec<FilterConfig>) -> Result<Self> {
-    let mut filters = Vec::new();
-    for filter_config in filter_configs {
-      let filter = filter_config.build().await?;
-      filters.push(filter);
-    }
-    Ok(Self { filters })
-  }
-
-  pub async fn process(
-    &self,
-    ctx: &mut FilterContext,
-    feed: &mut Feed,
-  ) -> Result<()> {
-    self.process_partial(feed, ctx, self.filters.len()).await
-  }
-
-  pub async fn process_partial(
-    &self,
-    feed: &mut Feed,
-    ctx: &mut FilterContext,
-    limit_filters: usize,
-  ) -> Result<()> {
-    for filter in self.filters.iter().take(limit_filters) {
-      filter.run(ctx, feed).await?;
-    }
-    Ok(())
-  }
-}
-
 macro_rules! define_filters {
   ($($variant:ident => $config:ty);* ;) => {
     #[derive(Serialize, Deserialize, Clone, Debug)]

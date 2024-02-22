@@ -3,6 +3,7 @@ mod client;
 mod config;
 mod feed;
 mod filter;
+mod filter_pipeline;
 mod html;
 mod js;
 mod server;
