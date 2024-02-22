@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::{ConfigError, Result, SingleOrVec};
 
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
@@ -167,7 +167,11 @@ impl Select {
 
 #[async_trait::async_trait]
 impl FeedFilter for Select {
-  async fn run(&self, feed: &mut crate::feed::Feed) -> Result<()> {
+  async fn run(
+    &self,
+    _ctx: &FilterContext,
+    feed: &mut crate::feed::Feed,
+  ) -> Result<()> {
     let posts = feed.take_posts();
     let mut new_posts = vec![];
 

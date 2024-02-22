@@ -11,7 +11,7 @@ use crate::html::convert_relative_url;
 use crate::util::{Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 const DEFAULT_PARALLELISM: usize = 20;
 
@@ -154,7 +154,7 @@ impl FullTextFilter {
 
 #[async_trait::async_trait]
 impl FeedFilter for FullTextFilter {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
     let posts = feed.take_posts();
     let posts = self.fetch_all_posts(posts).await?;
     feed.set_posts(posts);

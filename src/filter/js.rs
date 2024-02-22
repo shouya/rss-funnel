@@ -4,7 +4,7 @@ use crate::feed::Feed;
 use crate::js::{AsJson, Runtime};
 use crate::util::{Error, Result};
 
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
@@ -89,7 +89,7 @@ impl JsFilter {
 
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
     self.modify_feed(feed).await?;
     self.modify_posts(feed).await?;
     Ok(())

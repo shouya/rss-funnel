@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
+use axum_macros::FromRequestParts;
 use http::StatusCode;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,7 @@ use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
-use crate::filter::{FilterConfig, Filters};
+use crate::filter::{FilterConfig, FilterContext, Filters};
 use crate::source::{Source, SourceConfig};
 use crate::util::{Error, Result};
 
@@ -55,6 +56,11 @@ pub struct EndpointServiceConfig {
   client: Option<ClientConfig>,
 }
 
+// Ideally I would implement this endpoint service to include a
+// RequestContext field, and make an separate type that implements
+// MakeService<http::Request, Response=EndpointService>. But axum
+// Router doesn't support nest_make_service yet, so I will just
+// approximate it by making request_context part of the Service input.
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<Source>,
@@ -175,7 +181,8 @@ impl Service<EndpointParam> for EndpointService {
     std::task::Poll::Ready(Ok(()))
   }
 
-  fn call(&mut self, req: EndpointParam) -> Self::Future {
+  fn call(&mut self, input: EndpointParam) -> Self::Future {
+    let req = input;
     let this = self.clone();
     let fut = async { this.call_internal(req).await };
     Box::pin(fut)
@@ -239,11 +246,15 @@ impl EndpointService {
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
     let mut feed = source.fetch_feed(Some(&self.client), None).await?;
+    let context = FilterContext::new();
 
     if let Some(limit) = param.limit_filters {
-      self.filters.process_partial(&mut feed, limit).await?;
+      self
+        .filters
+        .process_partial(&mut feed, &context, limit)
+        .await?;
     } else {
-      self.filters.process(&mut feed).await?;
+      self.filters.process(&context, &mut feed).await?;
     }
 
     if let Some(limit) = param.limit_posts {
@@ -271,3 +282,8 @@ impl EndpointService {
     }
   }
 }
+
+// Add more fields depending on what you need from the request in the
+// filters.
+#[derive(Default, FromRequestParts)]
+pub struct RequestContext {}

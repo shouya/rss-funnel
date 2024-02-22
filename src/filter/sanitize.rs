@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::util::Result;
 use crate::{feed::Feed, util::ConfigError};
 
-use super::{FeedFilter, FeedFilterConfig};
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct SanitizeOpReplaceConfig {
@@ -118,7 +118,7 @@ impl Sanitize {
 
 #[async_trait::async_trait]
 impl FeedFilter for Sanitize {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
     let mut posts = feed.take_posts();
     for post in &mut posts {
       if let Some(description) = post.description_mut() {

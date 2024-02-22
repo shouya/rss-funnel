@@ -7,7 +7,9 @@ use crate::feed::Feed;
 use crate::source::{Source, SourceConfig};
 use crate::util::Result;
 
-use super::{FeedFilter, FeedFilterConfig, FilterConfig, Filters};
+use super::{
+  FeedFilter, FeedFilterConfig, FilterConfig, FilterContext, Filters,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
@@ -80,9 +82,9 @@ pub struct Merge {
 
 #[async_trait::async_trait]
 impl FeedFilter for Merge {
-  async fn run(&self, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
     let mut new_feed = self.source.fetch_feed(Some(&self.client), None).await?;
-    self.filters.process(&mut new_feed).await?;
+    self.filters.process(ctx, &mut new_feed).await?;
     feed.merge(new_feed)?;
     Ok(())
   }
