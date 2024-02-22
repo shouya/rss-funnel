@@ -29,23 +29,20 @@ impl FilterPipelineConfig {
 }
 
 impl FilterPipeline {
-  pub async fn process(
-    &self,
-    ctx: &mut FilterContext,
-    feed: &mut Feed,
-  ) -> Result<()> {
-    self.process_partial(feed, ctx, self.filters.len()).await
+  pub async fn run(
+    &mut self,
+    mut feed: Feed,
+    mut context: FilterContext,
+    limit_filters: Option<usize>,
+  ) -> Result<Feed> {
+    let limit_filters = limit_filters.unwrap_or_else(|| self.num_filters());
+    for filter in self.filters.iter().take(limit_filters) {
+      filter.run(&mut context, &mut feed).await?;
+    }
+    Ok(feed)
   }
 
-  pub async fn process_partial(
-    &self,
-    feed: &mut Feed,
-    ctx: &mut FilterContext,
-    limit_filters: usize,
-  ) -> Result<()> {
-    for filter in self.filters.iter().take(limit_filters) {
-      filter.run(ctx, feed).await?;
-    }
-    Ok(())
+  pub fn num_filters(&self) -> usize {
+    self.filters.len()
   }
 }
