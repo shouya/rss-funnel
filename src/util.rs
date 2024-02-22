@@ -18,6 +18,9 @@ pub enum ConfigError {
   #[error("Regex error")]
   Regex(#[from] regex::Error),
 
+  #[error("Invalid URL {0}")]
+  InvalidUrl(#[from] url::ParseError),
+
   #[error("{0}")]
   Message(String),
 }

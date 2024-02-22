@@ -6,6 +6,7 @@ use url::Url;
 use crate::html::convert_relative_url;
 use crate::html::html_body;
 use crate::server::EndpointOutcome;
+use crate::source::BlankFeed;
 use crate::util::Error;
 use crate::util::Result;
 
@@ -16,7 +17,23 @@ pub enum Feed {
   Atom(atom_syndication::Feed),
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum FeedFormat {
+  Rss,
+  Atom,
+}
+
 impl Feed {
+  // currently only used in tests.
+  #[cfg(test)]
+  pub fn format(&self) -> FeedFormat {
+    match self {
+      Feed::Rss(_) => FeedFormat::Rss,
+      Feed::Atom(_) => FeedFormat::Atom,
+    }
+  }
+
   pub fn from_rss_content(content: &str) -> Result<Self> {
     let cursor = std::io::Cursor::new(content);
     let channel = rss::Channel::read_from(cursor)?;
@@ -124,6 +141,47 @@ impl Feed {
     }
 
     Ok(())
+  }
+}
+
+impl From<&BlankFeed> for Feed {
+  fn from(config: &BlankFeed) -> Self {
+    use FeedFormat::*;
+    match config.format {
+      Rss => {
+        let mut channel = rss::Channel {
+          title: config.title.clone(),
+          ..Default::default()
+        };
+
+        if let Some(link) = &config.link {
+          channel.link = link.clone();
+        }
+        if let Some(description) = &config.description {
+          channel.description = description.clone();
+        }
+
+        Feed::Rss(channel)
+      }
+      Atom => {
+        let mut feed = atom_syndication::Feed {
+          title: atom_syndication::Text::plain(config.title.clone()),
+          ..Default::default()
+        };
+        if let Some(link) = &config.link {
+          feed.links.push(atom_syndication::Link {
+            href: link.clone(),
+            ..Default::default()
+          });
+        }
+        if let Some(description) = &config.description {
+          feed.subtitle =
+            Some(atom_syndication::Text::plain(description.clone()));
+        }
+
+        Feed::Atom(feed)
+      }
+    }
   }
 }
 

@@ -47,6 +47,7 @@ export class FeedInspector {
         this.current_endpoint = endpoint;
         this.update_request_param_controls();
         this.render_filters();
+        this.render_feed_source();
         this.fetch_and_render_feed();
         return;
       }
@@ -118,7 +119,7 @@ export class FeedInspector {
   }
 
   async load_endpoints() {
-    $("#sidebar-filters").classList.add("hidden");
+    $("#sidebar-endpoint").classList.add("hidden");
     $("#sidebar-endpoints").classList.remove("hidden");
     $("#endpoint-list").innerHTML = "";
 
@@ -245,13 +246,20 @@ export class FeedInspector {
     const { source, filters } = this.current_endpoint;
 
     // switch main ui
-    $("input#source", $("#request-param")).disabled = !!source;
-    if (source) {
-      $("input#source", $("#request-param")).placeholder = source;
-      $("input#source", $("#request-param")).value = "";
+    $("#request-param input#source").disabled = !!source;
+    if (!source) {
+      $("#request-param input#source").value = "";
+      $("#request-param input#source").placeholder =
+        "Please specify the feed source here.";
+      $("#request-param input#source").readOnly = false;
+    } else if (typeof source === "string") {
+      $("#request-param input#source").value = source;
+      $("#request-param input#source").readOnly = true;
     } else {
-      $("input#source", $("#request-param")).placeholder =
-        "Source not configured. Please specify it here.";
+      $("#request-param input#source").value = "";
+      $("#request-param input#source").placeholder =
+        "The source is a feed from scratch";
+      $("#request-param input#source").readOnly = true;
     }
 
     // update parameter input
@@ -273,7 +281,10 @@ export class FeedInspector {
     $("#copy-endpoint-url").addEventListener("click", () => {
       this.copy_endpoint_url(this.current_endpoint);
     });
-    $("#sidebar-filters").classList.remove("hidden");
+    $("#sidebar-endpoint").classList.remove("hidden");
+
+    // show feed source
+    this.render_feed_source();
 
     // show filter list
     this.render_filters();
@@ -285,6 +296,57 @@ export class FeedInspector {
     // show feed preview
     await this.fetch_feed();
     this.render_feed();
+  }
+
+  async render_feed_source() {
+    if (!this.current_endpoint) return;
+    const { source } = this.current_endpoint;
+    const header = $("#source-info > header");
+    const content = $("#source-info > content");
+
+    content.innerHTML = "";
+
+    if (!source) {
+      header.innerText = "Dynamic source";
+      content.innerHTML =
+        "Please specify it in the <code>source</code> parameter.";
+      return;
+    }
+
+    // if source is a string, then render it as an <a>
+    if (typeof source === "string") {
+      header.innerText = "Source";
+      content.appendChild(
+        elt(
+          "a",
+          { class: "feed-link", href: source, target: "_blank" },
+          source,
+        ),
+      );
+      return;
+    }
+
+    // if source is an object with a format field, indicate the source is a blank feed
+    // with specified title, link, and description field.
+    if (source.format) {
+      header.innerText = "Feed from scratch";
+      const table = elt("table", { class: "scratch-feed" }, [
+        elt("tr", { class: "feed-property" }, [
+          elt("th", {}, "Title"),
+          elt("td", {}, source.title),
+        ]),
+        elt("tr", { class: "feed-property" }, [
+          elt("th", {}, "Link"),
+          elt("td", {}, source.link),
+        ]),
+        elt("tr", { class: "feed-property" }, [
+          elt("th", {}, "Description"),
+          elt("td", {}, source.description),
+        ]),
+      ]);
+      content.appendChild(table);
+      return;
+    }
   }
 
   async fetch_feed() {
