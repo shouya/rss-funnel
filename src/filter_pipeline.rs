@@ -30,12 +30,12 @@ impl FilterPipelineConfig {
 
 impl FilterPipeline {
   pub async fn run(
-    &mut self,
-    mut feed: Feed,
+    &self,
     mut context: FilterContext,
-    limit_filters: Option<usize>,
+    mut feed: Feed,
   ) -> Result<Feed> {
-    let limit_filters = limit_filters.unwrap_or_else(|| self.num_filters());
+    let limit_filters =
+      context.limit_filters.unwrap_or_else(|| self.num_filters());
     for filter in self.filters.iter().take(limit_filters) {
       filter.run(&mut context, &mut feed).await?;
     }

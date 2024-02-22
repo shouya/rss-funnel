@@ -13,11 +13,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::{feed::Feed, util::Result};
 
-pub struct FilterContext {}
+#[derive(Clone)]
+pub struct FilterContext {
+  pub(crate) limit_filters: Option<usize>,
+}
 
 impl FilterContext {
   pub fn new() -> Self {
-    Self {}
+    Self {
+      limit_filters: None,
+    }
   }
 }
 
