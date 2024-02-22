@@ -23,7 +23,7 @@ impl FeedFilterConfig for SimplifyHtmlConfig {
 
 #[async_trait::async_trait]
 impl FeedFilter for SimplifyHtmlFilter {
-  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {

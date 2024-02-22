@@ -246,15 +246,15 @@ impl EndpointService {
   ) -> Result<EndpointOutcome> {
     let source = self.find_source(&param.source)?;
     let mut feed = source.fetch_feed(Some(&self.client), None).await?;
-    let context = FilterContext::new();
+    let mut context = FilterContext::new();
 
     if let Some(limit) = param.limit_filters {
       self
         .filters
-        .process_partial(&mut feed, &context, limit)
+        .process_partial(&mut feed, &mut context, limit)
         .await?;
     } else {
-      self.filters.process(&context, &mut feed).await?;
+      self.filters.process(&mut context, &mut feed).await?;
     }
 
     if let Some(limit) = param.limit_posts {

@@ -169,7 +169,7 @@ impl Select {
 impl FeedFilter for Select {
   async fn run(
     &self,
-    _ctx: &FilterContext,
+    _ctx: &mut FilterContext,
     feed: &mut crate::feed::Feed,
   ) -> Result<()> {
     let posts = feed.take_posts();

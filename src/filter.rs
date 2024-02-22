@@ -23,7 +23,7 @@ impl FilterContext {
 
 #[async_trait::async_trait]
 pub trait FeedFilter {
-  async fn run(&self, ctx: &FilterContext, feed: &mut Feed) -> Result<()>;
+  async fn run(&self, ctx: &mut FilterContext, feed: &mut Feed) -> Result<()>;
 }
 
 #[async_trait::async_trait]
@@ -38,7 +38,7 @@ pub struct BoxedFilter(Arc<dyn FeedFilter + Send + Sync>);
 
 #[async_trait::async_trait]
 impl FeedFilter for BoxedFilter {
-  async fn run(&self, ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
     self.0.run(ctx, feed).await
   }
 }
@@ -68,7 +68,7 @@ impl Filters {
 
   pub async fn process(
     &self,
-    ctx: &FilterContext,
+    ctx: &mut FilterContext,
     feed: &mut Feed,
   ) -> Result<()> {
     self.process_partial(feed, ctx, self.filters.len()).await
@@ -77,7 +77,7 @@ impl Filters {
   pub async fn process_partial(
     &self,
     feed: &mut Feed,
-    ctx: &FilterContext,
+    ctx: &mut FilterContext,
     limit_filters: usize,
   ) -> Result<()> {
     for filter in self.filters.iter().take(limit_filters) {

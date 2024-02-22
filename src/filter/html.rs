@@ -84,7 +84,7 @@ impl RemoveElement {
 
 #[async_trait::async_trait]
 impl FeedFilter for RemoveElement {
-  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -171,7 +171,7 @@ impl KeepElement {
 
 #[async_trait::async_trait]
 impl FeedFilter for KeepElement {
-  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
@@ -390,7 +390,7 @@ fn transpose_option_vec<T: Clone>(
 
 #[async_trait::async_trait]
 impl FeedFilter for Split {
-  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
     let mut posts = vec![];
     for post in &feed.take_posts() {
       let mut split_posts = self.split(post)?;

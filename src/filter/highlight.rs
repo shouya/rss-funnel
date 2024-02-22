@@ -211,7 +211,7 @@ impl Highlight {
 impl FeedFilter for Highlight {
   async fn run(
     &self,
-    _ctx: &FilterContext,
+    _ctx: &mut FilterContext,
     feed: &mut crate::feed::Feed,
   ) -> Result<()> {
     let mut posts = feed.take_posts();

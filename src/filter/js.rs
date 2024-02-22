@@ -89,7 +89,7 @@ impl JsFilter {
 
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
-  async fn run(&self, _ctx: &FilterContext, feed: &mut Feed) -> Result<()> {
+  async fn run(&self, _ctx: &mut FilterContext, feed: &mut Feed) -> Result<()> {
     self.modify_feed(feed).await?;
     self.modify_posts(feed).await?;
     Ok(())
