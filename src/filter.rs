@@ -24,6 +24,12 @@ impl FilterContext {
       limit_filters: None,
     }
   }
+
+  pub fn subcontext(&self) -> Self {
+    Self {
+      limit_filters: None,
+    }
+  }
 }
 
 #[async_trait::async_trait]
