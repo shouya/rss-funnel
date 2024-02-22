@@ -45,6 +45,7 @@ struct TestConfig {
   /// Don't print XML output (Useful for checking console.log in JS filters)
   #[clap(long, short)]
   quiet: bool,
+  /// The base URL of the feed, used for resolving relative urls
   #[clap(long, short)]
   base: Option<Url>,
 }
