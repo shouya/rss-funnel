@@ -2004,9 +2004,9 @@ dependencies = [
 
 [[package]]
 name = "rquickjs"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de83ea57beee293520e2f93ac6d34a5596411e7841846a8e179a3623ea17e4e2"
+checksum = "ad7f63201fa6f2ff8173e4758ea552549d687d8f63003361a8b5c50f7c446ded"
 dependencies = [
  "either",
  "rquickjs-core",
@@ -2015,9 +2015,9 @@ dependencies = [
 
 [[package]]
 name = "rquickjs-core"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a0af23e8116333509584b539f0cb65bcdbe5db019abe86e1159ad4f87f27f5e"
+checksum = "cad00eeddc0f88af54ee202c8385fb214fe0423897c056a7df8369fb482e3695"
 dependencies = [
  "async-lock",
  "either",
@@ -2027,9 +2027,9 @@ dependencies = [
 
 [[package]]
 name = "rquickjs-macro"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6966220d9aba3fa0474a4c990e6104a7f38eb50016d7a336d32f49601d34546c"
+checksum = "f27b39e889cc951e3e5f6b74012f943e642fa0fac51a8552948751f19a9b62f8"
 dependencies = [
  "convert_case 0.6.0",
  "fnv",
@@ -2045,9 +2045,9 @@ dependencies = [
 
 [[package]]
 name = "rquickjs-sys"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cb4766d7b7b291041d458ce3d587c61c365ddc6dc27e6827786e0daef2fd61b"
+checksum = "120dbbc3296de9b96de8890091635d46f3506cd38b4e8f21800c386c035d64fa"
 dependencies = [
  "cc",
 ]
