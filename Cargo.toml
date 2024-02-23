@@ -45,7 +45,6 @@ url = { version = "2.5.0", features = ["serde"] }
 mime = "0.3.17"
 
 # webui (inspector) support
-maud = { version = "0.26.0", features = ["axum"] }
 rust-embed = { version = "8.2.0", features = ["include-exclude"], optional = true }
 
 # HTML manipulation in the feeds
