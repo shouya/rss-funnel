@@ -1,3 +1,4 @@
+#[cfg(feature = "inspector-ui")]
 pub use crate::cli::FeedDefinition;
 // pub use crate::client::ClientConfig;
 // pub use crate::filter::FilterConfig;
