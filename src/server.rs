@@ -1,4 +1,5 @@
 pub(crate) mod endpoint;
+#[cfg(feature = "inspector")]
 mod inspector;
 
 use std::{path::Path, sync::Arc, time::Duration};
@@ -24,7 +25,7 @@ pub struct ServerConfig {
   bind: Arc<str>,
 
   /// Whether to enable the inspector UI
-  #[clap(
+  #[cfg_attr(clap,
     long,
     action = clap::ArgAction::Set,
     num_args = 0..=1,
@@ -32,6 +33,7 @@ pub struct ServerConfig {
     default_value = "true",
     default_missing_value = "true"
   )]
+  #[cfg(feature = "inspector")]
   inspector_ui: bool,
 
   /// Watch the config file for changes and restart the server
@@ -104,9 +106,14 @@ impl ServerConfig {
       app = app.merge(endpoint_route);
     }
 
+    #[cfg(feature = "inspector")]
     if self.inspector_ui {
       app = app.nest("/", inspector::router(feed_definition))
     } else {
+      app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
+    }
+
+    if !cfg!(feature = "inspector") {
       app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
 

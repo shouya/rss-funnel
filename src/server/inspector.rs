@@ -4,7 +4,6 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use axum::{routing::get, Extension, Router};
 use http::{StatusCode, Uri};
-// use maud::{html, Markup};
 
 use crate::config::{self, FeedDefinition};
 use crate::util::Error;
