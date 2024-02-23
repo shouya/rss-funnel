@@ -11,6 +11,10 @@ documentation = "https://docs.rs/rss-funnel"
 keywords = ["rss", "feed", "cli"]
 categories = ["command-line-interface", "web-programming"]
 
+[features]
+default = ["inspector-ui"]
+inspector-ui = ["dep:rust-embed"]
+
 [dependencies]
 # Async runtime, utility and helper crates
 async-trait = "0.1.74"
@@ -42,7 +46,7 @@ mime = "0.3.17"
 
 # webui (inspector) support
 maud = { version = "0.26.0", features = ["axum"] }
-rust-embed = { version = "8.2.0", features = ["include-exclude"] }
+rust-embed = { version = "8.2.0", features = ["include-exclude"], optional = true }
 
 # HTML manipulation in the feeds
 scraper = "0.18.1"
