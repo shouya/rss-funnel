@@ -148,4 +148,5 @@ define_filters!(
   Discard => select::DiscardConfig;
   Highlight => highlight::HighlightConfig;
   Merge => merge::MergeConfig;
+  Note => note::NoteFilterConfig;
 );
