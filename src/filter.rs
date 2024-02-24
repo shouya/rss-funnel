@@ -14,37 +14,6 @@ use url::Url;
 
 use crate::{feed::Feed, util::Result};
 
-#[async_trait::async_trait]
-pub trait FeedFilter {
-  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed>;
-}
-
-#[async_trait::async_trait]
-pub trait FeedFilterConfig {
-  type Filter: FeedFilter;
-
-  async fn build(self) -> Result<Self::Filter>;
-}
-
-#[derive(Clone)]
-pub struct BoxedFilter(Arc<dyn FeedFilter + Send + Sync>);
-
-#[async_trait::async_trait]
-impl FeedFilter for BoxedFilter {
-  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed> {
-    self.0.run(ctx, feed).await
-  }
-}
-
-impl BoxedFilter {
-  fn from<T>(filter: T) -> Self
-  where
-    T: FeedFilter + Send + Sync + 'static,
-  {
-    Self(Arc::new(filter))
-  }
-}
-
 #[derive(Clone)]
 pub struct FilterContext {
   limit_filters: Option<usize>,
@@ -85,23 +54,34 @@ impl FilterContext {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SharedFilterField<T> {
-  #[serde(flatten)]
-  inner: T,
-  #[serde(default)]
-  note: Option<String>,
+#[async_trait::async_trait]
+pub trait FeedFilter {
+  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed>;
 }
 
 #[async_trait::async_trait]
-impl<T> FeedFilterConfig for SharedFilterField<T>
-where
-  T: FeedFilterConfig + Send,
-{
-  type Filter = T::Filter;
+pub trait FeedFilterConfig {
+  type Filter: FeedFilter;
 
-  async fn build(self) -> Result<Self::Filter> {
-    self.inner.build().await
+  async fn build(self) -> Result<Self::Filter>;
+}
+
+#[derive(Clone)]
+pub struct BoxedFilter(Arc<dyn FeedFilter + Send + Sync>);
+
+#[async_trait::async_trait]
+impl FeedFilter for BoxedFilter {
+  async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed> {
+    self.0.run(ctx, feed).await
+  }
+}
+
+impl BoxedFilter {
+  fn from<T>(filter: T) -> Self
+  where
+    T: FeedFilter + Send + Sync + 'static,
+  {
+    Self(Arc::new(filter))
   }
 }
 
@@ -111,7 +91,7 @@ macro_rules! define_filters {
     #[serde(rename_all = "snake_case")]
     pub enum FilterConfig {
       $(
-       $variant(SharedFilterField<$config>),
+        $variant($config),
       )*
     }
 
