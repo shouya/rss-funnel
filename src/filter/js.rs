@@ -169,4 +169,35 @@ mod tests {
       assert!(post.title().unwrap().ends_with(" (modified)"));
     }
   }
+
+  #[tokio::test]
+  async fn test_modify_post_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///scishow.xml
+      filters:
+        - modify_post: post.title += " (modified)";
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    for post in posts {
+      assert!(post.title().unwrap().ends_with(" (modified)"));
+    }
+  }
+
+  #[tokio::test]
+  async fn test_modify_feed_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///scishow.xml
+      filters:
+        - modify_feed: feed.title.value = "Modified Feed";
+    "#;
+
+    let feed = fetch_endpoint(config, "").await;
+    assert_eq!(feed.title(), "Modified Feed");
+  }
 }
