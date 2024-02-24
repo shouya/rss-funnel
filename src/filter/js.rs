@@ -17,6 +17,18 @@ pub struct JsFilter {
   runtime: Runtime,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(transparent)]
+pub struct ModifyPostConfig {
+  code: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(transparent)]
+pub struct ModifyFeedConfig {
+  code: String,
+}
+
 #[async_trait::async_trait]
 impl FeedFilterConfig for JsConfig {
   type Filter = JsFilter;
@@ -26,6 +38,32 @@ impl FeedFilterConfig for JsConfig {
     runtime.eval(&self.code).await?;
 
     Ok(Self::Filter { runtime })
+  }
+}
+
+#[async_trait::async_trait]
+impl FeedFilterConfig for ModifyPostConfig {
+  type Filter = JsFilter;
+
+  async fn build(self) -> Result<Self::Filter> {
+    let code = format!(
+      "function modify_post(feed, post) {{ {}; return post; }}",
+      self.code
+    );
+    JsConfig { code }.build().await
+  }
+}
+
+#[async_trait::async_trait]
+impl FeedFilterConfig for ModifyFeedConfig {
+  type Filter = JsFilter;
+
+  async fn build(self) -> Result<Self::Filter> {
+    let code = format!(
+      "function modify_feed(feed) {{ {}; return feed; }}",
+      self.code
+    );
+    JsConfig { code }.build().await
   }
 }
 
@@ -130,5 +168,36 @@ mod tests {
     for post in posts {
       assert!(post.title().unwrap().ends_with(" (modified)"));
     }
+  }
+
+  #[tokio::test]
+  async fn test_modify_post_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///scishow.xml
+      filters:
+        - modify_post: post.title += " (modified)";
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    for post in posts {
+      assert!(post.title().unwrap().ends_with(" (modified)"));
+    }
+  }
+
+  #[tokio::test]
+  async fn test_modify_feed_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///scishow.xml
+      filters:
+        - modify_feed: feed.title.value = "Modified Feed";
+    "#;
+
+    let feed = fetch_endpoint(config, "").await;
+    assert_eq!(feed.title(), "Modified Feed");
   }
 }
