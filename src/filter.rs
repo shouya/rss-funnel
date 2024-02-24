@@ -3,6 +3,7 @@ mod highlight;
 mod html;
 mod js;
 mod merge;
+mod note;
 mod sanitize;
 mod select;
 mod simplify_html;
@@ -138,4 +139,5 @@ define_filters!(
   Discard => select::DiscardConfig;
   Highlight => highlight::HighlightConfig;
   Merge => merge::MergeConfig;
+  Note => note::NoteFilterConfig;
 );
