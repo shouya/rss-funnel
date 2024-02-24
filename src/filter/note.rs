@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::{FeedFilterConfig, IdentityFilter};
-use crate::util::Result;
+use super::{FeedFilter, FeedFilterConfig, FilterContext};
+use crate::{feed::Feed, util::Result};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
@@ -11,9 +11,18 @@ pub struct NoteFilterConfig {
 
 #[async_trait::async_trait]
 impl FeedFilterConfig for NoteFilterConfig {
-  type Filter = IdentityFilter;
+  type Filter = NoteFilter;
 
   async fn build(self) -> Result<Self::Filter> {
-    Ok(IdentityFilter)
+    Ok(NoteFilter)
+  }
+}
+
+pub struct NoteFilter;
+
+#[async_trait::async_trait]
+impl FeedFilter for NoteFilter {
+  async fn run(&self, _ctx: &mut FilterContext, feed: Feed) -> Result<Feed> {
+    Ok(feed)
   }
 }

@@ -86,15 +86,6 @@ impl BoxedFilter {
   }
 }
 
-pub struct IdentityFilter;
-
-#[async_trait::async_trait]
-impl FeedFilter for IdentityFilter {
-  async fn run(&self, _ctx: &mut FilterContext, feed: Feed) -> Result<Feed> {
-    Ok(feed)
-  }
-}
-
 macro_rules! define_filters {
   ($($variant:ident => $config:ty);* ;) => {
     #[derive(Serialize, Deserialize, Clone, Debug)]
