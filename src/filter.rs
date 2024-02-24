@@ -3,6 +3,7 @@ mod highlight;
 mod html;
 mod js;
 mod merge;
+mod note;
 mod sanitize;
 mod select;
 mod simplify_html;
