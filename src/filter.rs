@@ -129,6 +129,8 @@ macro_rules! define_filters {
 
 define_filters!(
   Js => js::JsConfig;
+  ModifyPost => js::ModifyPostConfig;
+  ModifyFeed => js::ModifyFeedConfig;
   FullText => full_text::FullTextConfig;
   SimplifyHtml => simplify_html::SimplifyHtmlConfig;
   RemoveElement => html::RemoveElementConfig;
