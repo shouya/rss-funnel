@@ -6,7 +6,7 @@ IMAGE_NAME ?= $(IMAGE_HOST)/$(IMAGE_USER)/$(APP_NAME)
 PLATFORM ?= linux/amd64
 TARGET ?= x86_64-unknown-linux-musl
 BINARY = target/$(TARGET)/release/$(APP_NAME)
-SOURCES = $(wildcard **/*.rs) Cargo.toml Cargo.lock inspector-assets
+SOURCES = $(wildcard **/*.rs) Cargo.toml Cargo.lock
 
 VERSION ?= v$(shell git describe --tags --always --dirty)
 
@@ -14,10 +14,10 @@ VERSION ?= v$(shell git describe --tags --always --dirty)
 inspector-assets:
 	cd inspector && pnpm build
 
-target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES)
+target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
 	cargo build --release --target x86_64-unknown-linux-musl
 
-target/aarch64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES)
+target/aarch64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
 	cross build --release --target aarch64-unknown-linux-musl
 
 build-docker-multiarch:
