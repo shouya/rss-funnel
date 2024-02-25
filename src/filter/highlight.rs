@@ -24,7 +24,7 @@ enum KeywordsOrPatterns {
     keywords: Vec<String>,
   },
   Patterns {
-    patterns: serde_regex::Serde<Vec<Regex>>,
+    patterns: Vec<String>,
   },
 }
 
@@ -39,11 +39,6 @@ impl KeywordsOrPatterns {
         Ok(patterns)
       }
       Self::Patterns { patterns } => {
-        let patterns = patterns
-          .into_inner()
-          .into_iter()
-          .map(|r| r.as_str().to_owned())
-          .collect();
         Ok(patterns)
       }
     }

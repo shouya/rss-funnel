@@ -2105,7 +2105,6 @@ dependencies = [
  "scraper",
  "serde",
  "serde_json",
- "serde_regex",
  "serde_yaml",
  "thiserror",
  "tokio",
@@ -2378,16 +2377,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4beec8bce849d58d06238cb50db2e1c417cfeafa4c63f692b15c82b7c80f8335"
 dependencies = [
  "itoa 1.0.10",
- "serde",
-]
-
-[[package]]
-name = "serde_regex"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
-dependencies = [
- "regex",
  "serde",
 ]
 

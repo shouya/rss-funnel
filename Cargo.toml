@@ -30,7 +30,6 @@ clap = { version = "4.4.11", features = ["derive"] }
 serde = { version = "1.0.193", features = ["derive", "rc"] }
 serde_yaml = "0.9.27"
 duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }
-serde_regex = "1.1.0"
 
 # webserver
 axum-macros = "0.4.1"

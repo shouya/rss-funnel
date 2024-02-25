@@ -1,4 +1,6 @@
-use regex::{Regex, RegexSet};
+use std::borrow::Cow;
+
+use regex::RegexSet;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -27,7 +29,7 @@ enum AnyMatchConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct MatchConfig {
   #[serde(default)]
-  matches: SingleOrVec<serde_regex::Serde<Regex>>,
+  matches: SingleOrVec<String>,
   #[serde(default)]
   contains: SingleOrVec<String>,
   #[serde(default)]
@@ -64,14 +66,14 @@ impl AnyMatchConfig {
 }
 
 impl MatchConfig {
-  fn regexes(&self) -> Vec<String> {
+  fn regexes(&self) -> Vec<Cow<'_, str>> {
     let mut out = vec![];
 
     for m in &self.matches {
-      out.push(m.as_str().to_string());
+      out.push(Cow::Borrowed(m.as_str()));
     }
     for p in &self.contains {
-      out.push(regex::escape(p));
+      out.push(Cow::Owned(regex::escape(p)));
     }
 
     out
