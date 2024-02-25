@@ -1,4 +1,5 @@
 use paste::paste;
+use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -17,7 +18,7 @@ pub enum Feed {
   Atom(atom_syndication::Feed),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
   Rss,

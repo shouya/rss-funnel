@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -7,7 +8,7 @@ use crate::{
   util::{ConfigError, Error, Result},
 };
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum SourceConfig {
   Simple(String),
@@ -21,7 +22,7 @@ pub enum Source {
   FromScratch(BlankFeed),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct BlankFeed {
   pub format: FeedFormat,
   pub title: String,

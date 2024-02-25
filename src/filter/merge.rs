@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::client::{Client, ClientConfig};
@@ -10,20 +11,20 @@ use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum MergeConfig {
   Simple(MergeSimpleConfig),
   Full(MergeFullConfig),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct MergeSimpleConfig {
   source: SourceConfig,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct MergeFullConfig {
   source: SourceConfig,
   #[serde(default)]

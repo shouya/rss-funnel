@@ -7,6 +7,7 @@
 //! - [`SplitConfig`] (`split`): split a post into multiple posts
 
 use ego_tree::NodeId;
+use schemars::JsonSchema;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +30,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 ///       - span.ads
 /// ```
 #[doc(alias = "remove_element")]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct RemoveElementConfig {
   selectors: Vec<String>,
@@ -113,7 +114,7 @@ impl FeedFilter for RemoveElement {
 /// filters:
 ///   - keep_element: img[src$=".gif"]
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct KeepElementConfig {
   selector: String,
@@ -194,7 +195,7 @@ impl FeedFilter for KeepElement {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct SplitConfig {
   title_selector: String,
   link_selector: Option<String>,

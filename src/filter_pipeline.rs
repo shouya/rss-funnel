@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -6,7 +7,7 @@ use crate::{
   util::Result,
 };
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(transparent)]
 pub struct FilterPipelineConfig {
   filters: Vec<FilterConfig>,

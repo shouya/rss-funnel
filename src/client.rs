@@ -3,6 +3,7 @@ mod cache;
 use std::time::Duration;
 
 use reqwest::header::HeaderMap;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -18,7 +19,7 @@ struct HttpFixture {
   content: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct ClientConfig {
   user_agent: Option<String>,
   accept: Option<String>,

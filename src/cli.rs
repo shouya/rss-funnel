@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
@@ -62,7 +63,7 @@ impl TestConfig {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct FeedDefinition {
   pub endpoints: Vec<EndpointConfig>,
 }

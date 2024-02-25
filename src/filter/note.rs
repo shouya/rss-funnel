@@ -1,9 +1,10 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use crate::{feed::Feed, util::Result};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct NoteFilterConfig {
   note: String,

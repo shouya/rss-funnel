@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use futures::{stream, StreamExt};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -15,7 +16,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 const DEFAULT_PARALLELISM: usize = 20;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct FullTextConfig {
   parallelism: Option<usize>,
   simplify: Option<bool>,

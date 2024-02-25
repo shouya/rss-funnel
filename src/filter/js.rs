@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::feed::Feed;
@@ -6,7 +7,7 @@ use crate::util::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct JsConfig {
   /// The javascript code to run
@@ -17,13 +18,13 @@ pub struct JsFilter {
   runtime: Runtime,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct ModifyPostConfig {
   code: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct ModifyFeedConfig {
   code: String,

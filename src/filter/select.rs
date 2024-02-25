@@ -1,7 +1,8 @@
-use std::borrow::Cow;
-
 use regex::RegexSet;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use std::borrow::Cow;
 
 use crate::{
   feed::Feed,
@@ -10,15 +11,15 @@ use crate::{
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct KeepOnlyConfig(AnyMatchConfig);
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct DiscardConfig(AnyMatchConfig);
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 enum AnyMatchConfig {
   SingleContains(String),
@@ -26,7 +27,7 @@ enum AnyMatchConfig {
   MatchConfig(MatchConfig),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 struct MatchConfig {
   #[serde(default)]
   matches: SingleOrVec<String>,
@@ -95,7 +96,7 @@ impl MatchConfig {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Copy, Debug)]
 #[serde(rename_all = "snake_case")]
 enum Field {
   Title,

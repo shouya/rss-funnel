@@ -1,4 +1,5 @@
 use readability::extractor::extract;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -7,7 +8,7 @@ use crate::util::Result;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct SimplifyHtmlConfig {}
 
 pub struct SimplifyHtmlFilter;

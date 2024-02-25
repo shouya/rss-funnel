@@ -1,6 +1,7 @@
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use ego_tree::{NodeId, NodeMut};
 use regex::{Regex, RegexBuilder, RegexSet, RegexSetBuilder};
+use schemars::JsonSchema;
 use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
@@ -10,22 +11,18 @@ use crate::{
   util::{ConfigError, Result},
 };
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct HighlightConfig {
   #[serde(flatten)]
   keywords: KeywordsOrPatterns,
   bg_color: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 enum KeywordsOrPatterns {
-  Keywords {
-    keywords: Vec<String>,
-  },
-  Patterns {
-    patterns: Vec<String>,
-  },
+  Keywords { keywords: Vec<String> },
+  Patterns { patterns: Vec<String> },
 }
 
 impl KeywordsOrPatterns {
@@ -38,9 +35,7 @@ impl KeywordsOrPatterns {
           .collect::<Vec<_>>();
         Ok(patterns)
       }
-      Self::Patterns { patterns } => {
-        Ok(patterns)
-      }
+      Self::Patterns { patterns } => Ok(patterns),
     }
   }
 }
