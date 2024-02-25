@@ -22,9 +22,13 @@ pub struct Cli {
 
 #[derive(Parser)]
 enum SubCommand {
+  /// Start the server
   Server(ServerConfig),
+  /// Test an endpoint
   // boxed because of the clippy::large_enum_variant warning
   Test(Box<TestConfig>),
+  /// Dump the JSON schema for the feed definition
+  DumpJsonSchema,
 }
 
 #[derive(Parser)]
@@ -94,6 +98,15 @@ impl Cli {
       SubCommand::Test(test_config) => {
         let feed_defn = FeedDefinition::load_from_file(&self.config)?;
         test_endpoint(feed_defn, &test_config).await;
+        Ok(())
+      }
+      SubCommand::DumpJsonSchema => {
+        let schema = schemars::schema_for!(FeedDefinition);
+        println!(
+          "{}",
+          serde_json::to_string_pretty(&schema)
+            .expect("failed to serialize schema")
+        );
         Ok(())
       }
     }
