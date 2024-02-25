@@ -88,14 +88,18 @@ impl BoxedFilter {
 }
 
 macro_rules! define_filters {
-  ($($variant:ident => $config:ty);* ;) => {
-    #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
-    #[serde(rename_all = "snake_case")]
-    pub enum FilterConfig {
-      $(
-        $variant($config),
-      )*
+  ($($variant:ident => $config:ty, $desc:literal);* ;) => {
+    paste::paste! {
+      #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+      #[serde(rename_all = "snake_case")]
+      pub enum FilterConfig {
+        $(
+           #[doc = "# " $variant:snake "\n\n" $desc "\n"]
+           $variant($config),
+        )*
+      }
     }
+
 
     impl FilterConfig {
       // currently only used in tests
@@ -129,18 +133,18 @@ macro_rules! define_filters {
 }
 
 define_filters!(
-  Js => js::JsConfig;
-  ModifyPost => js::ModifyPostConfig;
-  ModifyFeed => js::ModifyFeedConfig;
-  FullText => full_text::FullTextConfig;
-  SimplifyHtml => simplify_html::SimplifyHtmlConfig;
-  RemoveElement => html::RemoveElementConfig;
-  KeepElement => html::KeepElementConfig;
-  Split => html::SplitConfig;
-  Sanitize => sanitize::SanitizeConfig;
-  KeepOnly => select::KeepOnlyConfig;
-  Discard => select::DiscardConfig;
-  Highlight => highlight::HighlightConfig;
-  Merge => merge::MergeConfig;
-  Note => note::NoteFilterConfig;
+  Js => js::JsConfig, "Run JavaScript code to transform the feed";
+  ModifyPost => js::ModifyPostConfig, "Run JavaScript code to modify each post";
+  ModifyFeed => js::ModifyFeedConfig, "Run JavaScript code to modify the feed";
+  FullText => full_text::FullTextConfig, "Fetch full text content";
+  SimplifyHtml => simplify_html::SimplifyHtmlConfig, "Simplify HTML content";
+  RemoveElement => html::RemoveElementConfig, "Remove HTML elements";
+  KeepElement => html::KeepElementConfig, "Keep only HTML elements";
+  Split => html::SplitConfig, "Split each article into multiple articles";
+  Sanitize => sanitize::SanitizeConfig, "Redact or replace text";
+  KeepOnly => select::KeepOnlyConfig, "Keep only posts matching a condition";
+  Discard => select::DiscardConfig, "Discard posts matching a condition";
+  Highlight => highlight::HighlightConfig, "Highlight text or pattern";
+  Merge => merge::MergeConfig, "Merge extra feed into the main feed";
+  Note => note::NoteFilterConfig, "Add non-functional comment";
 );
