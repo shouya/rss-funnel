@@ -229,10 +229,10 @@ ul#filter-list {
 
     .filter-schema-view {
       position: absolute;
-      width: 300px;
       z-index: 1;
       top: 0;
-      right: -310px;
+      right: -1rem;
+      transform: translateX(100%);
       background-color: #fff;
       box-shadow: 3 0px 10px #ddd;
       border-radius: 0.3rem;
