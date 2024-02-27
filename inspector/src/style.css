@@ -119,8 +119,6 @@ table th {
 
   .sidebar-content {
     flex-grow: 1;
-    overflow-y: visible;
-    overflow-x: visible;
   }
 
   #filter-info {
@@ -189,6 +187,7 @@ ul#filter-list {
     .filter-config {
       margin-top: 0.5rem;
       display: block;
+      overflow-x: scroll;
       width: 100%;
 
       pre {
@@ -232,7 +231,7 @@ ul#filter-list {
       position: absolute;
       z-index: 1;
       top: 0;
-      right: -1rem;
+      right: -1.4rem;
       transform: translateX(98%);
       background-color: #fff;
       box-shadow: 3 0px 10px #ddd;
