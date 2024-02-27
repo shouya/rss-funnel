@@ -128,6 +128,15 @@ macro_rules! define_filters {
           })*
         }
       }
+
+      pub fn schema() -> schemars::schema::RootSchema {
+        let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+          s.option_nullable = true;
+          s.option_add_null_type = false;
+        });
+        let gen = settings.into_generator();
+        gen.into_root_schema_for::<Self>()
+      }
     }
   }
 }

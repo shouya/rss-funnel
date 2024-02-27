@@ -4,8 +4,10 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use axum::{routing::get, Extension, Router};
 use http::{StatusCode, Uri};
+use schemars::schema::RootSchema;
 
 use crate::config::{self, FeedDefinition};
+use crate::filter::FilterConfig;
 use crate::util::Error;
 
 #[derive(rust_embed::RustEmbed)]
@@ -17,6 +19,7 @@ pub fn router(feed_definition: config::FeedDefinition) -> Router {
     .route("/_inspector/index.html", get(index_handler))
     .route("/_inspector/dist/*file", get(static_handler))
     .route("/_inspector/config", get(config_handler))
+    .route("/_inspector/filter_schema", get(filter_schema_handler))
     .route(
       "/",
       get(|| async { Redirect::temporary("/_inspector/index.html") }),
@@ -68,6 +71,10 @@ async fn config_handler(
   Extension(feed_definition): Extension<Arc<FeedDefinition>>,
 ) -> impl IntoResponse {
   Json(feed_definition)
+}
+
+async fn filter_schema_handler() -> Json<RootSchema> {
+  Json(FilterConfig::schema())
 }
 
 #[derive(Debug, thiserror::Error)]

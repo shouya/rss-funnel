@@ -10,8 +10,13 @@ use crate::{
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
+/// # Feed source
 pub enum SourceConfig {
+  /// # Simple source
+  /// A source that is a simple URL. Either an absolute URL or a relative URL.
   Simple(String),
+  /// # From scratch
+  /// A source that is created from scratch
   FromScratch(BlankFeed),
 }
 

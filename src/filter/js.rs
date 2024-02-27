@@ -10,12 +10,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct JsConfig {
-  /// The javascript code to run
   code: String,
-}
-
-pub struct JsFilter {
-  runtime: Runtime,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
@@ -28,6 +23,10 @@ pub struct ModifyPostConfig {
 #[serde(transparent)]
 pub struct ModifyFeedConfig {
   code: String,
+}
+
+pub struct JsFilter {
+  runtime: Runtime,
 }
 
 #[async_trait::async_trait]
