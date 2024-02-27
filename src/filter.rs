@@ -8,6 +8,7 @@ mod sanitize;
 mod select;
 mod simplify_html;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use schemars::JsonSchema;
@@ -127,6 +128,22 @@ macro_rules! define_filters {
             Ok(BoxedFilter::from(filter))
           })*
         }
+      }
+
+      pub fn schema_for_all() -> HashMap<String, schemars::schema::RootSchema> {
+        let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+          s.option_nullable = true;
+          s.option_add_null_type = false;
+        });
+
+        [
+          $(
+            (
+              paste::paste! { stringify!([<$variant:snake>]) }.to_string(),
+              settings.clone().into_generator().into_root_schema_for::<$config>()
+            ),
+          )*
+        ].into()
       }
 
       pub fn schema_for(filter: &str) -> Option<schemars::schema::RootSchema> {

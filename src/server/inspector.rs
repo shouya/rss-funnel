@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::Query;
@@ -81,13 +82,17 @@ struct FilterSchemaHandlerParams {
 
 async fn filter_schema_handler(
   Query(params): Query<FilterSchemaHandlerParams>,
-) -> Result<Json<Vec<(String, RootSchema)>>, BadRequest<String>> {
-  let mut schemas = Vec::new();
+) -> Result<Json<HashMap<String, RootSchema>>, BadRequest<String>> {
+  if params.filters == "all" {
+    return Ok(Json(FilterConfig::schema_for_all()));
+  }
+
+  let mut schemas = HashMap::new();
   for filter in params.filters.split(',') {
     let Some(schema) = FilterConfig::schema_for(filter) else {
       return Err(BadRequest(format!("unknown filter: {}", filter)));
     };
-    schemas.push((filter.to_owned(), schema));
+    schemas.insert(filter.to_string(), schema);
   }
   Ok(Json(schemas))
 }

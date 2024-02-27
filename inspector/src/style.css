@@ -1,5 +1,6 @@
 * {
   box-sizing: border-box;
+  transition: all 0.1s ease-in-out;
 }
 
 body {
@@ -50,7 +51,6 @@ table th {
   }
 
   .sidebar-body {
-    overflow-x: hidden;
     margin-top: 0;
     margin-bottom: 0;
   }
@@ -119,7 +119,8 @@ table th {
 
   .sidebar-content {
     flex-grow: 1;
-    overflow-y: scroll;
+    overflow-y: visible;
+    overflow-x: visible;
   }
 
   #filter-info {
@@ -159,6 +160,7 @@ ul#filter-list {
   gap: 0.3rem;
 
   .filter {
+    position: relative;
     background-color: #fafafa;
     padding: 0.4rem 0.6rem 0.6rem 0.6rem;
     border-radius: 0.3rem;
@@ -186,13 +188,13 @@ ul#filter-list {
 
     .filter-config {
       margin-top: 0.5rem;
-      overflow-x: auto;
+      display: block;
+      width: 100%;
 
       pre {
         margin: 0;
       }
       code {
-        white-space: pre;
       }
       ul {
         list-style: square;
@@ -218,6 +220,23 @@ ul#filter-list {
           content: "";
         }
       }
+    }
+
+    &:hover .filter-schema-view {
+      opacity: 1;
+    }
+
+    .filter-schema-view {
+      position: absolute;
+      width: 300px;
+      z-index: 1;
+      top: 0;
+      right: -310px;
+      background-color: #fff;
+      box-shadow: 3 0px 10px #ddd;
+      border-radius: 0.3rem;
+      padding: 0.5rem;
+      opacity: 0;
     }
   }
 }
@@ -273,7 +292,6 @@ ul#filter-list {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 #request-param {
@@ -334,6 +352,11 @@ ul#filter-list {
     padding: 0.5rem;
     position: absolute;
     box-shadow: 0 1px 2px #ddd;
+    opacity: 0.5;
+
+    &:hover {
+      opacity: 1;
+    }
   }
 }
 
