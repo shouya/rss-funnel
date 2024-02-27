@@ -14,7 +14,9 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum MergeConfig {
+  /// Simple merge with default client and no filters
   Simple(MergeSimpleConfig),
+  /// Fully customized merge
   Full(MergeFullConfig),
 }
 
@@ -26,9 +28,12 @@ pub struct MergeSimpleConfig {
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct MergeFullConfig {
+  /// Source configuration
   source: SourceConfig,
+  /// Client configuration
   #[serde(default)]
   client: ClientConfig,
+  /// Filters to apply to the merged feed
   #[serde(default)]
   filters: FilterPipelineConfig,
 }

@@ -7,7 +7,7 @@ use url::Url;
 use crate::html::convert_relative_url;
 use crate::html::html_body;
 use crate::server::EndpointOutcome;
-use crate::source::BlankFeed;
+use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
 
@@ -145,8 +145,8 @@ impl Feed {
   }
 }
 
-impl From<&BlankFeed> for Feed {
-  fn from(config: &BlankFeed) -> Self {
+impl From<&FromScratch> for Feed {
+  fn from(config: &FromScratch) -> Self {
     use FeedFormat::*;
     match config.format {
       Rss => {

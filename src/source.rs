@@ -17,18 +17,18 @@ pub enum SourceConfig {
   Simple(String),
   /// # From scratch
   /// A source that is created from scratch
-  FromScratch(BlankFeed),
+  FromScratch(FromScratch),
 }
 
 #[derive(Clone, Debug)]
 pub enum Source {
   AbsoluteUrl(Url),
   RelativeUrl(String),
-  FromScratch(BlankFeed),
+  FromScratch(FromScratch),
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
-pub struct BlankFeed {
+pub struct FromScratch {
   pub format: FeedFormat,
   pub title: String,
   pub link: Option<String>,
