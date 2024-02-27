@@ -21,7 +21,9 @@ pub enum Feed {
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
+  /// RSS 2.0
   Rss,
+  /// Atom 1.0
   Atom,
 }
 

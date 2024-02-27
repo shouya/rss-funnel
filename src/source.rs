@@ -13,9 +13,12 @@ use crate::{
 /// # Feed source
 pub enum SourceConfig {
   /// # Simple source
-  /// A source that is a simple URL. Either an absolute URL or a relative URL.
+  ///
+  /// A source that is a simple URL. A relative path (e.g. "/feed.xml")
+  /// points to the current instance.
   Simple(String),
   /// # From scratch
+  ///
   /// A source that is created from scratch
   FromScratch(FromScratch),
 }
@@ -29,9 +32,13 @@ pub enum Source {
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct FromScratch {
+  /// The format of the feed
   pub format: FeedFormat,
+  /// The title of the feed
   pub title: String,
+  /// The url to the website
   pub link: Option<String>,
+  /// A description of the feed
   pub description: Option<String>,
 }
 
