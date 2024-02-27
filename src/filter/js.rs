@@ -9,18 +9,31 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// # JavaScript Code
+///
+/// Either define a function `modify_feed` or `modify_post` to modify the feed or posts respectively.
 pub struct JsConfig {
   code: String,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// # JavaScript Code
+///
+/// ## Example
+///
+/// `modify_post: post.title += " (modified)";`
 pub struct ModifyPostConfig {
   code: String,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// # JavaScript Code
+///
+/// ## Example
+///
+/// `modify_feed: feed.title.value = "Modified Feed";`
 pub struct ModifyFeedConfig {
   code: String,
 }
