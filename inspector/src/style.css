@@ -224,7 +224,8 @@ ul#filter-list {
 
     &:hover .filter-schema-view {
       opacity: 1;
-      visibility: visible;
+      display: block;
+      transform: translateX(100%);
     }
 
     .filter-schema-view {
@@ -232,13 +233,13 @@ ul#filter-list {
       z-index: 1;
       top: 0;
       right: -1rem;
-      transform: translateX(100%);
+      transform: translateX(98%);
       background-color: #fff;
       box-shadow: 3 0px 10px #ddd;
       border-radius: 0.3rem;
       padding: 0.5rem;
       opacity: 0;
-      visibility: hidden;
+      display: none;
     }
   }
 }
