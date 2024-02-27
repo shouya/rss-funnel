@@ -224,6 +224,7 @@ ul#filter-list {
 
     &:hover .filter-schema-view {
       opacity: 1;
+      visibility: visible;
     }
 
     .filter-schema-view {
@@ -237,6 +238,7 @@ ul#filter-list {
       border-radius: 0.3rem;
       padding: 0.5rem;
       opacity: 0;
+      visibility: hidden;
     }
   }
 }
