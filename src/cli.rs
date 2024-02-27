@@ -87,6 +87,15 @@ impl FeedDefinition {
   fn endpoints(&self) -> impl Iterator<Item = &EndpointConfig> {
     self.endpoints.iter()
   }
+
+  pub fn schema() -> schemars::schema::RootSchema {
+    let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+      s.option_nullable = true;
+      s.option_add_null_type = false;
+    });
+    let gen = settings.into_generator();
+    gen.into_root_schema_for::<Self>()
+  }
 }
 
 impl Cli {
@@ -101,12 +110,10 @@ impl Cli {
         Ok(())
       }
       SubCommand::DumpJsonSchema => {
-        let schema = schemars::schema_for!(FeedDefinition);
-        println!(
-          "{}",
-          serde_json::to_string_pretty(&schema)
-            .expect("failed to serialize schema")
-        );
+        let schema = FeedDefinition::schema();
+        let schema_str = serde_json::to_string_pretty(&schema)
+          .expect("failed to serialize schema");
+        println!("{}", schema_str);
         Ok(())
       }
     }
