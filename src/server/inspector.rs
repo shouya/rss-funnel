@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use axum::extract::Query;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use axum::{routing::get, Extension, Router};
@@ -73,8 +74,36 @@ async fn config_handler(
   Json(feed_definition)
 }
 
-async fn filter_schema_handler() -> Json<RootSchema> {
-  Json(FilterConfig::schema())
+#[derive(serde::Deserialize)]
+struct FilterSchemaHandlerParams {
+  filters: String,
+}
+
+async fn filter_schema_handler(
+  Query(params): Query<FilterSchemaHandlerParams>,
+) -> Result<Json<Vec<(String, RootSchema)>>, BadRequest<String>> {
+  let mut schemas = Vec::new();
+  for filter in params.filters.split(',') {
+    let Some(schema) = FilterConfig::schema_for(filter) else {
+      return Err(BadRequest(format!("unknown filter: {}", filter)));
+    };
+    schemas.push((filter.to_owned(), schema));
+  }
+  Ok(Json(schemas))
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+struct BadRequest<E>(E);
+
+impl<E: ToString> IntoResponse for BadRequest<E> {
+  fn into_response(self) -> Response {
+    let body = self.0.to_string();
+    http::Response::builder()
+      .status(http::StatusCode::BAD_REQUEST)
+      .body(body.into())
+      .unwrap()
+  }
 }
 
 #[derive(Debug, thiserror::Error)]
