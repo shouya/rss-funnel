@@ -134,6 +134,7 @@ macro_rules! define_filters {
         let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
           s.option_nullable = true;
           s.option_add_null_type = false;
+          s.inline_subschemas = true;
         });
 
         [
@@ -150,6 +151,7 @@ macro_rules! define_filters {
         let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
           s.option_nullable = true;
           s.option_add_null_type = false;
+          s.inline_subschemas = true;
         });
         let gen = settings.into_generator();
         match filter {
