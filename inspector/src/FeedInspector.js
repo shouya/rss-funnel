@@ -171,11 +171,11 @@ export class FeedInspector {
 
     for (const [index, filter] of filters.entries()) {
       const [name, conf] = Object.entries(filter)[0];
-      const schema_view = new JSONSchemaView(
+      let schema_view = new JSONSchemaView(
         this.filter_schema[name],
         Infinity,
       ).render();
-      schema_view.classList.add("filter-schema-view");
+      schema_view = elt("div", { class: "filter-schema-view" }, schema_view);
 
       const node = new Filter(name, conf).render_node();
       node.appendChild(schema_view);

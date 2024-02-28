@@ -221,24 +221,37 @@ ul#filter-list {
       }
     }
 
-    &:hover .filter-schema-view {
-      opacity: 1;
-      display: block;
-      transform: translateX(100%);
-    }
-
+    /* this div is only used for positioning for the popup doc. it does
+   not enclose the popup doc vertically (overflow-y: visible) */
     .filter-schema-view {
       position: absolute;
       z-index: 1;
       top: 0;
-      right: -1.4rem;
+      right: 0;
       transform: translateX(98%);
-      background-color: #fff;
-      box-shadow: 3 0px 10px #ddd;
-      border-radius: 0.3rem;
-      padding: 0.5rem;
+      padding-left: 1.4rem;
       opacity: 0;
-      display: none;
+      visibility: hidden;
+      max-height: 100%;
+      overflow-y: visible;
+
+      & > div:first-child {
+        display: none;
+        background-color: #fff;
+        padding: 0.5rem;
+        box-shadow: 3 0px 10px #ddd;
+        border-radius: 0.3rem;
+      }
+    }
+
+    &:hover .filter-schema-view {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(100%);
+
+      > div:first-child {
+        display: block;
+      }
     }
   }
 }
