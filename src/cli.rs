@@ -27,8 +27,6 @@ enum SubCommand {
   /// Test an endpoint
   // boxed because of the clippy::large_enum_variant warning
   Test(Box<TestConfig>),
-  /// Dump the JSON schema for the feed definition
-  DumpJsonSchema,
 }
 
 #[derive(Parser)]
@@ -87,15 +85,6 @@ impl FeedDefinition {
   fn endpoints(&self) -> impl Iterator<Item = &EndpointConfig> {
     self.endpoints.iter()
   }
-
-  pub fn schema() -> schemars::schema::RootSchema {
-    let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
-      s.option_nullable = true;
-      s.option_add_null_type = false;
-    });
-    let gen = settings.into_generator();
-    gen.into_root_schema_for::<Self>()
-  }
 }
 
 impl Cli {
@@ -107,13 +96,6 @@ impl Cli {
       SubCommand::Test(test_config) => {
         let feed_defn = FeedDefinition::load_from_file(&self.config)?;
         test_endpoint(feed_defn, &test_config).await;
-        Ok(())
-      }
-      SubCommand::DumpJsonSchema => {
-        let schema = FeedDefinition::schema();
-        let schema_str = serde_json::to_string_pretty(&schema)
-          .expect("failed to serialize schema");
-        println!("{}", schema_str);
         Ok(())
       }
     }
