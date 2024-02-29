@@ -11,11 +11,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8.14.x
       - name: build inspector front-end
         run: |
           cd inspector
-          curl -fsSL https://get.pnpm.io/install.sh | sh -
           pnpm install
           pnpm run build
 
