@@ -237,6 +237,7 @@ ul#filter-list {
 
       & > div:first-child {
         display: none;
+        max-width: 60vw;
         background-color: #fff;
         padding: 0.5rem;
         box-shadow: 3 0px 10px #ddd;
@@ -254,6 +255,11 @@ ul#filter-list {
       }
     }
   }
+}
+
+/* popup doc */
+.json-schema-view {
+  width: max-content;
 }
 
 #endpoint-list {
