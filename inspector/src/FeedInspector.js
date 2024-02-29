@@ -173,7 +173,7 @@ export class FeedInspector {
       const [name, conf] = Object.entries(filter)[0];
       let schema_view = new JSONSchemaView(
         this.filter_schema[name],
-        Infinity,
+        3,
       ).render();
       schema_view = elt("div", { class: "filter-schema-view" }, schema_view);
 

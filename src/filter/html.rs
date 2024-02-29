@@ -17,15 +17,12 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-/// Remove elements from HTML description.
+/// Remove elements from HTML description. Specify the list of CSS
+/// selectors for elements to remove.<br><br>
 ///
-/// You can specify the list of CSS `selectors` to remove.
-///
-/// ```yaml
-///   - remove_element:
-///       - img[src$=".gif"]
+///   - remove_element:<br>
+///       - img[src$=".gif"]<br>
 ///       - span.ads
-/// ```
 #[doc(alias = "remove_element")]
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
