@@ -21,16 +21,26 @@ struct HttpFixture {
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct ClientConfig {
+  /// The "user-agent" header to send with requests
   user_agent: Option<String>,
+  /// The "accept" header to send with requests
   accept: Option<String>,
+  /// The "set-cookie" header to send with requests
   set_cookie: Option<String>,
+  /// The "referer" header to send with requests
   referer: Option<String>,
+  /// The maximum number of cached responses
   cache_size: Option<usize>,
+  /// The maximum time a response is kept in the cache (Format: "4s",
+  /// 10m", "1h", "1d")
   #[serde(default)]
   #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
+  #[schemars(with = "String")]
   cache_ttl: Option<Duration>,
+  /// Request timeout (Format: "4s", "10m", "1h", "1d")
   #[serde(default = "default_timeout")]
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
+  #[schemars(with = "String")]
   timeout: Duration,
   /// Sometimes the feed doesn't report a correct content type, so we
   /// need to override it.
