@@ -18,11 +18,17 @@ const DEFAULT_PARALLELISM: usize = 20;
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 pub struct FullTextConfig {
+  /// The maximum number of concurrent requests
   parallelism: Option<usize>,
+  /// Whether to simplify the HTML before saving it
   simplify: Option<bool>,
+  /// Whether to append the full text to the description or replace it
   append_mode: Option<bool>,
+  /// Keep only content inside an element of the full text
   keep_element: Option<KeepElementConfig>,
+  /// Whether to keep the GUID of the original post
   keep_guid: Option<bool>,
+  /// The client configuration
   client: Option<client::ClientConfig>,
 }
 

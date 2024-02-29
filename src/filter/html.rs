@@ -21,10 +21,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 ///
 /// You can specify the list of CSS `selectors` to remove.
 ///
-/// # Example
-///
 /// ```yaml
-/// filters:
 ///   - remove_element:
 ///       - img[src$=".gif"]
 ///       - span.ads
@@ -111,7 +108,6 @@ impl FeedFilter for RemoveElement {
 /// # Example
 ///
 /// ```yaml
-/// filters:
 ///   - keep_element: img[src$=".gif"]
 /// ```
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
@@ -197,9 +193,21 @@ impl FeedFilter for KeepElement {
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct SplitConfig {
+  /// The CSS selector for the title elements. The textContent of the
+  /// selected elements will be used.
   title_selector: String,
+  /// The CSS selector for the &lt;a&gt element. The "href" attribute
+  /// of the selected elements will be used. Defaults to the same as
+  /// title_selector. If specified, it must select the same number of
+  /// elements as title_selector.
   link_selector: Option<String>,
+  /// The CSS selector for the description elements. The innerHTML of
+  /// the selected elements will be used. If specified, it must select
+  /// the same number of elements as title_selector.
   description_selector: Option<String>,
+  /// The CSS selector for the author elements. The textContent of the
+  /// selected elements will be used. If specified, it must select the
+  /// same number of elements as title_selector.
   author_selector: Option<String>,
 }
 
