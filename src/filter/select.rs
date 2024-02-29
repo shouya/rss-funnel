@@ -13,28 +13,40 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// Keep only posts that match the given criteria
 pub struct KeepOnlyConfig(AnyMatchConfig);
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// Discard posts that match the given criteria
 pub struct DiscardConfig(AnyMatchConfig);
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 enum AnyMatchConfig {
+  /// Matches posts containing the given string
   SingleContains(String),
+  /// Matches posts containing any of the given strings
   MultipleContains(Vec<String>),
+  /// Full match configuration
   MatchConfig(MatchConfig),
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 struct MatchConfig {
+  /// Regular expression(s) to match
   #[serde(default)]
   matches: SingleOrVec<String>,
+
+  /// String(s) to match
   #[serde(default)]
   contains: SingleOrVec<String>,
+
+  /// Field to match against
   #[serde(default)]
   field: Field,
+
+  /// Whether to match case sensitively
   #[serde(default)]
   case_sensitive: bool,
 }

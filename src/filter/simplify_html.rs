@@ -9,6 +9,8 @@ use crate::util::Result;
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+/// The simplify_html filter simplifies the HTML content of
+/// posts. There is no configuration.
 pub struct SimplifyHtmlConfig {}
 
 pub struct SimplifyHtmlFilter;

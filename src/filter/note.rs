@@ -6,6 +6,8 @@ use crate::{feed::Feed, util::Result};
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
+/// The note filter has no effect. It serves only documentation
+/// purposes.
 pub struct NoteFilterConfig {
   note: String,
 }

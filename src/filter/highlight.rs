@@ -12,16 +12,20 @@ use crate::{
 };
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+/// Highlight the given keywords in the feed's description
 pub struct HighlightConfig {
   #[serde(flatten)]
   keywords: KeywordsOrPatterns,
+  /// Background color to use for highlighting. Default is yellow.
   bg_color: Option<String>,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 enum KeywordsOrPatterns {
+  /// A list of keywords to highlight
   Keywords { keywords: Vec<String> },
+  /// A list of regex patterns to highlight
   Patterns { patterns: Vec<String> },
 }
 

@@ -17,9 +17,13 @@ struct SanitizeOpReplaceConfig {
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct SanitizeOpConfig {
+  /// Remove all occurrences of the string
   remove: Option<String>,
+  /// Remove all matches of the regex
   remove_regex: Option<String>,
+  /// Replace all occurrences of the string
   replace: Option<SanitizeOpReplaceConfig>,
+  /// Replace all matches of the regex
   replace_regex: Option<SanitizeOpReplaceConfig>,
 }
 
