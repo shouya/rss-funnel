@@ -221,10 +221,7 @@ mod test {
     "#;
 
     let expected = KeepOnlyConfig(AnyMatchConfig::MatchConfig(MatchConfig {
-      matches: SingleOrVec::Vec(vec![
-        Regex::new(r"\d+").unwrap().into(),
-        Regex::new(r"\bfoo\b").unwrap().into(),
-      ]),
+      matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
       contains: SingleOrVec::empty(),
       field: Field::Title,
       case_sensitive: true,
@@ -272,10 +269,7 @@ mod test {
     "#;
 
     let expected = DiscardConfig(AnyMatchConfig::MatchConfig(MatchConfig {
-      matches: SingleOrVec::Vec(vec![
-        Regex::new(r"\d+").unwrap().into(),
-        Regex::new(r"\bfoo\b").unwrap().into(),
-      ]),
+      matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
       contains: SingleOrVec::empty(),
       field: Field::Title,
       case_sensitive: true,

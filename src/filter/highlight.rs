@@ -286,7 +286,7 @@ highlight:
 "#,
       HighlightConfig {
         keywords: KeywordsOrPatterns::Patterns {
-          patterns: serde_regex::Serde(vec![Regex::new(r"\bfoo\b").unwrap()]),
+          patterns: vec![r"\bfoo\b".into()],
         },
         bg_color: Some("#ffff00".into()),
       },
