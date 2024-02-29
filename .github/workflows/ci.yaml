@@ -15,8 +15,9 @@ jobs:
       - name: build inspector front-end
         run: |
           cd inspector
-          npm install
-          npm run build
+          curl -fsSL https://get.pnpm.io/install.sh | sh -
+          pnpm install
+          pnpm run build
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
