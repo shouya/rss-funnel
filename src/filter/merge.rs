@@ -172,4 +172,31 @@ mod test {
       );
     }
   }
+
+  #[tokio::test]
+  async fn test_parallelism() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///scishow.xml
+      filters:
+      - merge:
+        - fixture:///scishow.xml
+        - fixture:///scishow.xml
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+
+    let mut groups: HashMap<String, Vec<String>> = HashMap::new();
+    for post in posts {
+      let link = post.link().unwrap().into();
+      let title = post.title().unwrap().into();
+      groups.entry(link).or_default().push(title);
+    }
+
+    for (_, titles) in groups {
+      assert_eq!(titles.len(), 3);
+    }
+  }
 }
