@@ -77,7 +77,9 @@ pub enum Error {
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum SingleOrVec<T> {
+  /// A single entry
   Single(T),
+  /// A list of entries
   Vec(Vec<T>),
 }
 
