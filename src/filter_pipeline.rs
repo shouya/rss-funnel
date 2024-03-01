@@ -17,8 +17,12 @@ pub struct FilterPipelineConfig {
 }
 
 pub struct FilterPipeline {
-  configs: Mutex<Vec<FilterConfig>>,
-  filters: Mutex<Vec<BoxedFilter>>,
+  inner: Mutex<Inner>,
+}
+
+struct Inner {
+  filters: Vec<BoxedFilter>,
+  configs: Vec<FilterConfig>,
 }
 
 impl FilterPipelineConfig {
@@ -30,14 +34,23 @@ impl FilterPipelineConfig {
       filters.push(filter);
     }
 
-    let filters = Mutex::new(filters);
-    let configs = Mutex::new(configs);
-    Ok(FilterPipeline { filters, configs })
+    let inner = Mutex::new(Inner { filters, configs });
+    Ok(FilterPipeline { inner })
   }
 }
 
 impl FilterPipeline {
-  pub async fn run(
+  pub async fn run(&self, context: FilterContext, feed: Feed) -> Result<Feed> {
+    self.inner.lock().await.run(context, feed).await
+  }
+
+  pub fn num_filters(&self) -> usize {
+    self.inner.blocking_lock().num_filters()
+  }
+}
+
+impl Inner {
+  async fn run(
     &self,
     mut context: FilterContext,
     mut feed: Feed,
@@ -45,14 +58,13 @@ impl FilterPipeline {
     let limit_filters = context
       .limit_filters()
       .unwrap_or_else(|| self.num_filters());
-    let filters = self.filters.lock().await;
-    for filter in filters.iter().take(limit_filters) {
+    for filter in self.filters.iter().take(limit_filters) {
       feed = filter.run(&mut context, feed).await?;
     }
     Ok(feed)
   }
 
-  pub fn num_filters(&self) -> usize {
-    self.filters.blocking_lock().len()
+  fn num_filters(&self) -> usize {
+    self.filters.len()
   }
 }
