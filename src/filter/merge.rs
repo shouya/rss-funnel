@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use futures::{stream, StreamExt};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -99,8 +100,20 @@ pub struct Merge {
 }
 
 impl Merge {
-  async fn fetch_sources(&self, _base: Option<&Url>) -> Result<Vec<Feed>> {
-    unimplemented!()
+  async fn fetch_sources(&self, base: Option<&Url>) -> Result<Vec<Feed>> {
+    stream::iter(self.sources.clone())
+      .map(|source: Source| {
+        let client = &self.client;
+        async move {
+          let feed = source.fetch_feed(Some(client), base).await?;
+          Ok(feed)
+        }
+      })
+      .buffered(self.parallelism)
+      .collect::<Vec<_>>()
+      .await
+      .into_iter()
+      .collect::<Result<Vec<Feed>>>()
   }
 }
 
