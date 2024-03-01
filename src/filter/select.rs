@@ -11,17 +11,23 @@ use crate::{
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// Keep only posts that match the given criteria
 pub struct KeepOnlyConfig(AnyMatchConfig);
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// Discard posts that match the given criteria
 pub struct DiscardConfig(AnyMatchConfig);
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(untagged)]
 enum AnyMatchConfig {
   /// Matches posts containing the given string
@@ -32,7 +38,9 @@ enum AnyMatchConfig {
   MatchConfig(MatchConfig),
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 struct MatchConfig {
   /// Regular expression(s) to match
   #[serde(default)]
@@ -108,7 +116,9 @@ impl MatchConfig {
   }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Copy, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(rename_all = "snake_case")]
 enum Field {
   Title,

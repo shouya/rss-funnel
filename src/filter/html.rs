@@ -24,7 +24,9 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 ///       - img[src$=".gif"]<br>
 ///       - span.ads
 #[doc(alias = "remove_element")]
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct RemoveElementConfig {
   selectors: Vec<String>,
@@ -107,7 +109,9 @@ impl FeedFilter for RemoveElement {
 /// ```yaml
 ///   - keep_element: img[src$=".gif"]
 /// ```
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct KeepElementConfig {
   selector: String,
@@ -188,7 +192,9 @@ impl FeedFilter for KeepElement {
   }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct SplitConfig {
   /// The CSS selector for the title elements. The textContent of the
   /// selected elements will be used.

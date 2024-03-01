@@ -8,7 +8,9 @@ use crate::{
   util::{ConfigError, Error, Result},
 };
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(untagged)]
 /// # Feed source
 pub enum SourceConfig {
@@ -30,7 +32,9 @@ pub enum Source {
   FromScratch(FromScratch),
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct FromScratch {
   /// The format of the feed
   pub format: FeedFormat,

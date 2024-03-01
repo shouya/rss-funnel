@@ -74,7 +74,9 @@ pub enum Error {
   Message(String),
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(untagged)]
 pub enum SingleOrVec<T> {
   /// A single entry

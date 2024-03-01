@@ -16,7 +16,9 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 const DEFAULT_PARALLELISM: usize = 20;
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 pub struct FullTextConfig {
   /// The maximum number of concurrent requests
   parallelism: Option<usize>,

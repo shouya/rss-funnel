@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use crate::{feed::Feed, util::Result};
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// The note filter has no effect. It serves only documentation
 /// purposes.

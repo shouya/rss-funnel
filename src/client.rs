@@ -19,7 +19,9 @@ struct HttpFixture {
   content: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 pub struct ClientConfig {
   /// The "user-agent" header to send with requests
   user_agent: Option<String>,

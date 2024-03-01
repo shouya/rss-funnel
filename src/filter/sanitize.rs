@@ -9,13 +9,17 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 struct SanitizeOpReplaceConfig {
   from: String,
   to: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct SanitizeOpConfig {
   /// Remove all occurrences of the string
   remove: Option<String>,
@@ -78,7 +82,9 @@ pub enum SanitizeOp {
   Replace(Regex, String),
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct SanitizeConfig {
   ops: Vec<SanitizeOpConfig>,

@@ -11,7 +11,9 @@ use crate::{
   util::{ConfigError, Result},
 };
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 /// Highlight the given keywords in the feed's description
 pub struct HighlightConfig {
   #[serde(flatten)]
@@ -20,7 +22,9 @@ pub struct HighlightConfig {
   bg_color: Option<String>,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(untagged)]
 enum KeywordsOrPatterns {
   /// A list of keywords to highlight

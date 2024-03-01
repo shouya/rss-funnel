@@ -18,7 +18,9 @@ pub enum Feed {
   Atom(atom_syndication::Feed),
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
   /// RSS 2.0

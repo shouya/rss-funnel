@@ -91,7 +91,7 @@ impl BoxedFilter {
 macro_rules! define_filters {
   ($($variant:ident => $config:ty, $desc:literal);* ;) => {
     paste::paste! {
-      #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+      #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
       #[serde(rename_all = "snake_case")]
       pub enum FilterConfig {
         $(

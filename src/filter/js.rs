@@ -7,7 +7,9 @@ use crate::util::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// Either define a function `modify_feed` or `modify_post` to modify the feed or posts respectively.
 /// <br><br>
@@ -17,7 +19,9 @@ pub struct JsConfig {
   code: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// JavaScript code for for editing post. Modify `post` variable to update the post or set it to null to delete it.
 /// <br><br>
@@ -28,7 +32,9 @@ pub struct ModifyPostConfig {
   code: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// JavaScript code for for editing feed. Modify `feed` variable to update the feed.
 /// <br><br>

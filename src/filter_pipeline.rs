@@ -7,7 +7,9 @@ use crate::{
   util::Result,
 };
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct FilterPipelineConfig {
   filters: Vec<FilterConfig>,
