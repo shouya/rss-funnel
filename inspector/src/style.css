@@ -1,6 +1,5 @@
 * {
   box-sizing: border-box;
-  transition: all 0.1s ease-in-out;
 }
 
 body {
@@ -72,6 +71,7 @@ table th {
   padding: 0.2rem 0.4rem;
   border-radius: 0.3rem;
   white-space: nowrap;
+  transition: all 0.1s ease-in-out;
 
   &:hover {
     background-color: #f4f4f4;
@@ -234,6 +234,7 @@ ul#filter-list {
       visibility: hidden;
       max-height: 100%;
       overflow-y: visible;
+      transition: all 0.1s ease-in-out;
 
       & > div:first-child {
         display: none;
