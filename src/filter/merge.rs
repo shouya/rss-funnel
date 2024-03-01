@@ -1,13 +1,15 @@
 use std::time::Duration;
 
+use futures::{stream, StreamExt};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
-use crate::util::Result;
+use crate::util::{Result, SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -23,13 +25,16 @@ pub enum MergeConfig {
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct MergeSimpleConfig {
-  source: SourceConfig,
+  source: SingleOrVec<SourceConfig>,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct MergeFullConfig {
   /// Source configuration
-  source: SourceConfig,
+  source: SingleOrVec<SourceConfig>,
+  /// Number of concurrent requests to make for fetching multiple sources (default: 20)
+  #[serde(default)]
+  parallelism: Option<usize>,
   /// Client configuration
   #[serde(default)]
   client: ClientConfig,
@@ -44,6 +49,7 @@ impl From<MergeSimpleConfig> for MergeFullConfig {
       source: config.source,
       client: ClientConfig::default(),
       filters: Default::default(),
+      parallelism: None,
     }
   }
 }
@@ -66,14 +72,21 @@ impl FeedFilterConfig for MergeConfig {
       client,
       filters,
       source,
+      parallelism,
     } = self.into();
     let client = client.build(Duration::from_secs(15 * 60))?;
     let filters = filters.build().await?;
-    let source = source.try_into()?;
+    let sources = source
+      .into_vec()
+      .into_iter()
+      .map(|s| s.try_into())
+      .collect::<Result<_, _>>()?;
+    let parallelism = parallelism.unwrap_or(20);
 
     Ok(Merge {
       client,
-      source,
+      sources,
+      parallelism,
       filters,
     })
   }
@@ -81,18 +94,39 @@ impl FeedFilterConfig for MergeConfig {
 
 pub struct Merge {
   client: Client,
-  source: Source,
+  parallelism: usize,
+  sources: Vec<Source>,
   filters: FilterPipeline,
+}
+
+impl Merge {
+  async fn fetch_sources(&self, base: Option<&Url>) -> Result<Vec<Feed>> {
+    stream::iter(self.sources.clone())
+      .map(|source: Source| {
+        let client = &self.client;
+        async move {
+          let feed = source.fetch_feed(Some(client), base).await?;
+          Ok(feed)
+        }
+      })
+      .buffered(self.parallelism)
+      .collect::<Vec<_>>()
+      .await
+      .into_iter()
+      .collect::<Result<Vec<Feed>>>()
+  }
 }
 
 #[async_trait::async_trait]
 impl FeedFilter for Merge {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
     let base = ctx.base();
-    let new_feed = self.source.fetch_feed(Some(&self.client), base).await?;
-    let ctx = ctx.subcontext();
-    let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
-    feed.merge(filtered_new_feed)?;
+    for new_feed in self.fetch_sources(base).await? {
+      let ctx = ctx.subcontext();
+      let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
+      feed.merge(filtered_new_feed)?;
+    }
+    feed.reorder();
     Ok(feed)
   }
 }
@@ -137,6 +171,33 @@ mod test {
         titles[0] == format!("{} (modified)", titles[1])
           || titles[1] == format!("{} (modified)", titles[0])
       );
+    }
+  }
+
+  #[tokio::test]
+  async fn test_parallelism() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///scishow.xml
+      filters:
+      - merge:
+        - fixture:///scishow.xml
+        - fixture:///scishow.xml
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+
+    let mut groups: HashMap<String, Vec<String>> = HashMap::new();
+    for post in posts {
+      let link = post.link().unwrap().into();
+      let title = post.title().unwrap().into();
+      groups.entry(link).or_default().push(title);
+    }
+
+    for (_, titles) in groups {
+      assert_eq!(titles.len(), 3);
     }
   }
 }

@@ -44,6 +44,7 @@ rss = { version = "2.0.6", features = ["serde"] }
 http = "1.0.0"
 url = { version = "2.5.0", features = ["serde"] }
 mime = "0.3.17"
+chrono = "0.4.34"
 
 # webui (inspector) support
 rust-embed = { version = "8.2.0", features = ["include-exclude"], optional = true }
