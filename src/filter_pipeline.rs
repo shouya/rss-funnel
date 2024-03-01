@@ -27,7 +27,7 @@ struct Inner {
 
 impl FilterPipelineConfig {
   pub async fn build(self) -> Result<FilterPipeline> {
-    let mut filters = Vec::new();
+    let mut filters = vec![];
     let configs = self.filters.clone();
     for filter_config in self.filters {
       let filter = filter_config.build().await?;
@@ -47,9 +47,35 @@ impl FilterPipeline {
   pub fn num_filters(&self) -> usize {
     self.inner.blocking_lock().num_filters()
   }
+
+  pub async fn update(&self, config: FilterPipelineConfig) -> Result<()> {
+    let mut inner = self.inner.lock().await;
+    let mut filters = vec![];
+    let mut configs = vec![];
+
+    for filter_config in config.filters {
+      configs.push(filter_config.clone());
+      match inner.take(&filter_config) {
+        Some(filter) => filters.push(filter),
+        None => {
+          let filter = filter_config.build().await?;
+          filters.push(filter);
+        }
+      }
+    }
+
+    *inner = Inner { filters, configs };
+    Ok(())
+  }
 }
 
 impl Inner {
+  fn take(&mut self, config: &FilterConfig) -> Option<BoxedFilter> {
+    let index = self.configs.iter().position(|c| c == config)?;
+    self.configs.remove(index);
+    Some(self.filters.remove(index))
+  }
+
   async fn run(
     &self,
     mut context: FilterContext,
