@@ -9,31 +9,32 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
-/// # JavaScript Code
-///
 /// Either define a function `modify_feed` or `modify_post` to modify the feed or posts respectively.
+/// <br><br>
+/// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
+
 pub struct JsConfig {
   code: String,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
-/// # JavaScript Code
-///
-/// ## Example
-///
-/// `modify_post: post.title += " (modified)";`
+/// JavaScript code for for editing post. Modify `post` variable to update the post or set it to null to delete it.
+/// <br><br>
+/// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
+/// <br><br>
+/// Example: <code>modify_post: post.title += " (modified)";</code>
 pub struct ModifyPostConfig {
   code: String,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
-/// # JavaScript Code
-///
-/// ## Example
-///
-/// `modify_feed: feed.title.value = "Modified Feed";`
+/// JavaScript code for for editing feed. Modify `feed` variable to update the feed.
+/// <br><br>
+/// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
+/// <br><br>
+/// Example: <code>modify_feed: feed.title.value = "Modified Feed";</code>
 pub struct ModifyFeedConfig {
   code: String,
 }
