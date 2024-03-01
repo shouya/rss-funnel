@@ -9,7 +9,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
-use crate::util::{Result, SingleOrVec};
+use crate::util::{ConfigError, Result, SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -73,7 +73,7 @@ impl From<MergeConfig> for MergeFullConfig {
 impl FeedFilterConfig for MergeConfig {
   type Filter = Merge;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let MergeFullConfig {
       client,
       filters,

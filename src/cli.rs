@@ -115,7 +115,7 @@ async fn test_endpoint(feed_defn: FeedDefinition, test_config: &TestConfig) {
     return;
   };
   let mut endpoint_service = endpoint_conf
-    .into_service()
+    .build()
     .await
     .expect("failed to build endpoint service");
   let endpoint_param = test_config.to_endpoint_param();

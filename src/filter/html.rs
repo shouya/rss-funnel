@@ -37,17 +37,16 @@ pub struct RemoveElement {
 }
 
 // can't define FromStr for Selector due to Rust's orphan rule
-fn parse_selector(selector: &str) -> Result<Selector> {
+fn parse_selector(selector: &str) -> Result<Selector, ConfigError> {
   Selector::parse(selector)
     .map_err(|e| ConfigError::BadSelector(format!("{}: {}", selector, e)))
-    .map_err(|e| e.into())
 }
 
 #[async_trait::async_trait]
 impl FeedFilterConfig for RemoveElementConfig {
   type Filter = RemoveElement;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let mut selectors = vec![];
     for selector in self.selectors {
       let parsed = parse_selector(&selector)?;
@@ -128,7 +127,7 @@ impl FeedFilterConfig for KeepElementConfig {
   // TODO: decide whether we want to support iteratively narrowed
   // selector. Multiple selectors here may create more confusion than
   // being useful.
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let selectors = vec![parse_selector(&self.selector)?];
     Ok(KeepElement { selectors })
   }
@@ -225,13 +224,14 @@ pub struct Split {
 impl FeedFilterConfig for SplitConfig {
   type Filter = Split;
 
-  async fn build(self) -> Result<Self::Filter> {
-    let parse_selector_opt = |s: &Option<String>| -> Result<Option<Selector>> {
-      match s {
-        Some(s) => Ok(Some(parse_selector(s)?)),
-        None => Ok(None),
-      }
-    };
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
+    let parse_selector_opt =
+      |s: &Option<String>| -> Result<Option<Selector>, ConfigError> {
+        match s {
+          Some(s) => Ok(Some(parse_selector(s)?)),
+          None => Ok(None),
+        }
+      };
 
     let title_selector = parse_selector(&self.title_selector)?;
     let link_selector = parse_selector_opt(&self.link_selector)?;

@@ -34,7 +34,7 @@ enum KeywordsOrPatterns {
 }
 
 impl KeywordsOrPatterns {
-  fn into_patterns(self) -> Result<Vec<String>> {
+  fn into_patterns(self) -> Result<Vec<String>, ConfigError> {
     match self {
       Self::Keywords { keywords } => {
         let patterns = keywords
@@ -52,7 +52,7 @@ impl KeywordsOrPatterns {
 impl FeedFilterConfig for HighlightConfig {
   type Filter = Highlight;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let patterns = self.keywords.into_patterns()?;
     let bg_color = self.bg_color.unwrap_or_else(|| "#ffff00".into());
     Highlight::new(&patterns, bg_color)
@@ -101,21 +101,17 @@ impl TextSegment {
 }
 
 impl Highlight {
-  fn new<T: AsRef<str>>(patterns: &[T], bg_color: String) -> Result<Self> {
+  fn new<T: AsRef<str>>(
+    patterns: &[T],
+    bg_color: String,
+  ) -> Result<Self, ConfigError> {
     let regexset = RegexSetBuilder::new(patterns)
       .case_insensitive(true)
-      .build()
-      .map_err(ConfigError::from)?;
+      .build()?;
     let patterns = patterns
       .iter()
-      .map(|p| {
-        RegexBuilder::new(p.as_ref())
-          .case_insensitive(true)
-          .build()
-          .map_err(ConfigError::from)
-          .map_err(|e| e.into())
-      })
-      .collect::<Result<Vec<Regex>>>()?;
+      .map(|p| RegexBuilder::new(p.as_ref()).case_insensitive(true).build())
+      .collect::<Result<Vec<Regex>, _>>()?;
 
     Ok(Self {
       patterns,

@@ -19,7 +19,7 @@ use crate::client::{Client, ClientConfig};
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
-use crate::util::{Error, Result};
+use crate::util::{ConfigError, Error, Result};
 
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
@@ -36,10 +36,8 @@ pub struct EndpointConfig {
 
 impl EndpointConfig {
   #[cfg(test)]
-  pub fn parse_yaml(yaml: &str) -> Result<Self> {
-    use crate::util::ConfigError;
-
-    Ok(serde_yaml::from_str(yaml).map_err(ConfigError::from)?)
+  pub fn parse_yaml(yaml: &str) -> Result<Self, ConfigError> {
+    Ok(serde_yaml::from_str(yaml)?)
   }
 
   pub async fn into_route(self) -> Result<axum::Router> {
@@ -47,7 +45,7 @@ impl EndpointConfig {
     Ok(axum::Router::new().nest_service(&self.path, endpoint_service))
   }
 
-  pub async fn into_service(self) -> Result<EndpointService> {
+  pub async fn build(self) -> Result<EndpointService, ConfigError> {
     EndpointService::from_config(self.config).await
   }
 }
@@ -259,7 +257,9 @@ impl EndpointService {
     self
   }
 
-  pub async fn from_config(config: EndpointServiceConfig) -> Result<Self> {
+  pub async fn from_config(
+    config: EndpointServiceConfig,
+  ) -> Result<Self, ConfigError> {
     let filters = config.filters.build().await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);

@@ -32,7 +32,7 @@ pub struct SanitizeOpConfig {
 }
 
 impl SanitizeOpConfig {
-  fn into_op(self) -> Result<SanitizeOp> {
+  fn into_op(self) -> Result<SanitizeOp, ConfigError> {
     // must ensure that only one of the options is Some
     let num_selected = self.remove.is_some() as u8
       + self.remove_regex.is_some() as u8
@@ -43,7 +43,7 @@ impl SanitizeOpConfig {
         "Exactly one of {}, {}, {}, {} must be specified for `sanitize' filter",
         "remove", "remove_regex", "replace", "replace_regex"
       );
-      return Err(ConfigError::Message(message.to_string()).into());
+      return Err(ConfigError::Message(message.to_string()));
     }
 
     macro_rules! parse_regex {
@@ -98,7 +98,7 @@ pub struct Sanitize {
 impl FeedFilterConfig for SanitizeConfig {
   type Filter = Sanitize;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let mut ops = Vec::new();
     for conf in self.ops {
       ops.push(conf.into_op()?);

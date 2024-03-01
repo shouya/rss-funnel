@@ -100,11 +100,11 @@ impl MatchConfig {
     out
   }
 
-  fn regex_set(&self) -> Result<RegexSet> {
-    Ok(RegexSet::new(self.regexes()).map_err(ConfigError::from)?)
+  fn regex_set(&self) -> Result<RegexSet, ConfigError> {
+    Ok(RegexSet::new(self.regexes())?)
   }
 
-  fn into_select(self, action: Action) -> Result<Select> {
+  fn into_select(self, action: Action) -> Result<Select, ConfigError> {
     let needle = self.regex_set()?;
     let field = self.field;
 
@@ -156,7 +156,7 @@ enum Action {
 impl FeedFilterConfig for KeepOnlyConfig {
   type Filter = Select;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     self.0.into_match_config().into_select(Action::Include)
   }
 }
@@ -165,7 +165,7 @@ impl FeedFilterConfig for KeepOnlyConfig {
 impl FeedFilterConfig for DiscardConfig {
   type Filter = Select;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     self.0.into_match_config().into_select(Action::Exclude)
   }
 }

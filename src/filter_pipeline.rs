@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use crate::{
   feed::Feed,
   filter::{BoxedFilter, FeedFilter, FilterConfig, FilterContext},
-  util::Result,
+  util::{ConfigError, Result},
 };
 
 #[derive(
@@ -26,7 +26,7 @@ struct Inner {
 }
 
 impl FilterPipelineConfig {
-  pub async fn build(self) -> Result<FilterPipeline> {
+  pub async fn build(self) -> Result<FilterPipeline, ConfigError> {
     let mut filters = vec![];
     let configs = self.filters.clone();
     for filter_config in self.filters {

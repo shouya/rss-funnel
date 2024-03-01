@@ -15,7 +15,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, util::Result};
+use crate::{feed::Feed, util::ConfigError, util::Result};
 
 #[derive(Clone)]
 pub struct FilterContext {
@@ -66,7 +66,7 @@ pub trait FeedFilter {
 pub trait FeedFilterConfig {
   type Filter: FeedFilter;
 
-  async fn build(self) -> Result<Self::Filter>;
+  async fn build(self) -> Result<Self::Filter, ConfigError>;
 }
 
 #[derive(Clone)]
@@ -121,7 +121,7 @@ macro_rules! define_filters {
         }
       }
 
-      pub async fn build(self) -> Result<BoxedFilter> {
+      pub async fn build(self) -> Result<BoxedFilter, ConfigError> {
         match self {
           $(FilterConfig::$variant(config) => {
             let filter = config.build().await?;

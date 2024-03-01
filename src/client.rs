@@ -7,7 +7,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, util::Result};
+use crate::{
+  feed::Feed,
+  util::{ConfigError, Result},
+};
 
 use self::cache::{Response, ResponseCache};
 
@@ -104,7 +107,10 @@ impl ClientConfig {
     builder
   }
 
-  pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
+  pub fn build(
+    &self,
+    default_cache_ttl: Duration,
+  ) -> Result<Client, ConfigError> {
     let reqwest_client = self.to_builder().build()?;
     let client = Client::new(
       self.cache_size.unwrap_or(64),
