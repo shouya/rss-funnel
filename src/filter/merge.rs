@@ -126,6 +126,7 @@ impl FeedFilter for Merge {
       let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
       feed.merge(filtered_new_feed)?;
     }
+    feed.reorder();
     Ok(feed)
   }
 }

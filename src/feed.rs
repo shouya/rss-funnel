@@ -145,6 +145,24 @@ impl Feed {
 
     Ok(())
   }
+
+  // reorder the entries in a feed so that the newest ones come first
+  pub fn reorder(&mut self) {
+    use std::cmp::Reverse;
+
+    match self {
+      Feed::Rss(channel) => {
+        channel
+          .items
+          .sort_unstable_by_key(|item| Reverse(rss_item_timestamp(item)));
+      }
+      Feed::Atom(feed) => {
+        feed
+          .entries
+          .sort_unstable_by_key(|entry| Reverse(entry.updated));
+      }
+    }
+  }
 }
 
 impl From<&FromScratch> for Feed {
@@ -445,4 +463,18 @@ fn fix_escaping_in_extension_attr(feed: &mut atom_syndication::Feed) {
       }
     }
   }
+}
+
+fn rss_item_timestamp(item: &rss::Item) -> Option<i64> {
+  use chrono::{DateTime, FixedOffset};
+
+  let Some(pub_date) = item.pub_date.as_ref() else {
+    return None;
+  };
+
+  let Ok(date) = DateTime::<FixedOffset>::parse_from_rfc2822(pub_date) else {
+    return None;
+  };
+
+  Some(date.timestamp())
 }
