@@ -1,10 +1,13 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use crate::{feed::Feed, util::Result};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
+/// The note filter has no effect. It serves only documentation
+/// purposes.
 pub struct NoteFilterConfig {
   note: String,
 }

@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -7,25 +8,37 @@ use crate::{
   util::{ConfigError, Error, Result},
 };
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
+/// # Feed source
 pub enum SourceConfig {
+  /// # Simple source
+  ///
+  /// A source that is a simple URL. A relative path (e.g. "/feed.xml")
+  /// points to the current instance.
   Simple(String),
-  FromScratch(BlankFeed),
+  /// # From scratch
+  ///
+  /// A source that is created from scratch
+  FromScratch(FromScratch),
 }
 
 #[derive(Clone, Debug)]
 pub enum Source {
   AbsoluteUrl(Url),
   RelativeUrl(String),
-  FromScratch(BlankFeed),
+  FromScratch(FromScratch),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct BlankFeed {
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+pub struct FromScratch {
+  /// The format of the feed
   pub format: FeedFormat,
+  /// The title of the feed
   pub title: String,
+  /// The url to the website
   pub link: Option<String>,
+  /// A description of the feed
   pub description: Option<String>,
 }
 

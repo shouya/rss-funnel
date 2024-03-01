@@ -47,12 +47,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8.14.x
+
       - name: Build inspector front-end
         run: |
           cd inspector
-          npm install
-          npm run build
+          pnpm install
+          pnpm run build
 
       - name: Install ${{ matrix.rust }} toolchain
         uses: actions-rs/toolchain@v1

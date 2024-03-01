@@ -2,6 +2,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.0",
     "@parcel/reporter-bundle-analyzer": "^2.11.0",
+    "@parcel/transformer-less": "2.12.0",
     "babel-plugin-prismjs": "^2.1.0",
     "parcel": "^2.11.0",
     "process": "^0.11.10"
@@ -24,6 +25,7 @@
     "@codemirror/view": "^6.24.0",
     "codemirror": "^6.0.1",
     "jitbit-html-sanitizer": "^0.2.1",
+    "json-schema-view-js": "^2.0.1",
     "prismjs": "^1.29.0",
     "split.js": "^1.6.5"
   }

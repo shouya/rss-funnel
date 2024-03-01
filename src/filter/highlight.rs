@@ -1,6 +1,7 @@
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use ego_tree::{NodeId, NodeMut};
 use regex::{Regex, RegexBuilder, RegexSet, RegexSetBuilder};
+use schemars::JsonSchema;
 use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
@@ -10,22 +11,22 @@ use crate::{
   util::{ConfigError, Result},
 };
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+/// Highlight the given keywords in the feed's description
 pub struct HighlightConfig {
   #[serde(flatten)]
   keywords: KeywordsOrPatterns,
+  /// Background color to use for highlighting. Default is yellow.
   bg_color: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 enum KeywordsOrPatterns {
-  Keywords {
-    keywords: Vec<String>,
-  },
-  Patterns {
-    patterns: serde_regex::Serde<Vec<Regex>>,
-  },
+  /// A list of keywords to highlight
+  Keywords { keywords: Vec<String> },
+  /// A list of regex patterns to highlight
+  Patterns { patterns: Vec<String> },
 }
 
 impl KeywordsOrPatterns {
@@ -38,14 +39,7 @@ impl KeywordsOrPatterns {
           .collect::<Vec<_>>();
         Ok(patterns)
       }
-      Self::Patterns { patterns } => {
-        let patterns = patterns
-          .into_inner()
-          .into_iter()
-          .map(|r| r.as_str().to_owned())
-          .collect();
-        Ok(patterns)
-      }
+      Self::Patterns { patterns } => Ok(patterns),
     }
   }
 }
@@ -292,7 +286,7 @@ highlight:
 "#,
       HighlightConfig {
         keywords: KeywordsOrPatterns::Patterns {
-          patterns: serde_regex::Serde(vec![Regex::new(r"\bfoo\b").unwrap()]),
+          patterns: vec![r"\bfoo\b".into()],
         },
         bg_color: Some("#ffff00".into()),
       },

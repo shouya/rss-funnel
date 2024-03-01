@@ -1,4 +1,5 @@
 use paste::paste;
+use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -6,7 +7,7 @@ use url::Url;
 use crate::html::convert_relative_url;
 use crate::html::html_body;
 use crate::server::EndpointOutcome;
-use crate::source::BlankFeed;
+use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
 
@@ -17,10 +18,12 @@ pub enum Feed {
   Atom(atom_syndication::Feed),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
+  /// RSS 2.0
   Rss,
+  /// Atom 1.0
   Atom,
 }
 
@@ -144,8 +147,8 @@ impl Feed {
   }
 }
 
-impl From<&BlankFeed> for Feed {
-  fn from(config: &BlankFeed) -> Self {
+impl From<&FromScratch> for Feed {
+  fn from(config: &FromScratch) -> Self {
     use FeedFormat::*;
     match config.format {
       Rss => {

@@ -50,7 +50,6 @@ table th {
   }
 
   .sidebar-body {
-    overflow-x: hidden;
     margin-top: 0;
     margin-bottom: 0;
   }
@@ -72,6 +71,7 @@ table th {
   padding: 0.2rem 0.4rem;
   border-radius: 0.3rem;
   white-space: nowrap;
+  transition: all 0.1s ease-in-out;
 
   &:hover {
     background-color: #f4f4f4;
@@ -119,7 +119,6 @@ table th {
 
   .sidebar-content {
     flex-grow: 1;
-    overflow-y: scroll;
   }
 
   #filter-info {
@@ -159,6 +158,7 @@ ul#filter-list {
   gap: 0.3rem;
 
   .filter {
+    position: relative;
     background-color: #fafafa;
     padding: 0.4rem 0.6rem 0.6rem 0.6rem;
     border-radius: 0.3rem;
@@ -186,13 +186,14 @@ ul#filter-list {
 
     .filter-config {
       margin-top: 0.5rem;
-      overflow-x: auto;
+      display: block;
+      overflow-x: scroll;
+      width: 100%;
 
       pre {
         margin: 0;
       }
       code {
-        white-space: pre;
       }
       ul {
         list-style: square;
@@ -219,7 +220,47 @@ ul#filter-list {
         }
       }
     }
+
+    /* this div is only used for positioning for the popup doc. it does
+   not enclose the popup doc vertically (overflow-y: visible) */
+    .filter-schema-view {
+      position: absolute;
+      z-index: 1;
+      top: 0;
+      right: 0;
+      transform: translateX(98%);
+      padding-left: 1.4rem;
+      opacity: 0;
+      visibility: hidden;
+      max-height: 100%;
+      overflow-y: visible;
+      transition: all 0.1s ease-in-out;
+
+      & > div:first-child {
+        display: none;
+        max-width: 60vw;
+        background-color: #fff;
+        padding: 0.5rem;
+        box-shadow: 3 0px 10px #ddd;
+        border-radius: 0.3rem;
+      }
+    }
+
+    &:hover .filter-schema-view {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(100%);
+
+      > div:first-child {
+        display: block;
+      }
+    }
   }
+}
+
+/* popup doc */
+.json-schema-view {
+  width: max-content;
 }
 
 #endpoint-list {
@@ -273,13 +314,13 @@ ul#filter-list {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 #request-param {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   padding-bottom: 0.3rem;
   margin-bottom: 0.3rem;
@@ -334,6 +375,11 @@ ul#filter-list {
     padding: 0.5rem;
     position: absolute;
     box-shadow: 0 1px 2px #ddd;
+    opacity: 0.5;
+
+    &:hover {
+      opacity: 1;
+    }
   }
 }
 

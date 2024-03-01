@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -73,7 +74,7 @@ pub enum Error {
   Message(String),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum SingleOrVec<T> {
   Single(T),

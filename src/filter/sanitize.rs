@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use regex::Regex;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::util::Result;
@@ -8,17 +9,21 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 struct SanitizeOpReplaceConfig {
   from: String,
   to: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct SanitizeOpConfig {
+  /// Remove all occurrences of the string
   remove: Option<String>,
+  /// Remove all matches of the regex
   remove_regex: Option<String>,
+  /// Replace all occurrences of the string
   replace: Option<SanitizeOpReplaceConfig>,
+  /// Replace all matches of the regex
   replace_regex: Option<SanitizeOpReplaceConfig>,
 }
 
@@ -73,7 +78,7 @@ pub enum SanitizeOp {
   Replace(Regex, String),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct SanitizeConfig {
   ops: Vec<SanitizeOpConfig>,

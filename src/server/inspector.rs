@@ -1,11 +1,15 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use axum::extract::Query;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use axum::{routing::get, Extension, Router};
 use http::{StatusCode, Uri};
+use schemars::schema::RootSchema;
 
 use crate::config::{self, FeedDefinition};
+use crate::filter::FilterConfig;
 use crate::util::Error;
 
 #[derive(rust_embed::RustEmbed)]
@@ -17,6 +21,7 @@ pub fn router(feed_definition: config::FeedDefinition) -> Router {
     .route("/_inspector/index.html", get(index_handler))
     .route("/_inspector/dist/*file", get(static_handler))
     .route("/_inspector/config", get(config_handler))
+    .route("/_inspector/filter_schema", get(filter_schema_handler))
     .route(
       "/",
       get(|| async { Redirect::temporary("/_inspector/index.html") }),
@@ -68,6 +73,42 @@ async fn config_handler(
   Extension(feed_definition): Extension<Arc<FeedDefinition>>,
 ) -> impl IntoResponse {
   Json(feed_definition)
+}
+
+#[derive(serde::Deserialize)]
+struct FilterSchemaHandlerParams {
+  filters: String,
+}
+
+async fn filter_schema_handler(
+  Query(params): Query<FilterSchemaHandlerParams>,
+) -> Result<Json<HashMap<String, RootSchema>>, BadRequest<String>> {
+  if params.filters == "all" {
+    return Ok(Json(FilterConfig::schema_for_all()));
+  }
+
+  let mut schemas = HashMap::new();
+  for filter in params.filters.split(',') {
+    let Some(schema) = FilterConfig::schema_for(filter) else {
+      return Err(BadRequest(format!("unknown filter: {}", filter)));
+    };
+    schemas.insert(filter.to_string(), schema);
+  }
+  Ok(Json(schemas))
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+struct BadRequest<E>(E);
+
+impl<E: ToString> IntoResponse for BadRequest<E> {
+  fn into_response(self) -> Response {
+    let body = self.0.to_string();
+    http::Response::builder()
+      .status(http::StatusCode::BAD_REQUEST)
+      .body(body.into())
+      .unwrap()
+  }
 }
 
 #[derive(Debug, thiserror::Error)]

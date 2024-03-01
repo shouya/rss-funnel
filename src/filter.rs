@@ -8,8 +8,10 @@ mod sanitize;
 mod select;
 mod simplify_html;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -87,14 +89,18 @@ impl BoxedFilter {
 }
 
 macro_rules! define_filters {
-  ($($variant:ident => $config:ty);* ;) => {
-    #[derive(Serialize, Deserialize, Clone, Debug)]
-    #[serde(rename_all = "snake_case")]
-    pub enum FilterConfig {
-      $(
-        $variant($config),
-      )*
+  ($($variant:ident => $config:ty, $desc:literal);* ;) => {
+    paste::paste! {
+      #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+      #[serde(rename_all = "snake_case")]
+      pub enum FilterConfig {
+        $(
+           #[doc = "# " $variant:snake "\n\n" $desc "\n"]
+           $variant($config),
+        )*
+      }
     }
+
 
     impl FilterConfig {
       // currently only used in tests
@@ -123,23 +129,55 @@ macro_rules! define_filters {
           })*
         }
       }
+
+      pub fn schema_for_all() -> HashMap<String, schemars::schema::RootSchema> {
+        let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+          s.option_nullable = true;
+          s.option_add_null_type = false;
+          s.inline_subschemas = true;
+        });
+
+        [
+          $(
+            (
+              paste::paste! { stringify!([<$variant:snake>]) }.to_string(),
+              settings.clone().into_generator().into_root_schema_for::<$config>()
+            ),
+          )*
+        ].into()
+      }
+
+      pub fn schema_for(filter: &str) -> Option<schemars::schema::RootSchema> {
+        let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+          s.option_nullable = true;
+          s.option_add_null_type = false;
+          s.inline_subschemas = true;
+        });
+        let gen = settings.into_generator();
+        match filter {
+          $(paste::paste! { stringify!([<$variant:snake>]) } => {
+            Some(gen.into_root_schema_for::<$config>())
+          })*
+          _ => None,
+        }
+      }
     }
   }
 }
 
 define_filters!(
-  Js => js::JsConfig;
-  ModifyPost => js::ModifyPostConfig;
-  ModifyFeed => js::ModifyFeedConfig;
-  FullText => full_text::FullTextConfig;
-  SimplifyHtml => simplify_html::SimplifyHtmlConfig;
-  RemoveElement => html::RemoveElementConfig;
-  KeepElement => html::KeepElementConfig;
-  Split => html::SplitConfig;
-  Sanitize => sanitize::SanitizeConfig;
-  KeepOnly => select::KeepOnlyConfig;
-  Discard => select::DiscardConfig;
-  Highlight => highlight::HighlightConfig;
-  Merge => merge::MergeConfig;
-  Note => note::NoteFilterConfig;
+  Js => js::JsConfig, "Run JavaScript code to transform the feed";
+  ModifyPost => js::ModifyPostConfig, "Run JavaScript code to modify each post";
+  ModifyFeed => js::ModifyFeedConfig, "Run JavaScript code to modify the feed";
+  FullText => full_text::FullTextConfig, "Fetch full text content";
+  SimplifyHtml => simplify_html::SimplifyHtmlConfig, "Simplify HTML content";
+  RemoveElement => html::RemoveElementConfig, "Remove HTML elements";
+  KeepElement => html::KeepElementConfig, "Keep only HTML elements";
+  Split => html::SplitConfig, "Split each article into multiple articles";
+  Sanitize => sanitize::SanitizeConfig, "Redact or replace text";
+  KeepOnly => select::KeepOnlyConfig, "Keep only posts matching a condition";
+  Discard => select::DiscardConfig, "Discard posts matching a condition";
+  Highlight => highlight::HighlightConfig, "Highlight text or pattern";
+  Merge => merge::MergeConfig, "Merge extra feed into the main feed";
+  Note => note::NoteFilterConfig, "Add non-functional comment";
 );

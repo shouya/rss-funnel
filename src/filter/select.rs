@@ -1,5 +1,8 @@
-use regex::{Regex, RegexSet};
+use regex::RegexSet;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use std::borrow::Cow;
 
 use crate::{
   feed::Feed,
@@ -8,30 +11,42 @@ use crate::{
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// Keep only posts that match the given criteria
 pub struct KeepOnlyConfig(AnyMatchConfig);
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// Discard posts that match the given criteria
 pub struct DiscardConfig(AnyMatchConfig);
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 enum AnyMatchConfig {
+  /// Matches posts containing the given string
   SingleContains(String),
+  /// Matches posts containing any of the given strings
   MultipleContains(Vec<String>),
+  /// Full match configuration
   MatchConfig(MatchConfig),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 struct MatchConfig {
+  /// Regular expression(s) to match
   #[serde(default)]
-  matches: SingleOrVec<serde_regex::Serde<Regex>>,
+  matches: SingleOrVec<String>,
+
+  /// String(s) to match
   #[serde(default)]
   contains: SingleOrVec<String>,
+
+  /// Field to match against
   #[serde(default)]
   field: Field,
+
+  /// Whether to match case sensitively
   #[serde(default)]
   case_sensitive: bool,
 }
@@ -64,14 +79,14 @@ impl AnyMatchConfig {
 }
 
 impl MatchConfig {
-  fn regexes(&self) -> Vec<String> {
+  fn regexes(&self) -> Vec<Cow<'_, str>> {
     let mut out = vec![];
 
     for m in &self.matches {
-      out.push(m.as_str().to_string());
+      out.push(Cow::Borrowed(m.as_str()));
     }
     for p in &self.contains {
-      out.push(regex::escape(p));
+      out.push(Cow::Owned(regex::escape(p)));
     }
 
     out
@@ -93,7 +108,7 @@ impl MatchConfig {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Copy, Debug)]
 #[serde(rename_all = "snake_case")]
 enum Field {
   Title,
@@ -206,10 +221,7 @@ mod test {
     "#;
 
     let expected = KeepOnlyConfig(AnyMatchConfig::MatchConfig(MatchConfig {
-      matches: SingleOrVec::Vec(vec![
-        Regex::new(r"\d+").unwrap().into(),
-        Regex::new(r"\bfoo\b").unwrap().into(),
-      ]),
+      matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
       contains: SingleOrVec::empty(),
       field: Field::Title,
       case_sensitive: true,
@@ -257,10 +269,7 @@ mod test {
     "#;
 
     let expected = DiscardConfig(AnyMatchConfig::MatchConfig(MatchConfig {
-      matches: SingleOrVec::Vec(vec![
-        Regex::new(r"\d+").unwrap().into(),
-        Regex::new(r"\bfoo\b").unwrap().into(),
-      ]),
+      matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
       contains: SingleOrVec::empty(),
       field: Field::Title,
       case_sensitive: true,

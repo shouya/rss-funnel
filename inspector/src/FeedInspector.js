@@ -5,10 +5,13 @@ import { EditorState } from "@codemirror/state";
 import { xml } from "@codemirror/lang-xml";
 import Split from "split.js";
 import HtmlSanitizer from "jitbit-html-sanitizer";
+import JSONSchemaView from "json-schema-view-js";
+import "json-schema-view-js/src/style.less";
 
 export class FeedInspector {
   constructor() {
     this.config = null;
+    this.filter_schema = null;
     this.current_endpoint = null;
     this.current_preview = null;
     this.raw_editor = null;
@@ -29,8 +32,13 @@ export class FeedInspector {
   }
 
   async reload_config() {
-    const resp = await fetch("/_inspector/config");
+    const [resp, filter_schema] = await Promise.all([
+      fetch("/_inspector/config"),
+      fetch("/_inspector/filter_schema?filters=all"),
+    ]);
+
     this.config = await resp.json();
+    this.filter_schema = await filter_schema.json();
 
     if (!this.config) {
       console.error("Failed to load config");
@@ -160,9 +168,17 @@ export class FeedInspector {
       $("#limit-filters-checkbox").checked && $("#limit-filters").value;
     const filter_ul_node = $("#filter-list");
     filter_ul_node.innerHTML = "";
+
     for (const [index, filter] of filters.entries()) {
       const [name, conf] = Object.entries(filter)[0];
+      let schema_view = new JSONSchemaView(
+        this.filter_schema[name],
+        3,
+      ).render();
+      schema_view = elt("div", { class: "filter-schema-view" }, schema_view);
+
       const node = new Filter(name, conf).render_node();
+      node.appendChild(schema_view);
 
       if (limit !== false && index >= limit) {
         node.classList.add("inactive");

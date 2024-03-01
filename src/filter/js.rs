@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::feed::Feed;
@@ -6,27 +7,40 @@ use crate::util::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
+/// Either define a function `modify_feed` or `modify_post` to modify the feed or posts respectively.
+/// <br><br>
+/// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
+
 pub struct JsConfig {
-  /// The javascript code to run
+  code: String,
+}
+
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[serde(transparent)]
+/// JavaScript code for for editing post. Modify `post` variable to update the post or set it to null to delete it.
+/// <br><br>
+/// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
+/// <br><br>
+/// Example: <code>modify_post: post.title += " (modified)";</code>
+pub struct ModifyPostConfig {
+  code: String,
+}
+
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[serde(transparent)]
+/// JavaScript code for for editing feed. Modify `feed` variable to update the feed.
+/// <br><br>
+/// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
+/// <br><br>
+/// Example: <code>modify_feed: feed.title.value = "Modified Feed";</code>
+pub struct ModifyFeedConfig {
   code: String,
 }
 
 pub struct JsFilter {
   runtime: Runtime,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(transparent)]
-pub struct ModifyPostConfig {
-  code: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(transparent)]
-pub struct ModifyFeedConfig {
-  code: String,
 }
 
 #[async_trait::async_trait]

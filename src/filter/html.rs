@@ -7,6 +7,7 @@
 //! - [`SplitConfig`] (`split`): split a post into multiple posts
 
 use ego_tree::NodeId;
+use schemars::JsonSchema;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 
@@ -16,20 +17,14 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-/// Remove elements from HTML description.
+/// Remove elements from HTML description. Specify the list of CSS
+/// selectors for elements to remove.<br><br>
 ///
-/// You can specify the list of CSS `selectors` to remove.
-///
-/// # Example
-///
-/// ```yaml
-/// filters:
-///   - remove_element:
-///       - img[src$=".gif"]
+///   - remove_element:<br>
+///       - img[src$=".gif"]<br>
 ///       - span.ads
-/// ```
 #[doc(alias = "remove_element")]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
 pub struct RemoveElementConfig {
   selectors: Vec<String>,
@@ -110,10 +105,9 @@ impl FeedFilter for RemoveElement {
 /// # Example
 ///
 /// ```yaml
-/// filters:
 ///   - keep_element: img[src$=".gif"]
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct KeepElementConfig {
   selector: String,
@@ -194,11 +188,23 @@ impl FeedFilter for KeepElement {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct SplitConfig {
+  /// The CSS selector for the title elements. The textContent of the
+  /// selected elements will be used.
   title_selector: String,
+  /// The CSS selector for the &lt;a&gt element. The "href" attribute
+  /// of the selected elements will be used. Defaults to the same as
+  /// title_selector. If specified, it must select the same number of
+  /// elements as title_selector.
   link_selector: Option<String>,
+  /// The CSS selector for the description elements. The innerHTML of
+  /// the selected elements will be used. If specified, it must select
+  /// the same number of elements as title_selector.
   description_selector: Option<String>,
+  /// The CSS selector for the author elements. The textContent of the
+  /// selected elements will be used. If specified, it must select the
+  /// same number of elements as title_selector.
   author_selector: Option<String>,
 }
 

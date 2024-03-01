@@ -10,6 +10,7 @@ use axum_macros::FromRequestParts;
 use http::header::HOST;
 use http::StatusCode;
 use mime::Mime;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
@@ -23,7 +24,7 @@ use crate::util::{Error, Result};
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct EndpointConfig {
   pub path: String,
   pub note: Option<String>,
@@ -49,7 +50,7 @@ impl EndpointConfig {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct EndpointServiceConfig {
   #[serde(default)]
   source: Option<SourceConfig>,

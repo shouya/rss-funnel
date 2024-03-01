@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
@@ -21,7 +22,9 @@ pub struct Cli {
 
 #[derive(Parser)]
 enum SubCommand {
+  /// Start the server
   Server(ServerConfig),
+  /// Test an endpoint
   // boxed because of the clippy::large_enum_variant warning
   Test(Box<TestConfig>),
 }
@@ -62,7 +65,7 @@ impl TestConfig {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
 pub struct FeedDefinition {
   pub endpoints: Vec<EndpointConfig>,
 }
