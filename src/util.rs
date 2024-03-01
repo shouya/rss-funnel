@@ -9,6 +9,15 @@ pub const USER_AGENT: &str =
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
+pub enum JsError {
+  #[error("Js exception {0}")]
+  Exception(String),
+
+  #[error("QuickJS error {0:?}")]
+  Error(#[from] rquickjs::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
   #[error("Bad selector")]
   BadSelector(String),
@@ -21,6 +30,15 @@ pub enum ConfigError {
 
   #[error("Invalid URL {0}")]
   InvalidUrl(#[from] url::ParseError),
+
+  #[error("IO error")]
+  Io(#[from] std::io::Error),
+
+  #[error("Reqwest client error {0:?}")]
+  Reqwest(#[from] reqwest::Error),
+
+  #[error("Js runtime initialization error {0:?}")]
+  Js(#[from] JsError),
 
   #[error("{0}")]
   Message(String),
@@ -58,11 +76,8 @@ pub enum Error {
   #[error("HTTP status error {0:?} (url: {1})")]
   HttpStatus(reqwest::StatusCode, Url),
 
-  #[error("Js execution error {0:?}")]
-  Js(#[from] rquickjs::Error),
-
-  #[error("Js exception {0}")]
-  JsException(String),
+  #[error("Js runtime error {0:?}")]
+  Js(#[from] JsError),
 
   #[error("Failed to extract webpage {0:?}")]
   Readability(#[from] readability::error::Error),

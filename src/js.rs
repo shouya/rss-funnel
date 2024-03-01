@@ -14,7 +14,7 @@ use rquickjs::prelude::IntoArgs;
 use rquickjs::{Context, Ctx, FromJs, Function, IntoJs, Module, Value};
 use url::Url;
 
-use crate::util::{Error, Result};
+use crate::util::JsError;
 
 pub struct Runtime {
   context: rquickjs::Context,
@@ -52,7 +52,7 @@ where
 }
 
 impl Runtime {
-  pub async fn new() -> Result<Self> {
+  pub async fn new() -> Result<Self, JsError> {
     let runtime = rquickjs::Runtime::new()?;
     // limit memory usage to 32MB
     runtime.set_memory_limit(32 * 1024 * 1024);
@@ -96,17 +96,17 @@ impl Runtime {
     &self,
     name: &str,
     code: &str,
-  ) -> Result<Vec<String>> {
+  ) -> Result<Vec<String>, JsError> {
     let code = code.to_string();
 
     let mut names = Vec::new();
-    self.context.with(|ctx: Ctx<'_>| -> Result<()> {
+    self.context.with(|ctx: Ctx<'_>| -> Result<(), JsError> {
       let module = Module::evaluate(ctx.clone(), name, code);
 
       if let Err(rquickjs::Error::Exception) = module {
         let exception = ctx.catch();
         let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-        return Err(Error::JsException(exception_repr));
+        return Err(JsError::Exception(exception_repr));
       }
 
       let globals = ctx.globals();
@@ -124,19 +124,19 @@ impl Runtime {
     Ok(names)
   }
 
-  pub async fn eval<V>(&self, code: &str) -> Result<V>
+  pub async fn eval<V>(&self, code: &str) -> Result<V, JsError>
   where
     V: for<'js> FromJs<'js> + ParallelSend,
   {
     let code = code.to_string();
 
-    let res = self.context.with(|ctx: Ctx<'_>| -> Result<V> {
+    let res = self.context.with(|ctx: Ctx<'_>| -> Result<V, JsError> {
       let res = ctx.eval(code);
 
       if let Err(rquickjs::Error::Exception) = res {
         let exception = ctx.catch();
         let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-        return Err(Error::JsException(exception_repr));
+        return Err(JsError::Exception(exception_repr));
       }
 
       Ok(res?)
@@ -155,17 +155,21 @@ impl Runtime {
     })
   }
 
-  pub async fn call_fn<V, Args>(&self, name: &str, args: Args) -> Result<V>
+  pub async fn call_fn<V, Args>(
+    &self,
+    name: &str,
+    args: Args,
+  ) -> Result<V, JsError>
   where
     V: for<'js> FromJs<'js> + ParallelSend,
     Args: for<'js> IntoArgs<'js> + ParallelSend,
   {
     self.context.runtime().execute_pending_job().ok();
 
-    self.context.with(|ctx| -> Result<V> {
+    self.context.with(|ctx| -> Result<V, JsError> {
       let value: Result<Function<'_>, _> = ctx.globals().get(name);
       let Ok(fun) = value else {
-        return Err(Error::JsException(format!("function {} not found", name)));
+        return Err(JsError::Exception(format!("function {} not found", name)));
       };
 
       let res = fun.call(args);
@@ -173,7 +177,7 @@ impl Runtime {
       if let Err(rquickjs::Error::Exception) = res {
         let exception = ctx.catch();
         let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-        return Err(Error::JsException(exception_repr));
+        return Err(JsError::Exception(exception_repr));
       }
 
       Ok(res?)
@@ -272,7 +276,7 @@ impl RemoteLoader {
     fs::read_to_string(file).ok()
   }
 
-  fn save_cache(&self, name: &str, code: &str) -> Result<()> {
+  fn save_cache(&self, name: &str, code: &str) -> rquickjs::Result<()> {
     Ok(fs::write(self.cache_file_name(name), code)?)
   }
 
