@@ -320,6 +320,7 @@ ul#filter-list {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   padding-bottom: 0.3rem;
   margin-bottom: 0.3rem;
