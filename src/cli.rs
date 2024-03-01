@@ -65,16 +65,17 @@ impl TestConfig {
   }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct FeedDefinition {
   pub endpoints: Vec<EndpointConfig>,
 }
 
 impl FeedDefinition {
-  pub fn load_from_file(path: &Path) -> Result<Self> {
+  pub fn load_from_file(path: &Path) -> Result<Self, ConfigError> {
     let f = std::fs::File::open(path)?;
-    let feed_definition =
-      serde_yaml::from_reader(f).map_err(ConfigError::from)?;
+    let feed_definition: Self = serde_yaml::from_reader(f)?;
     Ok(feed_definition)
   }
 

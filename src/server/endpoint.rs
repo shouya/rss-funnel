@@ -24,7 +24,9 @@ use crate::util::{Error, Result};
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct EndpointConfig {
   pub path: String,
   pub note: Option<String>,
@@ -50,7 +52,9 @@ impl EndpointConfig {
   }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct EndpointServiceConfig {
   #[serde(default)]
   source: Option<SourceConfig>,
@@ -64,6 +68,9 @@ pub struct EndpointServiceConfig {
 // MakeService<http::Request, Response=EndpointService>. But axum
 // Router doesn't support nest_make_service yet, so I will just
 // approximate it by making request_context part of the Service input.
+//
+// This type should be kept cheap to clone. It will be cloned for each
+// request.
 #[derive(Clone)]
 pub struct EndpointService {
   source: Option<Source>,
