@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use futures::{stream, StreamExt};
@@ -91,32 +92,17 @@ impl FullTextFilter {
   }
 
   async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
-    let link = post.link_or_err()?;
-    let text = self.fetch_html(link).await?;
+    let link = post.link_or_err()?.to_owned();
+    let mut text = self.fetch_html(&link).await?;
 
-    let mut html = scraper::Html::parse_document(&text);
-    convert_relative_url(&mut html, link);
-    let mut text = html.html();
-
-    if self.simplify {
-      text = super::simplify_html::simplify(&text, link).unwrap_or(text);
-    } else {
-      text = crate::html::html_body(&text);
-    }
-
-    if let Some(k) = self.keep_element.as_ref() {
-      match k.filter_description(&text) {
-        Some(filtered) => {
-          text = filtered;
-        }
-        None => {
-          text = format!(
-            "<p>Failed to filter description with keep_element</p>\n{}",
-            text
-          );
-        }
-      }
-    }
+    // Optimization: the strip_post_content can be CPU intensive. Spawn the blocking
+    // task on a different CPU to improve parallelism.
+    let simplify = self.simplify;
+    let keep_element = Arc::new(self.keep_element.clone());
+    text = tokio::task::spawn_blocking(move || {
+      strip_post_content(text, &link, simplify, keep_element)
+    })
+    .await?;
 
     let description = post.description_or_insert();
     if self.append_mode {
@@ -157,7 +143,7 @@ impl FullTextFilter {
       .collect::<Vec<_>>()
       .await
       .into_iter()
-      .collect::<Result<Vec<_>>>()
+      .collect()
   }
 }
 
@@ -173,4 +159,37 @@ impl FeedFilter for FullTextFilter {
     feed.set_posts(posts);
     Ok(feed)
   }
+}
+
+fn strip_post_content(
+  html: String,
+  link: &str,
+  simplify: bool,
+  keep_element: Arc<Option<KeepElement>>,
+) -> String {
+  let mut html = scraper::Html::parse_document(&html);
+  convert_relative_url(&mut html, link);
+  let mut text = html.html();
+
+  if simplify {
+    text = super::simplify_html::simplify(&text, link).unwrap_or(text);
+  } else {
+    text = crate::html::html_body(&text);
+  }
+
+  if let Some(k) = keep_element.as_ref() {
+    match k.filter_description(&text) {
+      Some(filtered) => {
+        text = filtered;
+      }
+      None => {
+        text = format!(
+          "<p>Failed to filter description with keep_element</p>\n{}",
+          text
+        );
+      }
+    }
+  }
+
+  text
 }
