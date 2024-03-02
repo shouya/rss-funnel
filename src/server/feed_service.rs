@@ -47,6 +47,14 @@ impl FeedService {
     })
   }
 
+  pub async fn error<R>(&self, callback: impl FnOnce(&ConfigError) -> R) -> R {
+    let inner = self.inner.read().await;
+    match &inner.config_error {
+      Some(e) => callback(e),
+      None => panic!("no error"),
+    }
+  }
+
   pub async fn feed_definition(&self) -> Arc<FeedDefinition> {
     let inner = self.inner.read().await;
     inner.feed_definition.clone()

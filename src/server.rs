@@ -66,13 +66,18 @@ impl ServerConfig {
     // watcher must not be dropped until the end of the function
     let (_watcher, mut config_update) = fs_watcher(config_path)?;
 
+    // signal for reload on config update
     let feed_service_clone = feed_service.clone();
     let config_path_clone = config_path.to_owned();
     tokio::task::spawn(async move {
       while config_update.recv().await.is_some() {
         info!("config updated, reloading service");
         if !feed_service_clone.reload(&config_path_clone).await {
-          warn!("failed to reload config");
+          feed_service_clone
+            .error(|e| {
+              warn!("failed to reload config: {}", e);
+            })
+            .await;
         }
       }
     });

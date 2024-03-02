@@ -70,6 +70,7 @@ pub struct EndpointServiceConfig {
 // request.
 #[derive(Clone)]
 pub struct EndpointService {
+  // used for detecting changes in the config for partial update
   config: EndpointServiceConfig,
   source: Option<Source>,
   filters: Arc<FilterPipeline>,
