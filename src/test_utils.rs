@@ -42,7 +42,7 @@ pub async fn fetch_endpoint(config: &str, query: &str) -> Feed {
   let endpoint_config =
     EndpointConfig::parse_yaml(config).expect("failed to parse config");
   let mut endpoint_service = endpoint_config
-    .into_service()
+    .build()
     .await
     .expect("failed to create service")
     .with_client(dummy_client());
