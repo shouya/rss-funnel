@@ -116,6 +116,7 @@ pub struct KeepElementConfig {
   selector: String,
 }
 
+#[derive(Clone)]
 pub struct KeepElement {
   selectors: Vec<Selector>,
 }

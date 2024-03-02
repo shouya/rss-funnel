@@ -85,6 +85,9 @@ pub enum Error {
   #[error("Config error {0:?}")]
   Config(#[from] ConfigError),
 
+  #[error("Tokio task join error {0}")]
+  Join(#[from] tokio::task::JoinError),
+
   #[error("{0}")]
   Message(String),
 }
