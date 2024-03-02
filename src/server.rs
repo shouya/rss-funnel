@@ -134,13 +134,37 @@ fn fs_watcher(
       ConfigError::Message(format!("failed to create file watcher: {:?}", e))
     })?;
 
-  let path = config_path.to_owned();
-
   watcher
-    .watch(&path, RecursiveMode::NonRecursive)
+    .watch(config_path, RecursiveMode::NonRecursive)
     .map_err(|e| {
       ConfigError::Message(format!("failed to watch file: {:?}", e))
     })?;
 
+  // sometimes the editor may touch the file multiple times in quick
+  // succession when saving, so we debounce the events
+  let rx = debounce(std::time::Duration::from_millis(500), rx);
   Ok((watcher, rx))
+}
+
+fn debounce<T: Send + 'static>(
+  duration: std::time::Duration,
+  mut rx: mpsc::Receiver<T>,
+) -> mpsc::Receiver<T> {
+  let (debounced_tx, debounced_rx) = mpsc::channel(1);
+  tokio::task::spawn(async move {
+    let mut last = None;
+    loop {
+      tokio::select! {
+        val = rx.recv() => {
+          last = val;
+        }
+        _ = tokio::time::sleep(duration) => {
+          if let Some(val) = last.take() {
+            debounced_tx.send(val).await.unwrap();
+          }
+        }
+      }
+    }
+  });
+  debounced_rx
 }
