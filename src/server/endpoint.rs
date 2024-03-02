@@ -70,6 +70,7 @@ pub struct EndpointServiceConfig {
 // request.
 #[derive(Clone)]
 pub struct EndpointService {
+  config: EndpointServiceConfig,
   source: Option<Source>,
   filters: Arc<FilterPipeline>,
   client: Arc<Client>,
@@ -259,6 +260,7 @@ impl EndpointService {
   pub async fn from_config(
     config: EndpointServiceConfig,
   ) -> Result<Self, ConfigError> {
+    let cloned_config = config.clone();
     let filters = config.filters.build().await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
@@ -266,6 +268,7 @@ impl EndpointService {
     let source = config.source.map(|s| s.try_into()).transpose()?;
 
     Ok(Self {
+      config: cloned_config,
       source,
       filters: Arc::new(filters),
       client: Arc::new(client),
@@ -313,6 +316,29 @@ impl EndpointService {
         .cloned()
         .map(Source::from),
     }
+  }
+
+  pub async fn update(
+    mut self,
+    config: EndpointServiceConfig,
+  ) -> Result<Self, ConfigError> {
+    if self.config.client != config.client {
+      let default_cache_ttl = Duration::from_secs(15 * 60);
+      let client =
+        config.client.unwrap_or_default().build(default_cache_ttl)?;
+      self.client = Arc::new(client);
+    }
+
+    if self.config.source != config.source {
+      let source = config.source.map(|s| s.try_into()).transpose()?;
+      self.source = source;
+    }
+
+    if self.config.filters != config.filters {
+      self.filters.update(config.filters).await?;
+    }
+
+    Ok(self)
   }
 }
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
 use axum::{
   extract::{Path, Request},
@@ -11,7 +11,7 @@ use tower::Service;
 
 use crate::{cli::FeedDefinition, util::ConfigError};
 
-use super::endpoint::EndpointService;
+use super::{endpoint::EndpointService, EndpointConfig};
 
 #[derive(Clone)]
 pub struct FeedService {
@@ -51,6 +51,7 @@ impl FeedService {
     let inner = self.inner.read().await;
     inner.feed_definition.clone()
   }
+
   // Update the feed definition and reconfigure the services. Return true if
   // the reload was successful, false if there was an error.
   pub async fn reload(&self, path: &std::path::Path) -> bool {
@@ -67,14 +68,16 @@ impl FeedService {
     let mut endpoints = HashMap::new();
     for endpoint_config in feed_defn.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
-      // TODO: instead of recreating all endpoints, update existing ones.
-      match endpoint_config.build().await {
+      let config = endpoint_config.clone();
+      let endpoint = load_endpoint(&mut inner, &path, config).await;
+
+      match endpoint {
+        Ok(endpoint) => {
+          endpoints.insert(path, endpoint);
+        }
         Err(e) => {
           inner.config_error = Some(e);
           return false;
-        }
-        Ok(endpoint_service) => {
-          endpoints.insert(path.clone(), endpoint_service);
         }
       };
     }
@@ -104,5 +107,16 @@ impl FeedService {
       )
         .into_response(),
     }
+  }
+}
+
+async fn load_endpoint(
+  inner: &mut impl DerefMut<Target = Inner>,
+  path: &str,
+  config: EndpointConfig,
+) -> Result<EndpointService, ConfigError> {
+  match inner.endpoints.remove(path) {
+    Some(endpoint) => endpoint.update(config.config).await,
+    None => config.build().await,
   }
 }

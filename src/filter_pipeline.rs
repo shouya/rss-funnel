@@ -44,7 +44,10 @@ impl FilterPipeline {
     self.inner.lock().await.run(context, feed).await
   }
 
-  pub async fn update(&self, config: FilterPipelineConfig) -> Result<()> {
+  pub async fn update(
+    &self,
+    config: FilterPipelineConfig,
+  ) -> Result<(), ConfigError> {
     let mut inner = self.inner.lock().await;
     let mut filters = vec![];
     let mut configs = vec![];
