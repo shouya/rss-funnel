@@ -40,11 +40,6 @@ impl EndpointConfig {
     Ok(serde_yaml::from_str(yaml)?)
   }
 
-  pub async fn into_route(self) -> Result<axum::Router> {
-    let endpoint_service = EndpointService::from_config(self.config).await?;
-    Ok(axum::Router::new().nest_service(&self.path, endpoint_service))
-  }
-
   pub async fn build(self) -> Result<EndpointService, ConfigError> {
     EndpointService::from_config(self.config).await
   }
