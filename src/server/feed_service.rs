@@ -8,6 +8,7 @@ use axum::{
 use http::StatusCode;
 use tokio::sync::RwLock;
 use tower::Service;
+use tracing::info;
 
 use crate::{cli::FeedDefinition, util::ConfigError};
 
@@ -33,6 +34,7 @@ impl FeedService {
     for endpoint_config in feed_definition.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
       let endpoint_service = endpoint_config.build().await?;
+      info!("loaded endpoint: {}", path);
       endpoints.insert(path, endpoint_service);
     }
 
@@ -124,7 +126,14 @@ async fn load_endpoint(
   config: EndpointConfig,
 ) -> Result<EndpointService, ConfigError> {
   match inner.endpoints.remove(path) {
-    Some(endpoint) => endpoint.update(config.config).await,
+    Some(endpoint) => {
+      if !endpoint.config_changed(&config.config) {
+        Ok(endpoint)
+      } else {
+        info!("endpoint updated, reloading: {}", path);
+        endpoint.update(config.config).await
+      }
+    }
     None => config.build().await,
   }
 }

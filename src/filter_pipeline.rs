@@ -1,6 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
+use tracing::info;
 
 use crate::{
   feed::Feed,
@@ -57,6 +58,7 @@ impl FilterPipeline {
       match inner.take(&filter_config) {
         Some(filter) => filters.push(filter),
         None => {
+          info!("building filter: {}", filter_config.name());
           let filter = filter_config.build().await?;
           filters.push(filter);
         }

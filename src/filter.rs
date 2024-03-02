@@ -130,6 +130,12 @@ macro_rules! define_filters {
         }
       }
 
+      pub fn name(&self) -> &'static str {
+        match self {
+          $(FilterConfig::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*
+        }
+      }
+
       pub fn schema_for_all() -> HashMap<String, schemars::schema::RootSchema> {
         let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
           s.option_nullable = true;

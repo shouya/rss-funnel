@@ -319,10 +319,15 @@ impl EndpointService {
     }
   }
 
+  pub fn config_changed(&self, config: &EndpointServiceConfig) -> bool {
+    self.config != *config
+  }
+
   pub async fn update(
     mut self,
     config: EndpointServiceConfig,
   ) -> Result<Self, ConfigError> {
+    let cloned_config = config.clone();
     if self.config.client != config.client {
       let default_cache_ttl = Duration::from_secs(15 * 60);
       let client =
@@ -338,6 +343,8 @@ impl EndpointService {
     if self.config.filters != config.filters {
       self.filters.update(config.filters).await?;
     }
+
+    self.config = cloned_config;
 
     Ok(self)
   }
