@@ -9,14 +9,16 @@ use url::Url;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
-use crate::util::{Error, Result};
+use crate::util::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
 const DEFAULT_PARALLELISM: usize = 20;
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 pub struct FullTextConfig {
   /// The maximum number of concurrent requests
   parallelism: Option<usize>,
@@ -45,7 +47,7 @@ pub struct FullTextFilter {
 impl FeedFilterConfig for FullTextConfig {
   type Filter = FullTextFilter;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     // default cache ttl is 12 hours
     let default_cache_ttl = Duration::from_secs(12 * 60 * 60);
     let client = self.client.unwrap_or_default().build(default_cache_ttl)?;

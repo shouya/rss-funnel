@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use axum::extract::Query;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -8,15 +7,16 @@ use axum::{routing::get, Extension, Router};
 use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
 
-use crate::config::{self, FeedDefinition};
 use crate::filter::FilterConfig;
 use crate::util::Error;
+
+use super::feed_service::FeedService;
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "inspector/dist/"]
 struct Asset;
 
-pub fn router(feed_definition: config::FeedDefinition) -> Router {
+pub fn router() -> Router {
   Router::new()
     .route("/_inspector/index.html", get(index_handler))
     .route("/_inspector/dist/*file", get(static_handler))
@@ -26,7 +26,6 @@ pub fn router(feed_definition: config::FeedDefinition) -> Router {
       "/",
       get(|| async { Redirect::temporary("/_inspector/index.html") }),
     )
-    .layer(Extension(Arc::new(feed_definition)))
 }
 
 async fn index_handler() -> impl IntoResponse {
@@ -70,9 +69,9 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
 }
 
 async fn config_handler(
-  Extension(feed_definition): Extension<Arc<FeedDefinition>>,
+  Extension(feed_service): Extension<FeedService>,
 ) -> impl IntoResponse {
-  Json(feed_definition)
+  Json(feed_service.feed_definition().await)
 }
 
 #[derive(serde::Deserialize)]

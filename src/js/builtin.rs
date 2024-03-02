@@ -3,7 +3,7 @@ use rquickjs::{class::Trace, Class, Ctx};
 use super::dom::{Node, DOM};
 use crate::util::Result;
 
-pub(super) fn register_builtin(ctx: &Ctx) -> Result<()> {
+pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
   Class::<DOM>::define(&ctx.globals())?;
   Class::<Node>::define(&ctx.globals())?;
 

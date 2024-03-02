@@ -15,7 +15,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, util::Result};
+use crate::{feed::Feed, util::ConfigError, util::Result};
 
 #[derive(Clone)]
 pub struct FilterContext {
@@ -66,7 +66,7 @@ pub trait FeedFilter {
 pub trait FeedFilterConfig {
   type Filter: FeedFilter;
 
-  async fn build(self) -> Result<Self::Filter>;
+  async fn build(self) -> Result<Self::Filter, ConfigError>;
 }
 
 #[derive(Clone)]
@@ -91,7 +91,7 @@ impl BoxedFilter {
 macro_rules! define_filters {
   ($($variant:ident => $config:ty, $desc:literal);* ;) => {
     paste::paste! {
-      #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+      #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
       #[serde(rename_all = "snake_case")]
       pub enum FilterConfig {
         $(
@@ -121,12 +121,18 @@ macro_rules! define_filters {
         }
       }
 
-      pub async fn build(self) -> Result<BoxedFilter> {
+      pub async fn build(self) -> Result<BoxedFilter, ConfigError> {
         match self {
           $(FilterConfig::$variant(config) => {
             let filter = config.build().await?;
             Ok(BoxedFilter::from(filter))
           })*
+        }
+      }
+
+      pub fn name(&self) -> &'static str {
+        match self {
+          $(FilterConfig::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*
         }
       }
 

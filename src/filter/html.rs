@@ -24,7 +24,9 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 ///       - img[src$=".gif"]<br>
 ///       - span.ads
 #[doc(alias = "remove_element")]
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct RemoveElementConfig {
   selectors: Vec<String>,
@@ -35,17 +37,16 @@ pub struct RemoveElement {
 }
 
 // can't define FromStr for Selector due to Rust's orphan rule
-fn parse_selector(selector: &str) -> Result<Selector> {
+fn parse_selector(selector: &str) -> Result<Selector, ConfigError> {
   Selector::parse(selector)
     .map_err(|e| ConfigError::BadSelector(format!("{}: {}", selector, e)))
-    .map_err(|e| e.into())
 }
 
 #[async_trait::async_trait]
 impl FeedFilterConfig for RemoveElementConfig {
   type Filter = RemoveElement;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let mut selectors = vec![];
     for selector in self.selectors {
       let parsed = parse_selector(&selector)?;
@@ -107,7 +108,9 @@ impl FeedFilter for RemoveElement {
 /// ```yaml
 ///   - keep_element: img[src$=".gif"]
 /// ```
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct KeepElementConfig {
   selector: String,
@@ -124,7 +127,7 @@ impl FeedFilterConfig for KeepElementConfig {
   // TODO: decide whether we want to support iteratively narrowed
   // selector. Multiple selectors here may create more confusion than
   // being useful.
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let selectors = vec![parse_selector(&self.selector)?];
     Ok(KeepElement { selectors })
   }
@@ -188,7 +191,9 @@ impl FeedFilter for KeepElement {
   }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct SplitConfig {
   /// The CSS selector for the title elements. The textContent of the
   /// selected elements will be used.
@@ -219,13 +224,14 @@ pub struct Split {
 impl FeedFilterConfig for SplitConfig {
   type Filter = Split;
 
-  async fn build(self) -> Result<Self::Filter> {
-    let parse_selector_opt = |s: &Option<String>| -> Result<Option<Selector>> {
-      match s {
-        Some(s) => Ok(Some(parse_selector(s)?)),
-        None => Ok(None),
-      }
-    };
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
+    let parse_selector_opt =
+      |s: &Option<String>| -> Result<Option<Selector>, ConfigError> {
+        match s {
+          Some(s) => Ok(Some(parse_selector(s)?)),
+          None => Ok(None),
+        }
+      };
 
     let title_selector = parse_selector(&self.title_selector)?;
     let link_selector = parse_selector_opt(&self.link_selector)?;

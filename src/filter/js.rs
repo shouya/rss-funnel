@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::feed::Feed;
 use crate::js::{AsJson, Runtime};
-use crate::util::{Error, Result};
+use crate::util::{ConfigError, Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// Either define a function `modify_feed` or `modify_post` to modify the feed or posts respectively.
 /// <br><br>
@@ -17,7 +19,9 @@ pub struct JsConfig {
   code: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// JavaScript code for for editing post. Modify `post` variable to update the post or set it to null to delete it.
 /// <br><br>
@@ -28,7 +32,9 @@ pub struct ModifyPostConfig {
   code: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 /// JavaScript code for for editing feed. Modify `feed` variable to update the feed.
 /// <br><br>
@@ -47,7 +53,7 @@ pub struct JsFilter {
 impl FeedFilterConfig for JsConfig {
   type Filter = JsFilter;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let runtime = Runtime::new().await?;
     runtime.eval(&self.code).await?;
 
@@ -59,7 +65,7 @@ impl FeedFilterConfig for JsConfig {
 impl FeedFilterConfig for ModifyPostConfig {
   type Filter = JsFilter;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let code = format!(
       "function modify_post(feed, post) {{ {}; return post; }}",
       self.code
@@ -72,7 +78,7 @@ impl FeedFilterConfig for ModifyPostConfig {
 impl FeedFilterConfig for ModifyFeedConfig {
   type Filter = JsFilter;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let code = format!(
       "function modify_feed(feed) {{ {}; return feed; }}",
       self.code

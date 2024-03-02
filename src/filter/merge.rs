@@ -9,11 +9,13 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
-use crate::util::{Result, SingleOrVec};
+use crate::util::{ConfigError, Result, SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(untagged)]
 pub enum MergeConfig {
   /// Simple merge with default client and no filters
@@ -22,13 +24,17 @@ pub enum MergeConfig {
   Full(MergeFullConfig),
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 #[serde(transparent)]
 pub struct MergeSimpleConfig {
   source: SingleOrVec<SourceConfig>,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct MergeFullConfig {
   /// Source configuration
   source: SingleOrVec<SourceConfig>,
@@ -67,7 +73,7 @@ impl From<MergeConfig> for MergeFullConfig {
 impl FeedFilterConfig for MergeConfig {
   type Filter = Merge;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     let MergeFullConfig {
       client,
       filters,

@@ -3,12 +3,14 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::feed::Feed;
 use crate::util::Result;
+use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 /// The simplify_html filter simplifies the HTML content of
 /// posts. There is no configuration.
 pub struct SimplifyHtmlConfig {}
@@ -19,7 +21,7 @@ pub struct SimplifyHtmlFilter;
 impl FeedFilterConfig for SimplifyHtmlConfig {
   type Filter = SimplifyHtmlFilter;
 
-  async fn build(self) -> Result<Self::Filter> {
+  async fn build(self) -> Result<Self::Filter, ConfigError> {
     Ok(SimplifyHtmlFilter)
   }
 }

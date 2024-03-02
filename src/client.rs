@@ -7,7 +7,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, util::Result};
+use crate::{
+  feed::Feed,
+  util::{ConfigError, Result},
+};
 
 use self::cache::{Response, ResponseCache};
 
@@ -19,7 +22,9 @@ struct HttpFixture {
   content: String,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+)]
 pub struct ClientConfig {
   /// The "user-agent" header to send with requests
   user_agent: Option<String>,
@@ -102,7 +107,10 @@ impl ClientConfig {
     builder
   }
 
-  pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
+  pub fn build(
+    &self,
+    default_cache_ttl: Duration,
+  ) -> Result<Client, ConfigError> {
     let reqwest_client = self.to_builder().build()?;
     let client = Client::new(
       self.cache_size.unwrap_or(64),

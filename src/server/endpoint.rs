@@ -19,12 +19,14 @@ use crate::client::{Client, ClientConfig};
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
-use crate::util::{Error, Result};
+use crate::util::{ConfigError, Error, Result};
 
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct EndpointConfig {
   pub path: String,
   pub note: Option<String>,
@@ -33,24 +35,23 @@ pub struct EndpointConfig {
 }
 
 impl EndpointConfig {
+  pub fn path_sans_slash(&self) -> &str {
+    self.path.strip_prefix('/').unwrap_or(&self.path)
+  }
+
   #[cfg(test)]
-  pub fn parse_yaml(yaml: &str) -> Result<Self> {
-    use crate::util::ConfigError;
-
-    Ok(serde_yaml::from_str(yaml).map_err(ConfigError::from)?)
+  pub fn parse_yaml(yaml: &str) -> Result<Self, ConfigError> {
+    Ok(serde_yaml::from_str(yaml)?)
   }
 
-  pub async fn into_route(self) -> Result<axum::Router> {
-    let endpoint_service = EndpointService::from_config(self.config).await?;
-    Ok(axum::Router::new().nest_service(&self.path, endpoint_service))
-  }
-
-  pub async fn into_service(self) -> Result<EndpointService> {
+  pub async fn build(self) -> Result<EndpointService, ConfigError> {
     EndpointService::from_config(self.config).await
   }
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct EndpointServiceConfig {
   #[serde(default)]
   source: Option<SourceConfig>,
@@ -64,8 +65,13 @@ pub struct EndpointServiceConfig {
 // MakeService<http::Request, Response=EndpointService>. But axum
 // Router doesn't support nest_make_service yet, so I will just
 // approximate it by making request_context part of the Service input.
+//
+// This type should be kept cheap to clone. It will be cloned for each
+// request.
 #[derive(Clone)]
 pub struct EndpointService {
+  // used for detecting changes in the config for partial update
+  config: EndpointServiceConfig,
   source: Option<Source>,
   filters: Arc<FilterPipeline>,
   client: Arc<Client>,
@@ -252,7 +258,10 @@ impl EndpointService {
     self
   }
 
-  pub async fn from_config(config: EndpointServiceConfig) -> Result<Self> {
+  pub async fn from_config(
+    config: EndpointServiceConfig,
+  ) -> Result<Self, ConfigError> {
+    let cloned_config = config.clone();
     let filters = config.filters.build().await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
@@ -260,6 +269,7 @@ impl EndpointService {
     let source = config.source.map(|s| s.try_into()).transpose()?;
 
     Ok(Self {
+      config: cloned_config,
       source,
       filters: Arc::new(filters),
       client: Arc::new(client),
@@ -307,6 +317,36 @@ impl EndpointService {
         .cloned()
         .map(Source::from),
     }
+  }
+
+  pub fn config_changed(&self, config: &EndpointServiceConfig) -> bool {
+    self.config != *config
+  }
+
+  pub async fn update(
+    mut self,
+    config: EndpointServiceConfig,
+  ) -> Result<Self, ConfigError> {
+    let cloned_config = config.clone();
+    if self.config.client != config.client {
+      let default_cache_ttl = Duration::from_secs(15 * 60);
+      let client =
+        config.client.unwrap_or_default().build(default_cache_ttl)?;
+      self.client = Arc::new(client);
+    }
+
+    if self.config.source != config.source {
+      let source = config.source.map(|s| s.try_into()).transpose()?;
+      self.source = source;
+    }
+
+    if self.config.filters != config.filters {
+      self.filters.update(config.filters).await?;
+    }
+
+    self.config = cloned_config;
+
+    Ok(self)
   }
 }
 
