@@ -91,39 +91,6 @@ impl FullTextFilter {
     Ok(text)
   }
 
-  fn strip_post_content(
-    html: String,
-    link: &str,
-    simplify: bool,
-    keep_element: Arc<Option<KeepElement>>,
-  ) -> String {
-    let mut html = scraper::Html::parse_document(&html);
-    convert_relative_url(&mut html, link);
-    let mut text = html.html();
-
-    if simplify {
-      text = super::simplify_html::simplify(&text, link).unwrap_or(text);
-    } else {
-      text = crate::html::html_body(&text);
-    }
-
-    if let Some(k) = keep_element.as_ref() {
-      match k.filter_description(&text) {
-        Some(filtered) => {
-          text = filtered;
-        }
-        None => {
-          text = format!(
-            "<p>Failed to filter description with keep_element</p>\n{}",
-            text
-          );
-        }
-      }
-    }
-
-    text
-  }
-
   async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
     let link = post.link_or_err()?.to_owned();
     let mut text = self.fetch_html(&link).await?;
@@ -133,7 +100,7 @@ impl FullTextFilter {
     let simplify = self.simplify;
     let keep_element = Arc::new(self.keep_element.clone());
     text = tokio::task::spawn_blocking(move || {
-      Self::strip_post_content(text, &link, simplify, keep_element)
+      strip_post_content(text, &link, simplify, keep_element)
     })
     .await?;
 
@@ -192,4 +159,37 @@ impl FeedFilter for FullTextFilter {
     feed.set_posts(posts);
     Ok(feed)
   }
+}
+
+fn strip_post_content(
+  html: String,
+  link: &str,
+  simplify: bool,
+  keep_element: Arc<Option<KeepElement>>,
+) -> String {
+  let mut html = scraper::Html::parse_document(&html);
+  convert_relative_url(&mut html, link);
+  let mut text = html.html();
+
+  if simplify {
+    text = super::simplify_html::simplify(&text, link).unwrap_or(text);
+  } else {
+    text = crate::html::html_body(&text);
+  }
+
+  if let Some(k) = keep_element.as_ref() {
+    match k.filter_description(&text) {
+      Some(filtered) => {
+        text = filtered;
+      }
+      None => {
+        text = format!(
+          "<p>Failed to filter description with keep_element</p>\n{}",
+          text
+        );
+      }
+    }
+  }
+
+  text
 }
