@@ -35,6 +35,10 @@ pub struct EndpointConfig {
 }
 
 impl EndpointConfig {
+  pub fn path_sans_slash(&self) -> &str {
+    self.path.strip_prefix('/').unwrap_or(&self.path)
+  }
+
   #[cfg(test)]
   pub fn parse_yaml(yaml: &str) -> Result<Self, ConfigError> {
     Ok(serde_yaml::from_str(yaml)?)

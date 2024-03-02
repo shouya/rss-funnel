@@ -31,7 +31,7 @@ impl FeedService {
   ) -> Result<Self, ConfigError> {
     let mut endpoints = HashMap::new();
     for endpoint_config in feed_definition.endpoints.clone() {
-      let path = endpoint_config.path.clone();
+      let path = endpoint_config.path_sans_slash().to_owned();
       let endpoint_service = endpoint_config.build().await?;
       endpoints.insert(path, endpoint_service);
     }
@@ -66,7 +66,7 @@ impl FeedService {
 
     let mut endpoints = HashMap::new();
     for endpoint_config in feed_defn.endpoints.clone() {
-      let path = endpoint_config.path.clone();
+      let path = endpoint_config.path_sans_slash().to_owned();
       // TODO: instead of recreating all endpoints, update existing ones.
       match endpoint_config.build().await {
         Err(e) => {
@@ -100,7 +100,7 @@ impl FeedService {
       }
       _ => (
         StatusCode::NOT_FOUND,
-        format!("endpoint not defined: {path}"),
+        format!("endpoint not defined: /{path}"),
       )
         .into_response(),
     }
