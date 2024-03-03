@@ -287,11 +287,12 @@ ul#filter-list {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
 
       .endpoint-path {
         font-size: 1.2em;
         margin: 0;
-        flex: 1;
+        margin-right: auto;
         cursor: pointer;
 
         &:hover {
