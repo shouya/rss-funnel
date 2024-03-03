@@ -6,6 +6,7 @@ use axum::Json;
 use axum::{routing::get, Extension, Router};
 use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
+use serde_json::json;
 
 use crate::filter::FilterConfig;
 use crate::util::Error;
@@ -71,7 +72,11 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
 async fn config_handler(
   Extension(feed_service): Extension<FeedService>,
 ) -> impl IntoResponse {
-  Json(feed_service.root_config().await)
+  let json = json!({
+    "config_error": feed_service.error(|e| e.to_string()).await,
+    "root_config": feed_service.root_config().await,
+  });
+  Json(json)
 }
 
 #[derive(serde::Deserialize)]
