@@ -135,7 +135,7 @@ export class FeedInspector {
       sizes: [20, 80],
       snapOffset: 0,
       gutterSize: 3,
-      minSize: [300, 500],
+      dragInterval: 3,
     });
   }
 
