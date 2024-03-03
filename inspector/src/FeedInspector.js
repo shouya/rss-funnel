@@ -40,9 +40,18 @@ export class FeedInspector {
     ]);
 
     const resp_json = await resp.json();
-    this.config = resp_json.root_config;
     this.config_error = resp_json.config_error;
+    this.config = resp_json.root_config;
     this.filter_schema = await filter_schema.json();
+
+    if (this.config_error) {
+      $("#config-error-message").innerText = this.config_error;
+      $("#config-error").classList.remove("hidden");
+      return;
+    } else {
+      $("#config-error").classList.add("hidden");
+      $("#config-error-message").innerText = "";
+    }
 
     if (!this.config) {
       console.error("Failed to load config");

@@ -14,13 +14,16 @@
     <div class="container">
       <div id="sidebar-panel">
         <div class="button" id="reload-config-button">Reload Config</div>
+        <div id="config-error" class="hidden">
+          <h4>Error detected in config</h4>
+          <p id="config-error-message"></p>
+        </div>
         <div id="sidebar-endpoints">
           <div class="sidebar-header">
             <h4>Endpoints</h4>
           </div>
           <ul id="endpoint-list"></ul>
         </div>
-
         <div id="sidebar-endpoint" class="hidden">
           <div class="sidebar-header">
             <div class="button" id="back-to-endpoints">Back</div>

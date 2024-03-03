@@ -37,6 +37,25 @@ table th {
   border-radius: 10px;
 }
 
+.info-box {
+  padding: 0.5rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.3rem;
+
+  > header {
+    background-color: white;
+    width: fit-content;
+    padding: 0 0.3rem;
+    position: relative;
+    /* half (padding-y + border) + half font height */
+    margin-top: -1rem;
+    font-size: 0.8em;
+  }
+
+  > content {
+  }
+}
+
 #sidebar-panel {
   display: flex;
   flex-direction: column;
@@ -60,6 +79,14 @@ table th {
   }
 }
 
+#config-error {
+  #config-error-message {
+    padding: 0.5rem;
+    color: #721c24;
+    background-color: #f8d7da;
+  }
+}
+
 #reload-config-button {
   text-align: center;
   margin-bottom: 0.5rem;
@@ -75,25 +102,6 @@ table th {
 
   &:hover {
     background-color: #f4f4f4;
-  }
-}
-
-.info-box {
-  padding: 0.5rem 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 0.3rem;
-
-  > header {
-    background-color: white;
-    width: fit-content;
-    padding: 0 0.3rem;
-    position: relative;
-    /* half (padding-y + border) + half font height */
-    margin-top: -1rem;
-    font-size: 0.8em;
-  }
-
-  > content {
   }
 }
 
