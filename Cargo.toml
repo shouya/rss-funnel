@@ -61,7 +61,6 @@ xmlem = "0.2.3"
 
 # JS runtime crates
 rquickjs = { version = "0.5.1", features = ["loader", "parallel", "macro", "futures", "exports", "either"] }
-blake2s_simd = "1.0.2" # for calculating digest in caching support of the remote loader
 serde_json = "1.0.108" # for data transfer with the JS runtime
 either = "1.9.0" # used for returning sum types from the JS runtime
 
