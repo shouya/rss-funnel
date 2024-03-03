@@ -4,7 +4,6 @@ mod dom;
 use std::fs;
 use std::path::PathBuf;
 
-use blake2s_simd::blake2s;
 use rquickjs::loader::{
   BuiltinLoader, BuiltinResolver, FileResolver, Loader, Resolver, ScriptLoader,
 };
@@ -243,7 +242,7 @@ impl RemoteLoader {
       .unwrap_or("")
       .to_string();
     uri.set_extension("");
-    let digest = blake2s(uri.to_string_lossy().as_bytes()).to_hex();
+    let digest = uri_to_hash(uri);
     let Some(cache_dir) = self.cache_dir.as_ref() else {
       panic!("cache_file_name assumes cache_dir is set");
     };
@@ -307,4 +306,23 @@ impl Loader for RemoteLoader {
     let source = self.try_load(name)?;
     Ok(ModuleData::source(name, source))
   }
+}
+
+fn uri_to_hash(uri: PathBuf) -> String {
+  use std::hash::{DefaultHasher, Hash, Hasher};
+  let mut hasher = DefaultHasher::new();
+  uri.hash(&mut hasher);
+  // length(u64 hex) == 16
+  let hash = hasher.finish();
+  // length == 30
+  let filename = uri
+    .to_string_lossy()
+    .chars()
+    .skip(5)
+    .filter(|c| c.is_ascii_alphanumeric())
+    .take(30)
+    .collect::<String>();
+
+  // final length is shorter than 64 bytes
+  format!("{hash:x}{filename}")
 }
