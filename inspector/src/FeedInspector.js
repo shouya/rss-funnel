@@ -11,6 +11,8 @@ import "json-schema-view-js/src/style.less";
 export class FeedInspector {
   constructor() {
     this.config = null;
+    this.config_error = null;
+    this.feed_error = null;
     this.filter_schema = null;
     this.current_endpoint = null;
     this.current_preview = null;
@@ -37,8 +39,19 @@ export class FeedInspector {
       fetch("/_inspector/filter_schema?filters=all"),
     ]);
 
-    this.config = await resp.json();
+    const resp_json = await resp.json();
+    this.config_error = resp_json.config_error;
+    this.config = resp_json.root_config;
     this.filter_schema = await filter_schema.json();
+
+    if (this.config_error) {
+      $("#config-error-message").innerText = this.config_error;
+      $("#config-error").classList.remove("hidden");
+      return;
+    } else {
+      $("#config-error").classList.add("hidden");
+      $("#config-error-message").innerText = "";
+    }
 
     if (!this.config) {
       console.error("Failed to load config");
@@ -122,7 +135,7 @@ export class FeedInspector {
       sizes: [20, 80],
       snapOffset: 0,
       gutterSize: 3,
-      minSize: [300, 500],
+      dragInterval: 3,
     });
   }
 
@@ -376,15 +389,33 @@ export class FeedInspector {
     const request_path = `${path}?${params}`;
     $("#fetch-status").innerText = `Fetching ${request_path}...`;
     const resp = await fetch(`${path}?${params}`);
-    const text = await resp.text();
+    let status_text = "";
 
-    $("#fetch-status").innerText = `Fetched ${request_path} in ${
-      performance.now() - time_start
-    }ms.`;
+    if (resp.status != 200) {
+      status_text = `Failed fetching ${request_path}`;
+      status_text += ` (status: ${resp.status} ${resp.statusText})`;
+      this.update_feed_error(await resp.text());
+    } else {
+      this.update_feed_error(null);
+      const text = await resp.text();
+      this.raw_feed_xml = text;
+      status_text = `Fetched ${request_path} `;
+      status_text += `(content-type: ${resp.headers.get("content-type")})`;
+    }
 
+    status_text += ` in ${performance.now() - time_start}ms.`;
+    $("#fetch-status").innerText = status_text;
     $("#feed-preview").classList.remove("loading");
+  }
 
-    this.raw_feed_xml = text;
+  update_feed_error(error) {
+    if (error) {
+      $("#feed-error").classList.remove("hidden");
+      $("#feed-error-message").innerText = error;
+    } else {
+      $("#feed-error-message").innerText = "";
+      $("#feed-error").classList.add("hidden");
+    }
   }
 
   feed_request_param() {

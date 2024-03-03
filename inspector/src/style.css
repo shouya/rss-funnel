@@ -37,6 +37,30 @@ table th {
   border-radius: 10px;
 }
 
+.info-box {
+  padding: 0.5rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.3rem;
+
+  > header {
+    background-color: white;
+    width: fit-content;
+    padding: 0 0.3rem;
+    position: relative;
+    /* half (padding-y + border) + half font height */
+    margin-top: -1rem;
+    font-size: 0.8em;
+  }
+
+  > content {
+  }
+}
+
+/* section heading */
+h4 {
+  margin: 0.5rem 0;
+}
+
 #sidebar-panel {
   display: flex;
   flex-direction: column;
@@ -53,10 +77,17 @@ table th {
     margin-top: 0;
     margin-bottom: 0;
   }
+}
 
-  h4 {
-    margin: 0.5rem 0;
-    padding-bottom: 0.5rem;
+#feed-error,
+#config-error {
+  p {
+    padding: 0.5rem;
+    color: #721c24;
+    background-color: #f8d7da;
+    margin-top: 0;
+    display: block;
+    border-radius: 0.3rem;
   }
 }
 
@@ -78,31 +109,12 @@ table th {
   }
 }
 
-.info-box {
-  padding: 0.5rem 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 0.3rem;
-
-  > header {
-    background-color: white;
-    width: fit-content;
-    padding: 0 0.3rem;
-    position: relative;
-    /* half (padding-y + border) + half font height */
-    margin-top: -1rem;
-    font-size: 0.8em;
-  }
-
-  > content {
-  }
-}
-
 #sidebar-endpoint {
   .sidebar-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     margin-bottom: 0.5rem;
 
     h4 {
@@ -112,7 +124,7 @@ table th {
 
     #endpoint-name {
       font-family: monospace;
-      flex-grow: 1;
+      flex: 1;
       font-size: 1.2em;
     }
   }
@@ -129,6 +141,8 @@ table th {
 
     content {
       position: relative;
+      overflow-x: scroll;
+      display: block;
 
       .format-tag {
         position: absolute;
@@ -193,8 +207,11 @@ ul#filter-list {
       pre {
         margin: 0;
       }
-      code {
+      pre.js-code {
+        /* allow wrapping in js code */
+        white-space: normal;
       }
+
       ul {
         list-style: square;
         padding-left: 1.6rem;
@@ -270,6 +287,7 @@ ul#filter-list {
   flex-direction: column;
   place-content: flex-start;
   gap: 0.3rem;
+  margin: 0;
 
   .endpoint {
     padding: 0.3rem;
@@ -278,11 +296,12 @@ ul#filter-list {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
 
       .endpoint-path {
         font-size: 1.2em;
         margin: 0;
-        flex: 1;
+        margin-right: auto;
         cursor: pointer;
 
         &:hover {
@@ -342,6 +361,19 @@ ul#filter-list {
   }
 }
 
+#feed-error {
+  flex: 1;
+
+  /* if there is a feed error, do not show feed preview */
+  & + #feed-preview {
+    display: none;
+  }
+
+  &.hidden + #feed-preview {
+    display: block;
+  }
+}
+
 #feed-preview {
   /* enable scrolling */
   width: 100%;
@@ -375,10 +407,11 @@ ul#filter-list {
     padding: 0.5rem;
     position: absolute;
     box-shadow: 0 1px 2px #ddd;
-    opacity: 0.5;
+    opacity: 0.3;
+    transition: all 0.1s ease-in-out;
 
     &:hover {
-      opacity: 1;
+      opacity: 0.9;
     }
   }
 }
