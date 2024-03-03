@@ -11,6 +11,8 @@ import "json-schema-view-js/src/style.less";
 export class FeedInspector {
   constructor() {
     this.config = null;
+    this.config_error = null;
+    this.feed_error = null;
     this.filter_schema = null;
     this.current_endpoint = null;
     this.current_preview = null;
@@ -37,7 +39,9 @@ export class FeedInspector {
       fetch("/_inspector/filter_schema?filters=all"),
     ]);
 
-    this.config = await resp.json();
+    const resp_json = await resp.json();
+    this.config = resp_json.root_config;
+    this.config_error = resp_json.config_error;
     this.filter_schema = await filter_schema.json();
 
     if (!this.config) {
