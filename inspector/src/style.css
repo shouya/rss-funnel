@@ -134,6 +134,7 @@ table th {
 
   #source-info {
     margin: 1rem 0;
+    overflow-x: scroll;
 
     content {
       position: relative;
