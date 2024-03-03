@@ -86,6 +86,14 @@ export class Filter {
   render_js_config() {
     return highlight_js(this.config);
   }
+
+  render_modify_feed_config() {
+    return highlight_js(this.config);
+  }
+
+  render_modify_post_config() {
+    return highlight_js(this.config);
+  }
 }
 
 function highlight_json_value(value) {
@@ -100,5 +108,5 @@ function highlight_js(code) {
   const html = Prism.highlight(code, Prism.languages.javascript, "js");
   const code_node = elt("code", {}, []);
   code_node.innerHTML = html;
-  return elt("pre", {}, code_node);
+  return elt("pre", { class: "js-code" }, code_node);
 }

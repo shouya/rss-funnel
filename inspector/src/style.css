@@ -207,8 +207,11 @@ ul#filter-list {
       pre {
         margin: 0;
       }
-      code {
+      pre.js-code {
+        /* allow wrapping in js code */
+        white-space: normal;
       }
+
       ul {
         list-style: square;
         padding-left: 1.6rem;
