@@ -406,10 +406,11 @@ ul#filter-list {
     padding: 0.5rem;
     position: absolute;
     box-shadow: 0 1px 2px #ddd;
-    opacity: 0.5;
+    opacity: 0.3;
+    transition: all 0.1s ease-in-out;
 
     &:hover {
-      opacity: 1;
+      opacity: 0.9;
     }
   }
 }
