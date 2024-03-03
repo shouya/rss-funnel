@@ -17,41 +17,41 @@ inspector-ui = ["dep:rust-embed"]
 
 [dependencies]
 # Async runtime, utility and helper crates
-async-trait = "0.1.74"
-thiserror = "1.0.51"
-futures = "0.3.29"
-itertools = "0.12.0"
+async-trait = "0.1.77"
+thiserror = "1.0.57"
+futures = "0.3.30"
+itertools = "0.12.1"
 paste = "1.0.14"
-tokio = { version = "1.35.0", features = ["macros", "net", "rt-multi-thread", "sync"] }
+tokio = { version = "1.36.0", features = ["macros", "net", "rt-multi-thread", "sync"] }
 lazy_static = "1.4.0"
 
 # Command line and config parsing
-clap = { version = "4.4.11", features = ["derive"] }
-serde = { version = "1.0.193", features = ["derive", "rc"] }
-serde_yaml = "0.9.27"
+clap = { version = "4.5.1", features = ["derive"] }
+serde = { version = "1.0.197", features = ["derive", "rc"] }
+serde_yaml = "0.9.32"
 duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }
 
 # webserver
 axum-macros = "0.4.1"
 axum = { version = "0.7.4", features = ["json"] }
 tower = "0.4.13"
-tower-http = { version = "0.5.1", features = ["compression-gzip"] }
+tower-http = { version = "0.5.2", features = ["compression-gzip"] }
 notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 
 # Feed formats support
 atom_syndication = { version = "0.12.2", features = ["with-serde"] }
-rss = { version = "2.0.6", features = ["serde"] }
+rss = { version = "2.0.7", features = ["serde"] }
 http = "1.0.0"
 url = { version = "2.5.0", features = ["serde"] }
 mime = "0.3.17"
 chrono = "0.4.34"
 
 # webui (inspector) support
-rust-embed = { version = "8.2.0", features = ["include-exclude"], optional = true }
+rust-embed = { version = "8.3.0", features = ["include-exclude"], optional = true }
 schemars = { git = "https://github.com/shouya/schemars", features = ["url", "preserve_order"] }
 
 # HTML manipulation in the feeds
-scraper = "0.18.1"
+scraper = "0.19.0"
 ego-tree = "0.6.2"
 # for extracting article content from HTML, used in simplify_html filter
 readability = { version = "0.3.0", default-features = false }
@@ -61,17 +61,17 @@ xmlem = "0.2.3"
 
 # JS runtime crates
 rquickjs = { version = "0.5.1", features = ["loader", "parallel", "macro", "futures", "exports", "either"] }
-serde_json = "1.0.108" # for data transfer with the JS runtime
-either = "1.9.0" # used for returning sum types from the JS runtime
+serde_json = "1.0.114" # for data transfer with the JS runtime
+either = "1.10.0" # used for returning sum types from the JS runtime
 
 # Web client (blocking and async both used, blocking used in the JS runtime)
 # TODO: upgrade reqwest after its hyper 1.0 upgrade
-reqwest = { version = "0.11.23", default-features = false, features = ["blocking", "rustls-tls", "trust-dns"] }
+reqwest = { version = "0.11.24", default-features = false, features = ["blocking", "rustls-tls", "trust-dns"] }
 encoding_rs = "0.8.33"
-lru = "0.12.2"
+lru = "0.12.3"
 
 # Used in sanitize filter to remove/replace text contents
-regex = "1.10.2"
+regex = "1.10.3"
 
 # Logging
 tracing = { version = "0.1.40"}
