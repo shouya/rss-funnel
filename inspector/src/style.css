@@ -56,6 +56,11 @@ table th {
   }
 }
 
+/* section heading */
+h4 {
+  margin: 0.5rem 0;
+}
+
 #sidebar-panel {
   display: flex;
   flex-direction: column;
@@ -72,18 +77,17 @@ table th {
     margin-top: 0;
     margin-bottom: 0;
   }
-
-  h4 {
-    margin: 0.5rem 0;
-    padding-bottom: 0.5rem;
-  }
 }
 
+#feed-error,
 #config-error {
-  #config-error-message {
+  p {
     padding: 0.5rem;
     color: #721c24;
     background-color: #f8d7da;
+    margin-top: 0;
+    display: block;
+    border-radius: 0.3rem;
   }
 }
 
@@ -280,6 +284,7 @@ ul#filter-list {
   flex-direction: column;
   place-content: flex-start;
   gap: 0.3rem;
+  margin: 0;
 
   .endpoint {
     padding: 0.3rem;
@@ -356,20 +361,13 @@ ul#filter-list {
 #feed-error {
   flex: 1;
 
+  /* if there is a feed error, do not show feed preview */
   & + #feed-preview {
     display: none;
   }
 
   &.hidden + #feed-preview {
     display: block;
-  }
-
-  #feed-error-message {
-    padding: 0.5rem;
-    width: 100%;
-    margin-bottom: auto;
-    color: #721c24;
-    background-color: #f8d7da;
   }
 }
 
