@@ -110,7 +110,7 @@ table th {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     margin-bottom: 0.5rem;
 
     h4 {
@@ -120,7 +120,7 @@ table th {
 
     #endpoint-name {
       font-family: monospace;
-      flex-grow: 1;
+      flex: 1;
       font-size: 1.2em;
     }
   }
