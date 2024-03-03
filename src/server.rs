@@ -13,7 +13,7 @@ use tower_http::compression::CompressionLayer;
 use tracing::{error, info, warn};
 
 use crate::{
-  cli::FeedDefinition,
+  cli::RootConfig,
   util::{ConfigError, Result},
 };
 pub use endpoint::{EndpointConfig, EndpointOutcome, EndpointParam};
@@ -54,13 +54,13 @@ impl ServerConfig {
 
   #[allow(unused)]
   pub async fn run_without_fs_watcher(self, config_path: &Path) -> Result<()> {
-    let config = FeedDefinition::load_from_file(config_path)?;
+    let config = RootConfig::load_from_file(config_path)?;
     let feed_service = FeedService::try_from(config).await?;
     self.serve(feed_service).await
   }
 
   pub async fn run_with_fs_watcher(self, config_path: &Path) -> Result<()> {
-    let config = FeedDefinition::load_from_file(config_path)?;
+    let config = RootConfig::load_from_file(config_path)?;
     let feed_service = FeedService::try_from(config).await?;
 
     // watcher must not be dropped until the end of the function

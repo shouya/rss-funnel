@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use tower::Service;
 use tracing::info;
 
-use crate::{cli::FeedDefinition, util::ConfigError};
+use crate::{cli::RootConfig, util::ConfigError};
 
 use super::{endpoint::EndpointService, EndpointConfig};
 
@@ -21,17 +21,15 @@ pub struct FeedService {
 
 struct Inner {
   config_error: Option<ConfigError>,
-  feed_definition: Arc<FeedDefinition>,
+  root_config: Arc<RootConfig>,
   // maps path to service
   endpoints: HashMap<String, EndpointService>,
 }
 
 impl FeedService {
-  pub async fn try_from(
-    feed_definition: FeedDefinition,
-  ) -> Result<Self, ConfigError> {
+  pub async fn try_from(root_config: RootConfig) -> Result<Self, ConfigError> {
     let mut endpoints = HashMap::new();
-    for endpoint_config in feed_definition.endpoints.clone() {
+    for endpoint_config in root_config.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
       let endpoint_service = endpoint_config.build().await?;
       info!("loaded endpoint: {}", path);
@@ -40,7 +38,7 @@ impl FeedService {
 
     let inner = Inner {
       config_error: None,
-      feed_definition: Arc::new(feed_definition),
+      root_config: Arc::new(root_config),
       endpoints,
     };
 
@@ -57,9 +55,9 @@ impl FeedService {
     }
   }
 
-  pub async fn feed_definition(&self) -> Arc<FeedDefinition> {
+  pub async fn root_config(&self) -> Arc<RootConfig> {
     let inner = self.inner.read().await;
-    inner.feed_definition.clone()
+    inner.root_config.clone()
   }
 
   // Update the feed definition and reconfigure the services. Return true if
@@ -67,7 +65,7 @@ impl FeedService {
   pub async fn reload(&self, path: &std::path::Path) -> bool {
     let mut inner = self.inner.write().await;
     inner.config_error = None;
-    let feed_defn = match FeedDefinition::load_from_file(path) {
+    let feed_defn = match RootConfig::load_from_file(path) {
       Err(e) => {
         inner.config_error = Some(e);
         return false;
@@ -92,7 +90,7 @@ impl FeedService {
       };
     }
 
-    inner.feed_definition = Arc::new(feed_defn);
+    inner.root_config = Arc::new(feed_defn);
     inner.endpoints = endpoints;
     true
   }

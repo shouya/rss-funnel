@@ -71,7 +71,7 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
 async fn config_handler(
   Extension(feed_service): Extension<FeedService>,
 ) -> impl IntoResponse {
-  Json(feed_service.feed_definition().await)
+  Json(feed_service.root_config().await)
 }
 
 #[derive(serde::Deserialize)]

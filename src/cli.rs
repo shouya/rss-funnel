@@ -68,15 +68,15 @@ impl TestConfig {
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
-pub struct FeedDefinition {
+pub struct RootConfig {
   pub endpoints: Vec<EndpointConfig>,
 }
 
-impl FeedDefinition {
+impl RootConfig {
   pub fn load_from_file(path: &Path) -> Result<Self, ConfigError> {
     let f = std::fs::File::open(path)?;
-    let feed_definition: Self = serde_yaml::from_reader(f)?;
-    Ok(feed_definition)
+    let root_config: Self = serde_yaml::from_reader(f)?;
+    Ok(root_config)
   }
 
   fn get_endpoint(&self, endpoint: &str) -> Option<EndpointConfig> {
@@ -95,7 +95,7 @@ impl Cli {
         server_config.run(&self.config).await
       }
       SubCommand::Test(test_config) => {
-        let feed_defn = FeedDefinition::load_from_file(&self.config)?;
+        let feed_defn = RootConfig::load_from_file(&self.config)?;
         test_endpoint(feed_defn, &test_config).await;
         Ok(())
       }
@@ -103,7 +103,7 @@ impl Cli {
   }
 }
 
-async fn test_endpoint(feed_defn: FeedDefinition, test_config: &TestConfig) {
+async fn test_endpoint(feed_defn: RootConfig, test_config: &TestConfig) {
   let Some(endpoint_conf) = feed_defn.get_endpoint(&test_config.endpoint)
   else {
     let endpoints: Vec<_> =
