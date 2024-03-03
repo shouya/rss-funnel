@@ -389,15 +389,33 @@ export class FeedInspector {
     const request_path = `${path}?${params}`;
     $("#fetch-status").innerText = `Fetching ${request_path}...`;
     const resp = await fetch(`${path}?${params}`);
-    const text = await resp.text();
+    let status_text = "";
 
-    $("#fetch-status").innerText = `Fetched ${request_path} in ${
-      performance.now() - time_start
-    }ms.`;
+    if (resp.status != 200) {
+      status_text = `Failed fetching ${request_path}`;
+      status_text += ` (status: ${resp.status} ${resp.statusText})`;
+      this.update_feed_error(await resp.text());
+    } else {
+      this.update_feed_error(null);
+      const text = await resp.text();
+      this.raw_feed_xml = text;
+      status_text = `Fetched ${request_path} `;
+      status_text += `(content-type: ${resp.headers.get("content-type")})`;
+    }
 
+    status_text += ` in ${performance.now() - time_start}ms.`;
+    $("#fetch-status").innerText = status_text;
     $("#feed-preview").classList.remove("loading");
+  }
 
-    this.raw_feed_xml = text;
+  update_feed_error(error) {
+    if (error) {
+      $("#feed-error").classList.remove("hidden");
+      $("#feed-error-message").innerText = error;
+    } else {
+      $("#feed-error-message").innerText = "";
+      $("#feed-error").classList.add("hidden");
+    }
   }
 
   feed_request_param() {

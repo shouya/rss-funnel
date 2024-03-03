@@ -350,6 +350,26 @@ ul#filter-list {
   }
 }
 
+#feed-error {
+  flex: 1;
+
+  & + #feed-preview {
+    display: none;
+  }
+
+  &.hidden + #feed-preview {
+    display: block;
+  }
+
+  #feed-error-message {
+    padding: 0.5rem;
+    width: 100%;
+    margin-bottom: auto;
+    color: #721c24;
+    background-color: #f8d7da;
+  }
+}
+
 #feed-preview {
   /* enable scrolling */
   width: 100%;
