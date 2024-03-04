@@ -24,7 +24,7 @@ pub fn router() -> Router {
     .route("/_inspector/dist/*file", get(static_handler))
     .route("/_inspector/config", get(config_handler))
     .route("/_inspector/filter_schema", get(filter_schema_handler))
-    .route("/_inspector/json_preview", get(json_preview_handler))
+    .route("/_inspector/preview", get(preview_handler))
     .route(
       "/",
       get(|| async { Redirect::temporary("/_inspector/index.html") }),
@@ -104,14 +104,14 @@ async fn filter_schema_handler(
 }
 
 #[derive(serde::Deserialize)]
-struct JsonPreviewHandlerParams {
+struct PreviewHandlerParams {
   endpoint: String,
 }
 
-async fn json_preview_handler(
+async fn preview_handler(
   Extension(feed_service): Extension<FeedService>,
   endpoint_param: EndpointParam,
-  Query(params): Query<JsonPreviewHandlerParams>,
+  Query(params): Query<PreviewHandlerParams>,
 ) -> Result<impl IntoResponse, PreviewError> {
   let path = params.endpoint.trim_start_matches('/');
   let endpoint_service = feed_service.get_endpoint(path).await;
@@ -121,7 +121,12 @@ async fn json_preview_handler(
   };
 
   let feed = endpoint_service.run(endpoint_param).await?;
-  Ok(Json(feed))
+  let body = json!({
+    "content_type": feed.content_type(),
+    "content": feed.serialize(true),
+    "json": feed
+  });
+  Ok(Json(body))
 }
 
 #[derive(Debug, thiserror::Error)]
