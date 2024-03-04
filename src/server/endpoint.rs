@@ -294,12 +294,3 @@ impl EndpointService {
     Ok(self)
   }
 }
-
-fn deserialize_bool_in_query<'de, D>(de: D) -> Result<bool, D::Error>
-where
-  D: serde::Deserializer<'de>,
-{
-  let s = String::deserialize(de)?;
-  let b = s == "1" || s == "true";
-  Ok(b)
-}

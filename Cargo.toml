@@ -57,7 +57,6 @@ ego-tree = "0.6.2"
 readability = { version = "0.3.0", default-features = false }
 html5ever = "0.26.0"
 htmlescape = "0.3.1"
-xmlem = "0.2.3"
 
 # JS runtime crates
 rquickjs = { version = "0.5.1", features = ["loader", "parallel", "macro", "futures", "exports", "either"] }
