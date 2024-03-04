@@ -3,6 +3,7 @@ import { Filter } from "./Filter.js";
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { xml } from "@codemirror/lang-xml";
+import { json } from "@codemirror/lang-json";
 import Split from "split.js";
 import HtmlSanitizer from "jitbit-html-sanitizer";
 import JSONSchemaView from "json-schema-view-js";
@@ -15,13 +16,15 @@ export class FeedInspector {
     this.feed_error = null;
     this.filter_schema = null;
     this.current_endpoint = null;
-    this.current_preview = null;
     this.raw_editor = null;
-    this.raw_feed_xml = null;
+    this.raw_feed_content = null;
+    this.json_preview_editor = null;
+    this.json_preview_content = null;
   }
 
   async init() {
     this.setup_raw_editor();
+    this.setup_json_preview_editor();
     this.setup_splitter();
     this.setup_view_mode_selector();
     this.setup_reload_config_handler();
@@ -87,13 +90,9 @@ export class FeedInspector {
   }
 
   async setup_view_mode_selector() {
-    $("#view-mode-selector #rendered-radio").addEventListener("change", () => {
-      this.render_feed();
-    });
-
-    $("#view-mode-selector #raw-radio").addEventListener("change", () => {
-      this.render_feed();
-    });
+    for (const node of $$("#view-mode-selector .radio-button")) {
+      node.addEventListener("change", () => this.render_feed());
+    }
   }
 
   async setup_param() {
@@ -127,6 +126,18 @@ export class FeedInspector {
         EditorView.lineWrapping,
       ],
       parent: $("#feed-preview #raw"),
+    });
+  }
+
+  async setup_json_preview_editor() {
+    this.json_preview_editor = new EditorView({
+      extensions: [
+        basicSetup,
+        json(),
+        EditorState.readOnly.of(true),
+        EditorView.lineWrapping,
+      ],
+      parent: $("#feed-preview #json"),
     });
   }
 
@@ -210,16 +221,17 @@ export class FeedInspector {
     const view_mode =
       ($("#view-mode-selector #rendered-radio-input").checked && "rendered") ||
       ($("#view-mode-selector #raw-radio-input").checked && "raw") ||
+      ($("#view-mode-selector #json-radio-input").checked && "json") ||
       "rendered";
 
-    ["rendered", "raw"].forEach((mode) => {
+    ["rendered", "raw", "json"].forEach((mode) => {
       if (mode === view_mode) {
         $(`#feed-preview #${mode}`).classList.remove("hidden");
       } else {
         $(`#feed-preview #${mode}`).classList.add("hidden");
       }
 
-      const raw_feed_xml_xml = this.raw_feed_xml;
+      const raw_feed_xml_xml = this.raw_feed_content;
       const function_name = `render_feed_${mode}`;
       if (this[function_name]) {
         this[function_name](raw_feed_xml_xml);
@@ -265,6 +277,20 @@ export class FeedInspector {
         from: 0,
         to: this.raw_editor.state.doc.length,
         insert: raw_feed_xml_xml,
+      },
+    });
+  }
+
+  async render_feed_json(_unused) {
+    const json = JSON.stringify(this.json_preview_content, null, 2);
+    if (this.json_preview_editor.state.doc.toString() === json) {
+      return;
+    }
+    this.json_preview_editor.dispatch({
+      changes: {
+        from: 0,
+        to: this.json_preview_editor.state.doc.length,
+        insert: json,
       },
     });
   }
@@ -388,7 +414,11 @@ export class FeedInspector {
     const time_start = performance.now();
     const request_path = `${path}?${params}`;
     $("#fetch-status").innerText = `Fetching ${request_path}...`;
-    const resp = await fetch(`${path}?${params}`);
+
+    const [resp, json_preview_resp] = await Promise.all([
+      fetch(`${path}?${params}`),
+      fetch(`/_inspector/json_preview?endpoint=${path}&${params}&pp=1`),
+    ]);
     let status_text = "";
 
     if (resp.status != 200) {
@@ -398,10 +428,13 @@ export class FeedInspector {
     } else {
       this.update_feed_error(null);
       const text = await resp.text();
-      this.raw_feed_xml = text;
+      this.raw_feed_content = text;
       status_text = `Fetched ${request_path} `;
       status_text += `(content-type: ${resp.headers.get("content-type")})`;
     }
+
+    this.json_preview_content =
+      json_preview_resp.status === 200 && (await json_preview_resp.json());
 
     status_text += ` in ${performance.now() - time_start}ms.`;
     $("#fetch-status").innerText = status_text;
