@@ -74,6 +74,8 @@ impl Feed {
         }
       }
       Feed::Atom(feed) => {
+        let mut feed = feed.clone();
+        fix_escaping_in_extension_attr(&mut feed);
         let mut conf = atom_syndication::WriteConfig {
           indent_size: None,
           write_document_declaration: true,
