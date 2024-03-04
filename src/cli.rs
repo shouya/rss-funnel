@@ -42,9 +42,6 @@ struct TestConfig {
   /// Limit the number of items in the feed
   #[clap(long, short('n'))]
   limit_posts: Option<usize>,
-  /// Whether to compact the XML output (opposite of pretty-print)
-  #[clap(long, short)]
-  compact_output: bool,
   /// Don't print XML output (Useful for checking console.log in JS filters)
   #[clap(long, short)]
   quiet: bool,
@@ -59,7 +56,6 @@ impl TestConfig {
       self.source.as_ref().cloned(),
       self.limit_filters,
       self.limit_posts,
-      !self.compact_output,
       self.base.clone(),
     )
   }
@@ -119,12 +115,12 @@ async fn test_endpoint(feed_defn: RootConfig, test_config: &TestConfig) {
     .await
     .expect("failed to build endpoint service");
   let endpoint_param = test_config.to_endpoint_param();
-  let outcome = endpoint_service
+  let feed = endpoint_service
     .call(endpoint_param)
     .await
     .expect("failed to call endpoint service");
 
   if !test_config.quiet {
-    println!("{}", outcome.feed_xml());
+    println!("{}", feed.serialize(true).expect("failed serializing feed"));
   }
 }

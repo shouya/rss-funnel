@@ -12,13 +12,13 @@ use axum::RequestExt;
 use http::header::HOST;
 use http::request::Parts;
 use http::StatusCode;
-use mime::Mime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
+use crate::feed::Feed;
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
@@ -90,12 +90,6 @@ pub struct EndpointParam {
   /// Limit the number of items in the feed
   #[serde(default)]
   limit_posts: Option<usize>,
-  #[serde(
-    default,
-    alias = "pp",
-    deserialize_with = "deserialize_bool_in_query"
-  )]
-  pretty_print: bool,
   /// The url base of the feed, used for resolving relative urls
   #[serde(skip)]
   base: Option<Url>,
@@ -127,14 +121,12 @@ impl EndpointParam {
     source: Option<Url>,
     limit_filters: Option<usize>,
     limit_posts: Option<usize>,
-    pretty_print: bool,
     base: Option<Url>,
   ) -> Self {
     Self {
       source,
       limit_filters,
       limit_posts,
-      pretty_print,
       base,
     }
   }
@@ -158,47 +150,8 @@ impl EndpointParam {
   }
 }
 
-#[derive(Clone)]
-pub struct EndpointOutcome {
-  feed_xml: String,
-  content_type: Mime,
-}
-
-impl EndpointOutcome {
-  pub fn new(feed_xml: String, content_type: &str) -> Self {
-    let content_type = content_type.parse().expect("invalid content_type");
-
-    Self {
-      feed_xml,
-      content_type,
-    }
-  }
-
-  pub fn prettify(&mut self) {
-    if let Ok(xml) = self.feed_xml.parse::<xmlem::Document>() {
-      self.feed_xml = xml.to_string_pretty();
-    }
-  }
-
-  pub fn feed_xml(&self) -> &str {
-    &self.feed_xml
-  }
-}
-
-impl IntoResponse for EndpointOutcome {
-  fn into_response(self) -> axum::response::Response {
-    let mut resp = Response::new(Body::from(self.feed_xml));
-    resp.headers_mut().insert(
-      "content-type",
-      http::header::HeaderValue::from_str(self.content_type.as_ref())
-        .expect("invalid content_type"),
-    );
-    resp
-  }
-}
-
 impl Service<EndpointParam> for EndpointService {
-  type Response = EndpointOutcome;
+  type Response = Feed;
   type Error = Error;
   type Future =
     Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -275,10 +228,7 @@ impl EndpointService {
     })
   }
 
-  async fn call_internal(
-    self,
-    param: EndpointParam,
-  ) -> Result<EndpointOutcome> {
+  async fn call_internal(self, param: EndpointParam) -> Result<Feed> {
     let source = self.find_source(&param.source)?;
     let feed = source
       .fetch_feed(Some(&self.client), param.base.as_ref())
@@ -299,11 +249,7 @@ impl EndpointService {
       feed.set_posts(posts);
     }
 
-    let mut outcome = feed.into_outcome()?;
-    if param.pretty_print {
-      outcome.prettify();
-    }
-    Ok(outcome)
+    Ok(feed)
   }
 
   fn find_source(&self, param: &Option<Url>) -> Result<Source> {

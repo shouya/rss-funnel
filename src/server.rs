@@ -16,7 +16,7 @@ use crate::{
   cli::RootConfig,
   util::{ConfigError, Result},
 };
-pub use endpoint::{EndpointConfig, EndpointOutcome, EndpointParam};
+pub use endpoint::{EndpointConfig, EndpointParam};
 
 use self::feed_service::FeedService;
 
