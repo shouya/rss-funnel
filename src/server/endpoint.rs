@@ -6,14 +6,12 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
-use axum::Json;
 use axum_macros::FromRequestParts;
 use http::header::HOST;
 use http::StatusCode;
 use mime::Mime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use tower::Service;
 use url::Url;
 
@@ -89,8 +87,6 @@ pub struct EndpointParam {
   pretty_print: bool,
   /// The url base of the feed, used for resolving relative urls
   base: Option<Url>,
-  /// Include a json preview of the feed in the response
-  include_json_preview: bool,
 }
 
 impl EndpointParam {
@@ -100,7 +96,6 @@ impl EndpointParam {
     limit_posts: Option<usize>,
     pretty_print: bool,
     base: Option<Url>,
-    include_json_preview: bool,
   ) -> Self {
     Self {
       source,
@@ -108,7 +103,6 @@ impl EndpointParam {
       limit_posts,
       pretty_print,
       base,
-      include_json_preview,
     }
   }
 
@@ -119,7 +113,6 @@ impl EndpointParam {
       limit_posts: Self::parse_limit_posts(req),
       pretty_print: Self::parse_pretty_print(req),
       base: Self::get_base(req),
-      include_json_preview: Self::parse_include_json_preview(req),
     }
   }
 
@@ -137,12 +130,6 @@ impl EndpointParam {
 
   fn parse_pretty_print(req: &Request) -> bool {
     Self::get_query(req, "pp")
-      .map(|x| x == "1" || x == "true")
-      .unwrap_or(false)
-  }
-
-  fn parse_include_json_preview(req: &Request) -> bool {
-    Self::get_query(req, "include_json_preview")
       .map(|x| x == "1" || x == "true")
       .unwrap_or(false)
   }
@@ -176,9 +163,8 @@ impl EndpointParam {
 
 #[derive(Clone)]
 pub struct EndpointOutcome {
-  content: String,
+  feed_xml: String,
   content_type: Mime,
-  json_preview: Option<String>,
 }
 
 impl EndpointOutcome {
@@ -186,37 +172,31 @@ impl EndpointOutcome {
     let content_type = content_type.parse().expect("invalid content_type");
 
     Self {
-      content: feed_xml,
+      feed_xml,
       content_type,
-      json_preview: None,
     }
   }
 
   pub fn prettify(&mut self) {
-    if let Ok(xml) = self.content.parse::<xmlem::Document>() {
-      self.content = xml.to_string_pretty();
+    if let Ok(xml) = self.feed_xml.parse::<xmlem::Document>() {
+      self.feed_xml = xml.to_string_pretty();
     }
   }
 
   pub fn feed_xml(&self) -> &str {
-    &self.content
+    &self.feed_xml
   }
 }
 
 impl IntoResponse for EndpointOutcome {
   fn into_response(self) -> axum::response::Response {
-    match self.json_preview {
-      Some(json_preview) => Json(json!( {
-        "content": self.content,
-        "content_type": self.content_type.to_string(),
-        "json_preview": json_preview,
-      }))
-      .into_response(),
-      None => {
-        let headers = [("content-type", self.content_type.to_string())];
-        (StatusCode::OK, headers, self.content).into_response()
-      }
-    }
+    let mut resp = Response::new(Body::from(self.feed_xml));
+    resp.headers_mut().insert(
+      "content-type",
+      http::header::HeaderValue::from_str(self.content_type.as_ref())
+        .expect("invalid content_type"),
+    );
+    resp
   }
 }
 

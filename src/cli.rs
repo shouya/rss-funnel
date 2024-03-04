@@ -61,7 +61,6 @@ impl TestConfig {
       self.limit_posts,
       !self.compact_output,
       self.base.clone(),
-      false,
     )
   }
 }
