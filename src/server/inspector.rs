@@ -106,12 +106,11 @@ async fn filter_schema_handler(
 #[derive(serde::Deserialize)]
 struct JsonPreviewHandlerParams {
   endpoint: String,
-  #[serde(flatten)]
-  endpoint_params: EndpointParam,
 }
 
 async fn json_preview_handler(
   Extension(feed_service): Extension<FeedService>,
+  endpoint_param: EndpointParam,
   Query(params): Query<JsonPreviewHandlerParams>,
 ) -> Result<impl IntoResponse, PreviewError> {
   let path = params.endpoint.trim_start_matches('/');
@@ -121,7 +120,7 @@ async fn json_preview_handler(
     return Err(PreviewError(e));
   };
 
-  let feed = endpoint_service.run(params.endpoint_params).await?;
+  let feed = endpoint_service.run(endpoint_param).await?;
   Ok(Json(feed))
 }
 

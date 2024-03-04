@@ -1,4 +1,4 @@
-import { elt, $ } from "./util.js";
+import { elt, $, $$ } from "./util.js";
 import { Filter } from "./Filter.js";
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState } from "@codemirror/state";
@@ -90,7 +90,7 @@ export class FeedInspector {
   }
 
   async setup_view_mode_selector() {
-    for (const node of $$("#view-mode-selector .radio-button")) {
+    for (const node of $$("#view-mode-selector input")) {
       node.addEventListener("change", () => this.render_feed());
     }
   }
@@ -434,7 +434,7 @@ export class FeedInspector {
     }
 
     this.json_preview_content =
-      json_preview_resp.status === 200 && (await json_preview_resp.json());
+      json_preview_resp.status === 200 ? await json_preview_resp.json() : null;
 
     status_text += ` in ${performance.now() - time_start}ms.`;
     $("#fetch-status").innerText = status_text;
