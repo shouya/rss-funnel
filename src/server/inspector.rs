@@ -114,7 +114,8 @@ async fn json_preview_handler(
   Extension(feed_service): Extension<FeedService>,
   Query(params): Query<JsonPreviewHandlerParams>,
 ) -> Result<impl IntoResponse, PreviewError> {
-  let endpoint_service = feed_service.get_endpoint(&params.endpoint).await;
+  let path = params.endpoint.trim_start_matches('/');
+  let endpoint_service = feed_service.get_endpoint(path).await;
   let Some(endpoint_service) = endpoint_service else {
     let e = Error::EndpointNotFound(params.endpoint);
     return Err(PreviewError(e));
