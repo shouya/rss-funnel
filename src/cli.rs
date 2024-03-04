@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use clap::Parser;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tower::Service;
 use url::Url;
 
 use crate::{
@@ -110,13 +109,13 @@ async fn test_endpoint(feed_defn: RootConfig, test_config: &TestConfig) {
     );
     return;
   };
-  let mut endpoint_service = endpoint_conf
+  let endpoint_service = endpoint_conf
     .build()
     .await
     .expect("failed to build endpoint service");
   let endpoint_param = test_config.to_endpoint_param();
   let feed = endpoint_service
-    .call(endpoint_param)
+    .run(endpoint_param)
     .await
     .expect("failed to call endpoint service");
 

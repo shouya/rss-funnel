@@ -150,27 +150,6 @@ impl EndpointParam {
   }
 }
 
-impl Service<EndpointParam> for EndpointService {
-  type Response = Feed;
-  type Error = Error;
-  type Future =
-    Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
-
-  fn poll_ready(
-    &mut self,
-    _cx: &mut std::task::Context<'_>,
-  ) -> std::task::Poll<Result<(), Self::Error>> {
-    std::task::Poll::Ready(Ok(()))
-  }
-
-  fn call(&mut self, input: EndpointParam) -> Self::Future {
-    let req = input;
-    let this = self.clone();
-    let fut = async { this.call_internal(req).await };
-    Box::pin(fut)
-  }
-}
-
 impl Service<Request> for EndpointService {
   type Response = Response;
   type Error = Infallible;
@@ -182,22 +161,12 @@ impl Service<Request> for EndpointService {
     &mut self,
     _cx: &mut std::task::Context<'_>,
   ) -> std::task::Poll<Result<(), Self::Error>> {
-    Service::<EndpointParam>::poll_ready(self, _cx).map_err(|_| unreachable!())
+    std::task::Poll::Ready(Ok(()))
   }
 
-  fn call(&mut self, mut req: Request) -> Self::Future {
+  fn call(&mut self, req: Request) -> Self::Future {
     let this = self.clone();
-    let fut = async move {
-      let param = req.extract_parts().await.unwrap();
-      this.call_internal(param).await
-    };
-    let fut = async {
-      let err = |e: Error| {
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-      };
-      let resp = fut.await.map(|x| x.into_response()).unwrap_or_else(err);
-      Ok(resp)
-    };
+    let fut = async move { Ok(this.handle(req).await.into_response()) };
     Box::pin(fut)
   }
 }
@@ -208,6 +177,16 @@ impl EndpointService {
   pub fn with_client(mut self, client: Client) -> Self {
     self.client = Arc::new(client);
     self
+  }
+
+  async fn handle(self, mut req: Request) -> Result<Response, Response> {
+    // infallible
+    let param: EndpointParam = req.extract_parts().await.unwrap();
+    let feed = self.run(param).await.map_err(|e| {
+      (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+    })?;
+    let resp = feed.into_response();
+    Ok(resp)
   }
 
   pub async fn from_config(
@@ -228,7 +207,7 @@ impl EndpointService {
     })
   }
 
-  async fn call_internal(self, param: EndpointParam) -> Result<Feed> {
+  pub async fn run(self, param: EndpointParam) -> Result<Feed> {
     let source = self.find_source(&param.source)?;
     let feed = source
       .fetch_feed(Some(&self.client), param.base.as_ref())
