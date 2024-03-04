@@ -123,7 +123,7 @@ async fn preview_handler(
   let feed = endpoint_service.run(endpoint_param).await?;
   let body = json!({
     "content_type": feed.content_type(),
-    "content": feed.serialize(true),
+    "content": feed.serialize(true)?,
     "json": feed
   });
   Ok(Json(body))

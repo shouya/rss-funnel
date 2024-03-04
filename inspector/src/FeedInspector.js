@@ -462,11 +462,11 @@ export class FeedInspector {
       $("#limit-filters", parent).value;
 
     const params = [];
-    if (source) params.push(`source=${source}`);
+    if (!this.current_endpoint.source && source)
+      params.push(`source=${source}`);
     if (limit_posts) params.push(`limit_posts=${limit_posts}`);
     if (limit_filters) params.push(`limit_filters=${limit_filters}`);
 
-    params.push("pp=1");
     return params.join("&");
   }
 
