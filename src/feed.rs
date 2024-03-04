@@ -93,14 +93,6 @@ impl Feed {
     Ok(s)
   }
 
-  pub fn to_json(&self, pretty: bool) -> String {
-    if pretty {
-      serde_json::to_string_pretty(self).expect("failed to serialize feed")
-    } else {
-      serde_json::to_string(self).expect("failed to serialize feed")
-    }
-  }
-
   #[allow(clippy::field_reassign_with_default)]
   pub fn from_html_content(content: &str, url: &Url) -> Result<Self> {
     let item = Post::from_html_content(content, url)?;
