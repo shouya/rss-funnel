@@ -1,6 +1,3 @@
-// Disclaimer: A large part of this module was written using
-// generative AI.
-
 #![allow(clippy::field_reassign_with_default)]
 
 // Utility wrapper type to get around orphan rules for implementing
@@ -101,7 +98,7 @@ impl From<W<rss::Channel>> for atom_syndication::Feed {
       Category, FixedDateTime, Generator, Link, Person, Text,
     };
 
-    let parse_date = |s: &str| FixedDateTime::parse_from_rfc3339(s).ok();
+    let parse_date = |s: &str| FixedDateTime::parse_from_rfc2822(dbg!(s)).ok();
 
     let mut feed = Self::default();
 
@@ -111,8 +108,8 @@ impl From<W<rss::Channel>> for atom_syndication::Feed {
     // Updated - using last_build_date if available, otherwise pub_date
     feed.updated = channel
       .last_build_date
+      .or(channel.pub_date)
       .as_deref()
-      .or(channel.pub_date.as_deref())
       .and_then(parse_date)
       .unwrap_or_default();
 
@@ -173,11 +170,45 @@ impl From<W<rss::Channel>> for atom_syndication::Feed {
   }
 }
 
+impl From<W<atom_syndication::Feed>> for rss::Channel {
+  fn from(W(feed): W<atom_syndication::Feed>) -> Self {
+    let mut channel = Self::default();
+
+    channel.title = feed.title.as_str().to_owned();
+    channel.link = feed
+      .links
+      .into_iter()
+      .next()
+      .map_or_else(String::default, |l| l.href);
+    channel.description =
+      feed.subtitle.as_deref().unwrap_or_default().to_owned();
+    if feed.updated.timestamp() != 0 {
+      channel.last_build_date = Some(feed.updated.to_rfc2822());
+    }
+    channel.language = feed.lang;
+    channel.generator = feed.generator.map(|g| g.value);
+    channel.items = feed.entries.into_iter().map(W).map(Into::into).collect();
+    channel.extensions = W(feed.extensions).into();
+    channel.managing_editor = feed.authors.into_iter().next().map(|a| a.name);
+
+    channel.categories = feed
+      .categories
+      .into_iter()
+      .map(|c| rss::Category {
+        name: c.term,
+        ..Default::default()
+      })
+      .collect();
+
+    channel
+  }
+}
+
 impl From<W<rss::Item>> for atom_syndication::Entry {
   fn from(W(item): W<rss::Item>) -> Self {
     use atom_syndication::{Content, Entry, FixedDateTime, Link, Person, Text};
 
-    let parse_date = |s: &str| FixedDateTime::parse_from_rfc3339(s).ok();
+    let parse_date = |s: &str| FixedDateTime::parse_from_rfc2822(s).ok();
 
     let mut entry = Entry::default();
 
@@ -254,38 +285,5 @@ impl From<W<atom_syndication::Entry>> for rss::Item {
       .collect();
 
     item
-  }
-}
-
-impl From<W<atom_syndication::Feed>> for rss::Channel {
-  fn from(W(feed): W<atom_syndication::Feed>) -> Self {
-    let mut channel = Self::default();
-
-    channel.title = feed.title.as_str().to_owned();
-    channel.link = feed
-      .links
-      .into_iter()
-      .next()
-      .map_or_else(String::default, |l| l.href);
-    channel.description =
-      feed.subtitle.as_deref().unwrap_or_default().to_owned();
-    if feed.updated.timestamp() != 0 {
-      channel.last_build_date = Some(feed.updated.to_rfc2822());
-    }
-    channel.language = feed.lang;
-    channel.generator = feed.generator.map(|g| g.value);
-    channel.items = feed.entries.into_iter().map(W).map(Into::into).collect();
-    channel.extensions = W(feed.extensions).into();
-
-    channel.categories = feed
-      .categories
-      .into_iter()
-      .map(|c| rss::Category {
-        name: c.term,
-        ..Default::default()
-      })
-      .collect();
-
-    channel
   }
 }
