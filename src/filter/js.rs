@@ -167,7 +167,7 @@ mod tests {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: fixture:///scishow.xml
+      source: fixture:///youtube.xml
       filters:
         - js: |
             function modify_feed(feed) {
@@ -195,7 +195,7 @@ mod tests {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: fixture:///scishow.xml
+      source: fixture:///youtube.xml
       filters:
         - modify_post: post.title += " (modified)";
     "#;
@@ -212,7 +212,7 @@ mod tests {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: fixture:///scishow.xml
+      source: fixture:///youtube.xml
       filters:
         - modify_feed: feed.title.value = "Modified Feed";
     "#;

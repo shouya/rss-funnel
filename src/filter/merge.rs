@@ -147,10 +147,10 @@ mod test {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: fixture:///scishow.xml
+      source: fixture:///youtube.xml
       filters:
         - merge:
-            source: fixture:///scishow.xml
+            source: fixture:///youtube.xml
             filters:
               - js: |
                   function modify_post(feed, post) {
@@ -185,11 +185,11 @@ mod test {
     let config = r#"
       !endpoint
       path: /feed.xml
-      source: fixture:///scishow.xml
+      source: fixture:///youtube.xml
       filters:
       - merge:
-        - fixture:///scishow.xml
-        - fixture:///scishow.xml
+        - fixture:///youtube.xml
+        - fixture:///youtube.xml
     "#;
 
     let mut feed = fetch_endpoint(config, "").await;
