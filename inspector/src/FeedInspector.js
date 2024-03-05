@@ -213,7 +213,7 @@ export class FeedInspector {
   }
 
   async fetch_and_render_feed() {
-    await this.fetch_feed();
+    await this.fetch_feed_preview();
     this.render_feed();
   }
 
@@ -349,7 +349,7 @@ export class FeedInspector {
     $("#main-panel").classList.remove("hidden");
 
     // show feed preview
-    await this.fetch_feed();
+    await this.fetch_feed_preview();
     this.render_feed();
   }
 
@@ -404,7 +404,7 @@ export class FeedInspector {
     }
   }
 
-  async fetch_feed() {
+  async fetch_feed_preview() {
     if (!this.current_endpoint) return;
     const { path } = this.current_endpoint;
 
@@ -412,29 +412,22 @@ export class FeedInspector {
     $("#feed-preview").classList.add("loading");
 
     const time_start = performance.now();
-    const request_path = `${path}?${params}`;
-    $("#fetch-status").innerText = `Fetching ${request_path}...`;
+    $("#fetch-status").innerText = `Fetching preview for ${path}...`;
 
-    const [resp, json_preview_resp] = await Promise.all([
-      fetch(`${path}?${params}`),
-      fetch(`/_inspector/json_preview?endpoint=${path}&${params}&pp=1`),
-    ]);
+    const resp = await fetch(`/_inspector/preview?endpoint=${path}&${params}`);
     let status_text = "";
 
     if (resp.status != 200) {
-      status_text = `Failed fetching ${request_path}`;
+      status_text = `Failed fetching ${path}`;
       status_text += ` (status: ${resp.status} ${resp.statusText})`;
       this.update_feed_error(await resp.text());
     } else {
       this.update_feed_error(null);
-      const text = await resp.text();
-      this.raw_feed_content = text;
-      status_text = `Fetched ${request_path} `;
-      status_text += `(content-type: ${resp.headers.get("content-type")})`;
+      const preview = await resp.json();
+      this.raw_feed_content = preview.content;
+      this.json_preview_content = preview.json;
+      status_text = `Fetched ${path} (${preview.content_type})`;
     }
-
-    this.json_preview_content =
-      json_preview_resp.status === 200 ? await json_preview_resp.json() : null;
 
     status_text += ` in ${performance.now() - time_start}ms.`;
     $("#fetch-status").innerText = status_text;
