@@ -78,12 +78,8 @@ pub async fn fetch_endpoint(config: &str, query: &str) -> Feed {
   let body = axum::body::to_bytes(http_resp.into_body(), usize::MAX)
     .await
     .expect("failed to read body");
-  let body =
-    std::str::from_utf8(&body).expect("failed to decode body as utf-8");
 
-  Feed::from_rss_content(body)
-    .or_else(|_| Feed::from_atom_content(body))
-    .expect("failed to parse feed")
+  Feed::from_xml_content(&body).expect("failed to parse feed")
 }
 
 fn dummy_client() -> Client {
