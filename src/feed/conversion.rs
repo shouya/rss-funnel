@@ -1,4 +1,5 @@
 #![allow(clippy::field_reassign_with_default)]
+
 // Utility wrapper type to get around orphan rules for implementing
 // traits on foreign types.
 pub(super) struct W<T>(pub T);
@@ -23,7 +24,7 @@ impl From<W<rss::extension::Extension>>
       .map(|(k, v)| (k, v.into_iter().map(|e| W(e).into()).collect()))
       .collect();
 
-    atom_syndication::extension::Extension {
+    Self {
       name,
       value,
       attrs,
@@ -45,10 +46,10 @@ impl From<W<atom_syndication::extension::Extension>>
 
     let children = children
       .into_iter()
-      .map(|(k, v)| (k, v.into_iter().map(|e| W(e).into()).collect()))
+      .map(|(k, v)| (k, v.into_iter().map(W).map(Into::into).collect()))
       .collect();
 
-    rss::extension::Extension {
+    Self {
       name,
       value,
       attrs,
@@ -66,7 +67,7 @@ impl From<W<atom_syndication::extension::ExtensionMap>>
       .map(|(k, v)| {
         let v = v
           .into_iter()
-          .map(|(k, v)| (k, v.into_iter().map(|e| W(e).into()).collect()))
+          .map(|(k, v)| (k, v.into_iter().map(W).map(Into::into).collect()))
           .collect();
         (k, v)
       })
@@ -83,7 +84,7 @@ impl From<W<rss::extension::ExtensionMap>>
       .map(|(k, v)| {
         let v = v
           .into_iter()
-          .map(|(k, v)| (k, v.into_iter().map(|e| W(e).into()).collect()))
+          .map(|(k, v)| (k, v.into_iter().map(W).map(Into::into).collect()))
           .collect();
         (k, v)
       })
@@ -93,12 +94,14 @@ impl From<W<rss::extension::ExtensionMap>>
 
 impl From<W<rss::Channel>> for atom_syndication::Feed {
   fn from(W(channel): W<rss::Channel>) -> Self {
-    use atom_syndication::{Category, FixedDateTime, Generator, Link, Person};
+    use atom_syndication::{
+      Category, FixedDateTime, Generator, Link, Person, Text,
+    };
+
     let parse_date = |s: &str| FixedDateTime::parse_from_rfc3339(s).ok();
 
-    let mut feed = atom_syndication::Feed::default();
+    let mut feed = Self::default();
 
-    // Title and ID already set
     feed.title = channel.title.into();
     feed.id = channel.link.clone();
 
@@ -112,50 +115,56 @@ impl From<W<rss::Channel>> for atom_syndication::Feed {
 
     // Authors - Assuming managing_editor as the author if available
     if let Some(editor) = channel.managing_editor {
-      let mut person = Person::default();
-      person.name = editor;
+      let person = Person {
+        name: editor,
+        ..Default::default()
+      };
       feed.authors.push(person);
     }
 
     // Links - Primary link to the channel's website
-    let mut link = Link::default();
-    link.href = channel.link;
+    let link = Link {
+      href: channel.link,
+      ..Default::default()
+    };
     feed.links.push(link);
 
     // Categories
-    for category in channel.categories {
-      let mut cat = Category::default();
-      cat.term = category.name;
-      feed.categories.push(cat);
-    }
+    feed.categories = channel
+      .categories
+      .into_iter()
+      .map(|category| Category {
+        term: category.name,
+        ..Default::default()
+      })
+      .collect();
 
     // Generator - Assuming it's a simple string without version or uri
-    if let Some(generator_str) = channel.generator {
-      let generator = Generator {
-        value: generator_str,
-        version: None,
-        uri: None,
-      };
-      feed.generator = Some(generator);
-    }
+    feed.generator = channel.generator.map(|value| Generator {
+      value,
+      ..Default::default()
+    });
 
     // Language as lang
     feed.lang = channel.language;
 
     // Subtitle as a description
-    if !channel.description.is_empty() {
-      feed.subtitle = Some(channel.description.into());
+    feed.subtitle = Some(channel.description.into());
+
+    // Rights
+    feed.rights = channel.copyright.as_deref().map(Text::from);
+
+    // Image and logo
+    if let Some(image) = channel.image {
+      feed.icon = Some(image.url.clone());
+      feed.logo = Some(image.url);
     }
 
+    // Extensions
     feed.extensions = W(channel.extensions).into();
 
     // Entries
-    feed.entries = channel
-      .items
-      .into_iter()
-      .map(W)
-      .map(atom_syndication::Entry::from)
-      .collect();
+    feed.entries = channel.items.into_iter().map(W).map(Into::into).collect();
 
     feed
   }
@@ -170,7 +179,11 @@ impl From<W<rss::Item>> for atom_syndication::Entry {
     let mut entry = Entry::default();
 
     entry.title = item.title.map_or_else(Text::default, |t| t.into());
-    entry.id = item.guid.map_or_else(String::default, |g| g.value);
+    entry.id = item
+      .guid
+      .map(|g| g.value)
+      .or_else(|| item.link.clone())
+      .unwrap_or_default();
 
     if let Some(pub_date) = item.pub_date.as_deref().and_then(parse_date) {
       entry.updated = pub_date;
@@ -191,9 +204,9 @@ impl From<W<rss::Item>> for atom_syndication::Entry {
       entry.categories.push(category);
     });
 
-    if let Some(link) = item.link.as_ref() {
+    if let Some(link) = item.link {
       let mut atom_link = Link::default();
-      atom_link.href = link.clone();
+      atom_link.href = link;
       entry.links.push(atom_link);
     }
 
@@ -215,10 +228,10 @@ impl From<W<atom_syndication::Entry>> for rss::Item {
   fn from(W(entry): W<atom_syndication::Entry>) -> Self {
     let mut item = rss::Item::default();
 
-    item.title = Some(entry.title.as_str().to_owned());
-    item.link = entry.links.first().map(|l| l.href.clone());
-    item.description = entry.summary.map(|s| s.as_str().to_owned());
-    item.author = entry.authors.first().map(|a| a.name.clone());
+    item.title = Some(entry.title.value);
+    item.link = entry.links.into_iter().next().map(|l| l.href);
+    item.description = entry.summary.map(|s| s.value);
+    item.author = entry.authors.into_iter().next().map(|a| a.name);
     item.pub_date = entry.published.map(|d| d.to_rfc2822());
     item.guid = Some(rss::Guid {
       value: entry.id,
@@ -233,7 +246,7 @@ impl From<W<atom_syndication::Entry>> for rss::Item {
       .into_iter()
       .map(|c| rss::Category {
         name: c.term,
-        domain: None,
+        ..Default::default()
       })
       .collect();
 
@@ -243,27 +256,22 @@ impl From<W<atom_syndication::Entry>> for rss::Item {
 
 impl From<W<atom_syndication::Feed>> for rss::Channel {
   fn from(W(feed): W<atom_syndication::Feed>) -> Self {
-    let mut channel = rss::Channel::default();
+    let mut channel = Self::default();
 
     channel.title = feed.title.as_str().to_owned();
     channel.link = feed
       .links
-      .first()
-      .map_or(String::default(), |l| l.href.clone());
-    channel.description = feed
-      .subtitle
-      .map_or(String::default(), |s| s.as_str().to_owned());
-    channel.last_build_date = Some(feed.updated.to_rfc2822());
+      .into_iter()
+      .next()
+      .map_or_else(String::default, |l| l.href);
+    channel.description =
+      feed.subtitle.as_deref().unwrap_or_default().to_owned();
+    if feed.updated.timestamp() != 0 {
+      channel.last_build_date = Some(feed.updated.to_rfc2822());
+    }
     channel.language = feed.lang;
     channel.generator = feed.generator.map(|g| g.value);
-
-    channel.items = feed
-      .entries
-      .into_iter()
-      .map(W)
-      .map(rss::Item::from)
-      .collect();
-
+    channel.items = feed.entries.into_iter().map(W).map(Into::into).collect();
     channel.extensions = W(feed.extensions).into();
 
     channel.categories = feed
@@ -271,7 +279,7 @@ impl From<W<atom_syndication::Feed>> for rss::Channel {
       .into_iter()
       .map(|c| rss::Category {
         name: c.term,
-        domain: None,
+        ..Default::default()
       })
       .collect();
 
