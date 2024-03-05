@@ -91,6 +91,9 @@ pub enum Error {
   #[error("Endpoint not found {0}")]
   EndpointNotFound(String),
 
+  #[error("Unsupported feed format {0}")]
+  UnsupportedFeedFormat(String),
+
   #[error("{0}")]
   Message(String),
 }
