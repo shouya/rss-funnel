@@ -1,5 +1,5 @@
-mod full_text;
 mod convert;
+mod full_text;
 mod highlight;
 mod html;
 mod js;
@@ -187,4 +187,5 @@ define_filters!(
   Highlight => highlight::HighlightConfig, "Highlight text or pattern";
   Merge => merge::MergeConfig, "Merge extra feed into the main feed";
   Note => note::NoteFilterConfig, "Add non-functional comment";
+  ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
 );

@@ -13,11 +13,11 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 )]
 #[serde(transparent)]
 /// Convert feed to another format
-struct ConvertToConfig {
+pub struct ConvertToConfig {
   format: FeedFormat,
 }
 
-struct ConvertTo {
+pub struct ConvertTo {
   format: FeedFormat,
 }
 
