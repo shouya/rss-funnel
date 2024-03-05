@@ -95,20 +95,21 @@ impl FeedService {
     true
   }
 
+  pub async fn get_endpoint(&self, path: &str) -> Option<EndpointService> {
+    let inner = self.inner.read().await;
+    inner.endpoints.get(path).cloned()
+  }
+
   pub async fn handler(
     Path(path): Path<String>,
     Extension(service): Extension<FeedService>,
     request: Request,
   ) -> Response {
-    let inner = service.inner.read().await;
-    match inner.endpoints.get(&path) {
-      Some(endpoint) => {
-        let mut endpoint = endpoint.clone();
-        endpoint
-          .call(request)
-          .await
-          .expect("infallible endpoint call failed")
-      }
+    match service.get_endpoint(&path).await {
+      Some(mut endpoint) => endpoint
+        .call(request)
+        .await
+        .expect("infallible endpoint call failed"),
       _ => (
         StatusCode::NOT_FOUND,
         format!("endpoint not defined: /{path}"),

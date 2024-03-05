@@ -88,6 +88,9 @@ pub enum Error {
   #[error("Tokio task join error {0}")]
   Join(#[from] tokio::task::JoinError),
 
+  #[error("Endpoint not found {0}")]
+  EndpointNotFound(String),
+
   #[error("{0}")]
   Message(String),
 }

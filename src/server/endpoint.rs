@@ -4,18 +4,21 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use axum::body::Body;
+use axum::extract::{FromRequestParts, Query};
 use axum::response::IntoResponse;
-use axum_macros::FromRequestParts;
+use axum::RequestExt;
 use http::header::HOST;
+use http::request::Parts;
 use http::StatusCode;
-use mime::Mime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
+use crate::feed::Feed;
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{Source, SourceConfig};
@@ -77,16 +80,39 @@ pub struct EndpointService {
   client: Arc<Client>,
 }
 
-#[derive(Clone, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct EndpointParam {
+  #[serde(default)]
   source: Option<Url>,
   /// Only process the initial N filter steps
+  #[serde(default)]
   limit_filters: Option<usize>,
   /// Limit the number of items in the feed
+  #[serde(default)]
   limit_posts: Option<usize>,
-  pretty_print: bool,
   /// The url base of the feed, used for resolving relative urls
+  #[serde(skip)]
   base: Option<Url>,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for EndpointParam
+where
+  S: Send + Sync,
+{
+  type Rejection = Infallible;
+
+  async fn from_request_parts(
+    parts: &mut Parts,
+    state: &S,
+  ) -> Result<Self, Self::Rejection> {
+    let Query(mut param) = Query::<Self>::from_request_parts(parts, state)
+      .await
+      .unwrap_or_default();
+
+    param.base = Self::get_base(parts);
+    Ok(param)
+  }
 }
 
 impl EndpointParam {
@@ -94,55 +120,25 @@ impl EndpointParam {
     source: Option<Url>,
     limit_filters: Option<usize>,
     limit_posts: Option<usize>,
-    pretty_print: bool,
     base: Option<Url>,
   ) -> Self {
     Self {
       source,
       limit_filters,
       limit_posts,
-      pretty_print,
       base,
     }
   }
 
-  fn from_request(req: &Request) -> Self {
-    Self {
-      source: Self::parse_source(req),
-      limit_filters: Self::parse_limit_filters(req),
-      limit_posts: Self::parse_limit_posts(req),
-      pretty_print: Self::parse_pretty_print(req),
-      base: Self::get_base(req),
-    }
-  }
-
-  fn parse_source(req: &Request) -> Option<Url> {
-    Self::get_query(req, "source").and_then(|x| Url::parse(&x).ok())
-  }
-
-  fn parse_limit_filters(req: &Request) -> Option<usize> {
-    Self::get_query(req, "limit_filters").and_then(|x| x.parse::<usize>().ok())
-  }
-
-  fn parse_limit_posts(req: &Request) -> Option<usize> {
-    Self::get_query(req, "limit_posts").and_then(|x| x.parse::<usize>().ok())
-  }
-
-  fn parse_pretty_print(req: &Request) -> bool {
-    Self::get_query(req, "pp")
-      .map(|x| x == "1" || x == "true")
-      .unwrap_or(false)
-  }
-
-  fn get_base(req: &Request) -> Option<Url> {
+  fn get_base(req: &Parts) -> Option<Url> {
     let host = req
-      .headers()
+      .headers
       .get("X-Forwarded-Host")
-      .or_else(|| req.headers().get(HOST))
+      .or_else(|| req.headers.get(HOST))
       .and_then(|x| x.to_str().ok())?;
 
     let proto = req
-      .headers()
+      .headers
       .get("X-Forwarded-Proto")
       .and_then(|x| x.to_str().ok())
       .unwrap_or("http");
@@ -150,74 +146,6 @@ impl EndpointParam {
     let base = format!("{proto}://{host}/");
     let base = base.parse().ok()?;
     Some(base)
-  }
-
-  fn get_query(req: &Request, name: &str) -> Option<String> {
-    let url = Url::parse(&format!("http://placeholder{}", &req.uri())).ok()?;
-    url
-      .query_pairs()
-      .find_map(|(k, v)| (k == name).then_some(v))
-      .map(|x| x.to_string())
-  }
-}
-
-#[derive(Clone)]
-pub struct EndpointOutcome {
-  feed_xml: String,
-  content_type: Mime,
-}
-
-impl EndpointOutcome {
-  pub fn new(feed_xml: String, content_type: &str) -> Self {
-    let content_type = content_type.parse().expect("invalid content_type");
-
-    Self {
-      feed_xml,
-      content_type,
-    }
-  }
-
-  pub fn prettify(&mut self) {
-    if let Ok(xml) = self.feed_xml.parse::<xmlem::Document>() {
-      self.feed_xml = xml.to_string_pretty();
-    }
-  }
-
-  pub fn feed_xml(&self) -> &str {
-    &self.feed_xml
-  }
-}
-
-impl IntoResponse for EndpointOutcome {
-  fn into_response(self) -> axum::response::Response {
-    let mut resp = Response::new(Body::from(self.feed_xml));
-    resp.headers_mut().insert(
-      "content-type",
-      http::header::HeaderValue::from_str(self.content_type.as_ref())
-        .expect("invalid content_type"),
-    );
-    resp
-  }
-}
-
-impl Service<EndpointParam> for EndpointService {
-  type Response = EndpointOutcome;
-  type Error = Error;
-  type Future =
-    Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
-
-  fn poll_ready(
-    &mut self,
-    _cx: &mut std::task::Context<'_>,
-  ) -> std::task::Poll<Result<(), Self::Error>> {
-    std::task::Poll::Ready(Ok(()))
-  }
-
-  fn call(&mut self, input: EndpointParam) -> Self::Future {
-    let req = input;
-    let this = self.clone();
-    let fut = async { this.call_internal(req).await };
-    Box::pin(fut)
   }
 }
 
@@ -232,20 +160,12 @@ impl Service<Request> for EndpointService {
     &mut self,
     _cx: &mut std::task::Context<'_>,
   ) -> std::task::Poll<Result<(), Self::Error>> {
-    Service::<EndpointParam>::poll_ready(self, _cx).map_err(|_| unreachable!())
+    std::task::Poll::Ready(Ok(()))
   }
 
   fn call(&mut self, req: Request) -> Self::Future {
     let this = self.clone();
-    let param = EndpointParam::from_request(&req);
-    let fut = async { this.call_internal(param).await };
-    let fut = async {
-      let err = |e: Error| {
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-      };
-      let resp = fut.await.map(|x| x.into_response()).unwrap_or_else(err);
-      Ok(resp)
-    };
+    let fut = async move { Ok(this.handle(req).await.into_response()) };
     Box::pin(fut)
   }
 }
@@ -256,6 +176,16 @@ impl EndpointService {
   pub fn with_client(mut self, client: Client) -> Self {
     self.client = Arc::new(client);
     self
+  }
+
+  async fn handle(self, mut req: Request) -> Result<Response, Response> {
+    // infallible
+    let param: EndpointParam = req.extract_parts().await.unwrap();
+    let feed = self.run(param).await.map_err(|e| {
+      (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+    })?;
+    let resp = feed.into_response();
+    Ok(resp)
   }
 
   pub async fn from_config(
@@ -276,10 +206,7 @@ impl EndpointService {
     })
   }
 
-  async fn call_internal(
-    self,
-    param: EndpointParam,
-  ) -> Result<EndpointOutcome> {
+  pub async fn run(self, param: EndpointParam) -> Result<Feed> {
     let source = self.find_source(&param.source)?;
     let feed = source
       .fetch_feed(Some(&self.client), param.base.as_ref())
@@ -300,11 +227,7 @@ impl EndpointService {
       feed.set_posts(posts);
     }
 
-    let mut outcome = feed.into_outcome()?;
-    if param.pretty_print {
-      outcome.prettify();
-    }
-    Ok(outcome)
+    Ok(feed)
   }
 
   fn find_source(&self, param: &Option<Url>) -> Result<Source> {
@@ -349,8 +272,3 @@ impl EndpointService {
     Ok(self)
   }
 }
-
-// Add more fields depending on what you need from the request in the
-// filters.
-#[derive(Default, FromRequestParts)]
-pub struct RequestContext {}

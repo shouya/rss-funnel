@@ -6,7 +6,6 @@ use url::Url;
 
 use crate::html::convert_relative_url;
 use crate::html::html_body;
-use crate::server::EndpointOutcome;
 use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
@@ -56,6 +55,44 @@ impl Feed {
       .or_else(|_| Feed::from_atom_content(content))
   }
 
+  pub fn content_type(&self) -> &'static str {
+    match self {
+      Feed::Rss(_) => "application/rss+xml",
+      Feed::Atom(_) => "application/atom+xml",
+    }
+  }
+
+  pub fn serialize(&self, pretty: bool) -> Result<String> {
+    let mut buffer = vec![];
+
+    match self {
+      Feed::Rss(channel) => {
+        if pretty {
+          channel.pretty_write_to(&mut buffer, b' ', 2)?;
+        } else {
+          channel.write_to(&mut buffer)?;
+        }
+      }
+      Feed::Atom(feed) => {
+        let mut feed = feed.clone();
+        fix_escaping_in_extension_attr(&mut feed);
+        let mut conf = atom_syndication::WriteConfig {
+          indent_size: None,
+          write_document_declaration: true,
+        };
+
+        if pretty {
+          conf.indent_size = Some(2);
+        }
+
+        feed.write_with_config(&mut buffer, conf)?;
+      }
+    };
+
+    let s = String::from_utf8_lossy(&buffer).into_owned();
+    Ok(s)
+  }
+
   #[allow(clippy::field_reassign_with_default)]
   pub fn from_html_content(content: &str, url: &Url) -> Result<Self> {
     let item = Post::from_html_content(content, url)?;
@@ -68,20 +105,6 @@ impl Feed {
     feed.set_posts(vec![item]);
 
     Ok(feed)
-  }
-
-  pub fn into_outcome(self) -> Result<EndpointOutcome> {
-    match self {
-      Feed::Rss(channel) => {
-        let body = channel.to_string();
-        Ok(EndpointOutcome::new(body, "application/rss+xml"))
-      }
-      Feed::Atom(mut feed) => {
-        fix_escaping_in_extension_attr(&mut feed);
-        let body = feed.to_string();
-        Ok(EndpointOutcome::new(body, "application/atom+xml"))
-      }
-    }
   }
 
   pub fn take_posts(&mut self) -> Vec<Post> {
@@ -479,4 +502,14 @@ fn rss_item_timestamp(item: &rss::Item) -> Option<i64> {
   };
 
   Some(date.timestamp())
+}
+
+impl axum::response::IntoResponse for Feed {
+  fn into_response(self) -> axum::response::Response {
+    let content = self.serialize(true).expect("failed serializing feed");
+    let content_type = self.content_type();
+    let headers = [("content-type", content_type)];
+
+    (http::StatusCode::OK, headers, content).into_response()
+  }
 }

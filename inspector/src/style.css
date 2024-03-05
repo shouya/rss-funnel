@@ -209,7 +209,8 @@ ul#filter-list {
       }
       pre.js-code {
         /* allow wrapping in js code */
-        white-space: normal;
+        white-space: pre-wrap;
+        word-wrap: break-word;
       }
 
       ul {

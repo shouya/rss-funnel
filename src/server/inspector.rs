@@ -12,6 +12,7 @@ use crate::filter::FilterConfig;
 use crate::util::Error;
 
 use super::feed_service::FeedService;
+use super::EndpointParam;
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "inspector/dist/"]
@@ -23,6 +24,7 @@ pub fn router() -> Router {
     .route("/_inspector/dist/*file", get(static_handler))
     .route("/_inspector/config", get(config_handler))
     .route("/_inspector/filter_schema", get(filter_schema_handler))
+    .route("/_inspector/preview", get(preview_handler))
     .route(
       "/",
       get(|| async { Redirect::temporary("/_inspector/index.html") }),
@@ -99,6 +101,32 @@ async fn filter_schema_handler(
     schemas.insert(filter.to_string(), schema);
   }
   Ok(Json(schemas))
+}
+
+#[derive(serde::Deserialize)]
+struct PreviewHandlerParams {
+  endpoint: String,
+}
+
+async fn preview_handler(
+  Extension(feed_service): Extension<FeedService>,
+  endpoint_param: EndpointParam,
+  Query(params): Query<PreviewHandlerParams>,
+) -> Result<impl IntoResponse, PreviewError> {
+  let path = params.endpoint.trim_start_matches('/');
+  let endpoint_service = feed_service.get_endpoint(path).await;
+  let Some(endpoint_service) = endpoint_service else {
+    let e = Error::EndpointNotFound(params.endpoint);
+    return Err(PreviewError(e));
+  };
+
+  let feed = endpoint_service.run(endpoint_param).await?;
+  let body = json!({
+    "content_type": feed.content_type(),
+    "content": feed.serialize(true)?,
+    "json": feed
+  });
+  Ok(Json(body))
 }
 
 #[derive(Debug, thiserror::Error)]
