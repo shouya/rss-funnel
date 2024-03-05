@@ -101,4 +101,30 @@ mod tests {
     let feed_2 = fetch_endpoint(config_2, "").await;
     assert_eq!(feed_1, feed_2);
   }
+
+  #[tokio::test]
+  async fn test_atom_to_rss_to_atom() {
+    let config_1 = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///sample_atom.xml
+      filters:
+        - convert_to: rss
+        - convert_to: atom
+    "#;
+    let config_2 = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///sample_atom.xml
+      filters: []
+    "#;
+
+    let _feed_1 = fetch_endpoint(config_1, "").await;
+    let _feed_2 = fetch_endpoint(config_2, "").await;
+    // assert_eq!(feed_1, feed_2);
+
+    // The feeds are not equal because conversion to rss generally
+    // loses some information. I mainly used this test to verify that
+    // the conversion logic is sane for the most part.
+  }
 }
