@@ -1,3 +1,6 @@
+// Disclaimer: A large part of this module was written using
+// generative AI.
+
 #![allow(clippy::field_reassign_with_default)]
 
 // Utility wrapper type to get around orphan rules for implementing
