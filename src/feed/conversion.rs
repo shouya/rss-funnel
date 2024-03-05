@@ -98,7 +98,7 @@ impl From<W<rss::Channel>> for atom_syndication::Feed {
       Category, FixedDateTime, Generator, Link, Person, Text,
     };
 
-    let parse_date = |s: &str| FixedDateTime::parse_from_rfc2822(dbg!(s)).ok();
+    let parse_date = |s: &str| FixedDateTime::parse_from_rfc2822(s).ok();
 
     let mut feed = Self::default();
 
