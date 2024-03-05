@@ -160,14 +160,13 @@ impl Client {
       .error_for_status()?;
 
     let content_type = resp.content_type().map(|x| x.essence_str().to_owned());
-    let content = resp.text()?;
 
     let feed = match content_type.as_deref() {
-      Some("text/html") => Feed::from_html_content(&content, source)?,
-      Some("application/rss+xml") => Feed::from_rss_content(&content)?,
-      Some("application/atom+xml") => Feed::from_atom_content(&content)?,
+      Some("text/html") => Feed::from_html_content(&resp.text()?, source)?,
+      Some("application/rss+xml") => Feed::from_rss_content(resp.body())?,
+      Some("application/atom+xml") => Feed::from_atom_content(resp.body())?,
       Some("application/xml") | Some("text/xml") => {
-        Feed::from_xml_content(&content)?
+        Feed::from_xml_content(resp.body())?
       }
       x => todo!("{:?}", x),
     };

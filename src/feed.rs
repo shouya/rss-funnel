@@ -38,19 +38,19 @@ impl Feed {
     }
   }
 
-  pub fn from_rss_content(content: &str) -> Result<Self> {
+  pub fn from_rss_content(content: &[u8]) -> Result<Self> {
     let cursor = std::io::Cursor::new(content);
     let channel = rss::Channel::read_from(cursor)?;
     Ok(Feed::Rss(channel))
   }
 
-  pub fn from_atom_content(content: &str) -> Result<Self> {
+  pub fn from_atom_content(content: &[u8]) -> Result<Self> {
     let cursor = std::io::Cursor::new(content);
     let feed = atom_syndication::Feed::read_from(cursor)?;
     Ok(Feed::Atom(feed))
   }
 
-  pub fn from_xml_content(content: &str) -> Result<Self> {
+  pub fn from_xml_content(content: &[u8]) -> Result<Self> {
     Feed::from_rss_content(content)
       .or_else(|_| Feed::from_atom_content(content))
   }
