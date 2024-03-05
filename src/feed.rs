@@ -1,3 +1,5 @@
+mod conversion;
+
 use paste::paste;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -29,12 +31,30 @@ pub enum FeedFormat {
 }
 
 impl Feed {
-  // currently only used in tests.
-  #[cfg(test)]
   pub fn format(&self) -> FeedFormat {
     match self {
       Feed::Rss(_) => FeedFormat::Rss,
       Feed::Atom(_) => FeedFormat::Atom,
+    }
+  }
+
+  pub fn into_format(self, format: FeedFormat) -> Self {
+    use conversion::W;
+
+    if self.format() == format {
+      return self;
+    }
+
+    match (self, format) {
+      (Feed::Rss(channel), FeedFormat::Atom) => {
+        let feed: atom_syndication::Feed = W(channel).into();
+        Feed::Atom(feed)
+      }
+      (Feed::Atom(feed), FeedFormat::Rss) => {
+        let channel: rss::Channel = W(feed).into();
+        Feed::Rss(channel)
+      }
+      (original_self, _) => original_self,
     }
   }
 
