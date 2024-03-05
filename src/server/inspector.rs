@@ -75,7 +75,7 @@ async fn config_handler(
   Extension(feed_service): Extension<FeedService>,
 ) -> impl IntoResponse {
   let json = json!({
-    "config_error": feed_service.error(|e| e.to_string()).await,
+    "config_error": feed_service.with_error(|e| e.to_string()).await,
     "root_config": feed_service.root_config().await,
   });
   Json(json)
