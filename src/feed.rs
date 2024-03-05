@@ -12,7 +12,7 @@ use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Feed {
   Rss(rss::Channel),
@@ -206,6 +206,30 @@ impl Feed {
           .entries
           .sort_unstable_by_key(|entry| Reverse(entry.updated));
       }
+    }
+  }
+}
+
+#[cfg(test)]
+impl TryFrom<Feed> for rss::Channel {
+  type Error = ();
+
+  fn try_from(feed: Feed) -> Result<Self, Self::Error> {
+    match feed {
+      Feed::Rss(channel) => Ok(channel),
+      _ => Err(()),
+    }
+  }
+}
+
+#[cfg(test)]
+impl TryFrom<Feed> for atom_syndication::Feed {
+  type Error = ();
+
+  fn try_from(feed: Feed) -> Result<Self, Self::Error> {
+    match feed {
+      Feed::Atom(feed) => Ok(feed),
+      _ => Err(()),
     }
   }
 }
