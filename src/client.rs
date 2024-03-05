@@ -9,7 +9,7 @@ use url::Url;
 
 use crate::{
   feed::Feed,
-  util::{ConfigError, Result},
+  util::{ConfigError, Error, Result},
 };
 
 use self::cache::{Response, ResponseCache};
@@ -168,7 +168,8 @@ impl Client {
       Some("application/xml") | Some("text/xml") => {
         Feed::from_xml_content(resp.body())?
       }
-      x => todo!("{:?}", x),
+      Some(format) => Err(Error::UnsupportedFeedFormat(format.into()))?,
+      None => Feed::from_xml_content(resp.body())?,
     };
 
     Ok(feed)
