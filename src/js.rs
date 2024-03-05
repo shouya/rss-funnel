@@ -1,5 +1,6 @@
 mod builtin;
 mod dom;
+mod fetch;
 
 use std::fs;
 use std::path::PathBuf;
@@ -19,6 +20,7 @@ pub struct Runtime {
   context: rquickjs::Context,
 }
 
+#[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AsJson<T>(pub T);
 
 impl<'js, T> IntoJs<'js> for AsJson<T>

@@ -1,6 +1,11 @@
-use rquickjs::{class::Trace, Class, Ctx};
+use rquickjs::{
+  class::Trace,
+  function::{Async, Func},
+  Class, Ctx,
+};
 
 use super::dom::{Node, DOM};
+use super::fetch::fetch;
 use crate::util::Result;
 
 pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
@@ -14,6 +19,9 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
   ctx
     .globals()
     .set("util", Class::instance(ctx.clone(), Util {})?)?;
+
+  let fetch_fn = Func::new(Async(fetch));
+  ctx.globals().set("fetch", fetch_fn)?;
 
   Ok(())
 }
