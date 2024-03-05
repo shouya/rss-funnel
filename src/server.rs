@@ -74,7 +74,7 @@ impl ServerConfig {
         info!("config updated, reloading service");
         if !feed_service_clone.reload(&config_path_clone).await {
           feed_service_clone
-            .error(|e| {
+            .with_error(|e| {
               warn!("failed to reload config: {}", e);
             })
             .await;

@@ -47,12 +47,12 @@ impl FeedService {
     })
   }
 
-  pub async fn error<R>(
+  pub async fn with_error<R>(
     &self,
-    callback: impl FnOnce(&ConfigError) -> R,
+    f: impl FnOnce(&ConfigError) -> R,
   ) -> Option<R> {
     let inner = self.inner.read().await;
-    inner.config_error.as_ref().map(callback)
+    inner.config_error.as_ref().map(f)
   }
 
   pub async fn root_config(&self) -> Arc<RootConfig> {

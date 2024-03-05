@@ -1,3 +1,5 @@
+mod conversion;
+
 use paste::paste;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -10,7 +12,7 @@ use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Feed {
   Rss(rss::Channel),
@@ -18,7 +20,7 @@ pub enum Feed {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Copy,
 )]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
@@ -29,12 +31,30 @@ pub enum FeedFormat {
 }
 
 impl Feed {
-  // currently only used in tests.
-  #[cfg(test)]
   pub fn format(&self) -> FeedFormat {
     match self {
       Feed::Rss(_) => FeedFormat::Rss,
       Feed::Atom(_) => FeedFormat::Atom,
+    }
+  }
+
+  pub fn into_format(self, format: FeedFormat) -> Self {
+    use conversion::W;
+
+    if self.format() == format {
+      return self;
+    }
+
+    match (self, format) {
+      (Feed::Rss(channel), FeedFormat::Atom) => {
+        let feed: atom_syndication::Feed = W(channel).into();
+        Feed::Atom(feed)
+      }
+      (Feed::Atom(feed), FeedFormat::Rss) => {
+        let channel: rss::Channel = W(feed).into();
+        Feed::Rss(channel)
+      }
+      (original_self, _) => original_self,
     }
   }
 
@@ -186,6 +206,30 @@ impl Feed {
           .entries
           .sort_unstable_by_key(|entry| Reverse(entry.updated));
       }
+    }
+  }
+}
+
+#[cfg(test)]
+impl TryFrom<Feed> for rss::Channel {
+  type Error = ();
+
+  fn try_from(feed: Feed) -> Result<Self, Self::Error> {
+    match feed {
+      Feed::Rss(channel) => Ok(channel),
+      _ => Err(()),
+    }
+  }
+}
+
+#[cfg(test)]
+impl TryFrom<Feed> for atom_syndication::Feed {
+  type Error = ();
+
+  fn try_from(feed: Feed) -> Result<Self, Self::Error> {
+    match feed {
+      Feed::Atom(feed) => Ok(feed),
+      _ => Err(()),
     }
   }
 }
