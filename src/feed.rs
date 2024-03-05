@@ -20,7 +20,7 @@ pub enum Feed {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Copy,
 )]
 #[serde(rename_all = "lowercase")]
 pub enum FeedFormat {
