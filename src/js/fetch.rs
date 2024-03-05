@@ -42,7 +42,7 @@ impl Default for RequestParams {
   }
 }
 
-#[derive(Trace, Serialize)]
+#[derive(Trace, Serialize, Debug)]
 #[rquickjs::class]
 pub(super) struct Response {
   status: u16,
@@ -83,9 +83,35 @@ pub(super) async fn fetch(
     .await
     .map_err(|e| Exception::throw_message(&ctx, &e.to_string()))?;
 
+  dbg!(&body);
+
   Ok(Response {
     status,
     headers,
     body,
   })
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::test_utils::fetch_endpoint;
+  use crate::util::Result;
+
+  #[tokio::test]
+  async fn test_fetch() -> Result<()> {
+    let config = r#"
+      !endpoint
+      path: /fetch
+      source: fixture:///minimal_rss_20.xml
+      filters:
+        - modify_post: |
+            let x = fetch("http://example.com");
+            console.log(x);
+            post.description = x.body;
+    "#;
+
+    let _feed = fetch_endpoint(config, "").await;
+
+    Ok(())
+  }
 }
