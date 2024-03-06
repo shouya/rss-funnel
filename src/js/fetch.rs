@@ -157,8 +157,6 @@ mod tests {
 
     let _feed = fetch_endpoint(config, "").await;
 
-    assert!(false);
-
     Ok(())
   }
 }
