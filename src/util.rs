@@ -10,8 +10,11 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JsError {
-  #[error("Js exception {0}")]
-  Exception(String),
+  #[error("Js error: {0:?}")]
+  Message(String),
+
+  #[error("Js exception: {0:?}")]
+  Exception(crate::js::Exception),
 
   #[error("QuickJS error {0:?}")]
   Error(#[from] rquickjs::Error),

@@ -8,12 +8,11 @@ use std::path::PathBuf;
 use rquickjs::loader::{
   BuiltinLoader, BuiltinResolver, FileResolver, Loader, Resolver, ScriptLoader,
 };
-use rquickjs::markers::ParallelSend;
 use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
 use rquickjs::promise::Promise;
 use rquickjs::{
-  async_with, AsyncContext, Ctx, FromJs, Function, IntoJs, Module, Value,
+  async_with, AsyncContext, Ctx, FromJs, Function, IntoJs, Value,
 };
 use url::Url;
 
@@ -86,7 +85,7 @@ impl Runtime {
   #[allow(unused)]
   pub async fn set_global<T>(&self, key: &str, value: T)
   where
-    T: for<'js> IntoJs<'js> + ParallelSend,
+    T: for<'js> IntoJs<'js> + Send,
   {
     self
       .context
@@ -97,60 +96,23 @@ impl Runtime {
       .await
   }
 
-  // return exported names
-  #[allow(unused)]
-  pub async fn eval_module(
-    &self,
-    name: &str,
-    code: &str,
-  ) -> Result<Vec<String>, JsError> {
-    let code = code.to_string();
-
-    let mut names = Vec::new();
-    self
-      .context
-      .with(|ctx: Ctx<'_>| -> Result<(), JsError> {
-        let module = Module::evaluate(ctx.clone(), name, code);
-
-        if let Err(rquickjs::Error::Exception) = module {
-          let exception = ctx.catch();
-          let exception_repr =
-            format!("{:?}", exception.as_exception().unwrap());
-          return Err(JsError::Exception(exception_repr));
-        }
-
-        let globals = ctx.globals();
-
-        for item in module?.entries() {
-          let (name, value): (String, Value) = item?;
-          globals.set(&name, value)?;
-          names.push(name);
-        }
-
-        Ok(())
-      })
-      .await?;
-
-    // self.context.runtime().execute_pending_job().await.ok();
-    Ok(names)
-  }
-
   pub async fn eval<V>(&self, code: &str) -> Result<V, JsError>
   where
-    V: for<'js> FromJs<'js> + ParallelSend,
+    V: for<'js> FromJs<'js> + Send,
   {
     let code = code.to_string();
 
     self
       .context
       .with(|ctx: Ctx<'_>| -> Result<V, JsError> {
-        let res = ctx.eval(code);
+        let res = ctx.eval(code.clone());
 
         if let Err(rquickjs::Error::Exception) = res {
           let exception = ctx.catch();
-          let exception_repr =
-            format!("{:?}", exception.as_exception().unwrap());
-          return Err(JsError::Exception(exception_repr));
+          let mut exception: Exception =
+            exception.as_exception().unwrap().into();
+          exception.source = Some(code);
+          return Err(JsError::Exception(exception));
         }
 
         Ok(res?)
@@ -176,19 +138,19 @@ impl Runtime {
     args: Args,
   ) -> Result<V, JsError>
   where
-    V: for<'js> FromJs<'js> + ParallelSend + 'static,
-    Args: for<'js> IntoArgs<'js> + ParallelSend,
+    V: for<'js> FromJs<'js> + Send + 'static,
+    Args: for<'js> IntoArgs<'js> + Send,
   {
-    // self.context.runtime().execute_pending_job().await.ok();
-
     async_with!(self.context => |ctx| {
       let value: Result<Function<'_>, _> = ctx.globals().get(name);
       let Ok(fun) = value else {
-        return Err(JsError::Exception(format!("function {} not found", name)));
+        return Err(JsError::Message(format!("function {} not found", name)));
       };
 
       let is_async: bool = ctx.eval(format!("{name}[Symbol.toStringTag] === 'AsyncFunction'"))?;
 
+      // treat the function's return value differently depending on
+      // whether it's async
       let val = if is_async {
         match fun.call::<_, Promise<_>>(args) {
           Ok(promise) => V::from_js(&ctx, promise.await?),
@@ -198,12 +160,13 @@ impl Runtime {
         fun.call::<_, V>(args)
       };
 
+      // catch any exceptions raised by the function
       match val {
         Ok(v) => Ok(v),
         Err(rquickjs::Error::Exception) => {
           let exception = ctx.catch();
-          let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-          return Err(JsError::Exception(exception_repr));
+          let exception = exception.as_exception().unwrap().into();
+          return Err(JsError::Exception(exception));
         }
         Err(e) => {
           return Err(JsError::from(e));
@@ -355,4 +318,27 @@ fn uri_to_hash(uri: PathBuf) -> String {
 
   // final length is shorter than 64 bytes
   format!("{hash:x}{filename}")
+}
+
+#[derive(Clone, Debug)]
+pub struct Exception {
+  pub message: Option<String>,
+  pub file: Option<String>,
+  pub line: Option<i32>,
+  pub column: Option<i32>,
+  pub stack: Option<String>,
+  pub source: Option<String>,
+}
+
+impl From<&rquickjs::Exception<'_>> for Exception {
+  fn from(value: &rquickjs::Exception<'_>) -> Self {
+    Self {
+      message: value.message(),
+      file: value.file(),
+      line: value.line(),
+      column: value.column(),
+      stack: value.stack(),
+      source: None,
+    }
+  }
 }
