@@ -10,37 +10,37 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JsError {
-  #[error("Js error: {0:?}")]
+  #[error("{0}")]
   Message(String),
 
-  #[error("Js exception: {0:?}")]
+  #[error("Exception: {0}")]
   Exception(crate::js::Exception),
 
-  #[error("QuickJS error {0:?}")]
+  #[error("{0}")]
   Error(#[from] rquickjs::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
-  #[error("Bad selector")]
+  #[error("Bad selector: {0}")]
   BadSelector(String),
 
-  #[error("YAML parse error")]
+  #[error("YAML parse error: {0}")]
   Yaml(#[from] serde_yaml::Error),
 
-  #[error("Regex error")]
+  #[error("Regex error: {0}")]
   Regex(#[from] regex::Error),
 
   #[error("Invalid URL {0}")]
   InvalidUrl(#[from] url::ParseError),
 
-  #[error("IO error")]
+  #[error("IO error: {0}")]
   Io(#[from] std::io::Error),
 
-  #[error("Reqwest client error {0:?}")]
+  #[error("Reqwest client error: {0}")]
   Reqwest(#[from] reqwest::Error),
 
-  #[error("Js runtime initialization error {0:?}")]
+  #[error("Js runtime initialization error: {0}")]
   Js(#[from] JsError),
 
   #[error("{0}")]
@@ -49,52 +49,52 @@ pub enum ConfigError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-  #[error("IO error")]
+  #[error("IO error: {0}")]
   Io(#[from] std::io::Error),
 
-  #[error("HTTP error")]
+  #[error("HTTP error: {0}")]
   Http(#[from] http::Error),
 
-  #[error("Axum error")]
+  #[error("Axum error: {0}")]
   Axum(#[from] axum::Error),
 
-  #[error("RSS feed error")]
+  #[error("RSS feed error: {0}")]
   Rss(#[from] rss::Error),
 
-  #[error("Atom feed error")]
+  #[error("Atom feed error: {0}")]
   Atom(#[from] atom_syndication::Error),
 
-  #[error("Invalid URL {0}")]
+  #[error("Invalid URL: {0}")]
   InvalidUrl(#[from] url::ParseError),
 
-  #[error("Feed parsing error {0:?}")]
+  #[error("Feed parsing error: {0}")]
   FeedParse(&'static str),
 
-  #[error("Feed merge error {0:?}")]
+  #[error("Feed merge error: {0}")]
   FeedMerge(&'static str),
 
-  #[error("Reqwest client error {0:?}")]
+  #[error("Reqwest client error: {0}")]
   Reqwest(#[from] reqwest::Error),
 
-  #[error("HTTP status error {0:?} (url: {1})")]
+  #[error("HTTP status error {0} (url: {1})")]
   HttpStatus(reqwest::StatusCode, Url),
 
-  #[error("Js runtime error {0:?}")]
+  #[error("Js runtime error: {0}")]
   Js(#[from] JsError),
 
-  #[error("Failed to extract webpage {0:?}")]
+  #[error("Failed to extract webpage: {0}")]
   Readability(#[from] readability::error::Error),
 
-  #[error("Config error {0:?}")]
+  #[error("Config error: {0}")]
   Config(#[from] ConfigError),
 
-  #[error("Tokio task join error {0}")]
+  #[error("Tokio task join error: {0}")]
   Join(#[from] tokio::task::JoinError),
 
-  #[error("Endpoint not found {0}")]
+  #[error("Endpoint not found: {0}")]
   EndpointNotFound(String),
 
-  #[error("Unsupported feed format {0}")]
+  #[error("Unsupported feed format: {0}")]
   UnsupportedFeedFormat(String),
 
   #[error("{0}")]
