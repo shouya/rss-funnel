@@ -1,7 +1,8 @@
+use either::Either;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::feed::Feed;
+use crate::feed::{Feed, Post};
 use crate::js::{AsJson, Runtime};
 use crate::util::{ConfigError, Error, Result};
 
@@ -49,6 +50,17 @@ pub struct JsFilter {
   runtime: Runtime,
 }
 
+const MODIFY_POSTS_CODE: &str = r#"
+  async function modify_posts(feed) {
+    const items = feed.items || feed.entries || [];
+    if (modify_post[Symbol.toStringTag] === 'AsyncFunction') {
+      return await Promise.all(items.map(post => modify_post(feed, post)));
+    } else {
+      return items.map(post => modify_post(feed, post));
+    }
+  }
+"#;
+
 #[async_trait::async_trait]
 impl FeedFilterConfig for JsConfig {
   type Filter = JsFilter;
@@ -56,6 +68,7 @@ impl FeedFilterConfig for JsConfig {
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     let runtime = Runtime::new().await?;
     runtime.eval(&self.code).await?;
+    runtime.eval(MODIFY_POSTS_CODE).await?;
 
     Ok(Self::Filter { runtime })
   }
@@ -120,25 +133,31 @@ impl JsFilter {
       return Ok(());
     }
 
-    let mut posts = Vec::new();
+    let mut posts: Vec<Either<AsJson<Post>, Null>> = Vec::new();
 
-    for post in feed.take_posts() {
-      let args = (AsJson(&*feed), AsJson(&post));
+    let args = (AsJson(&*feed),);
 
-      match self.runtime.call_fn("modify_post", args).await? {
-        Left(Left(Null)) => {
-          // returning null means the post should be removed
-        }
-        Left(Right(Undefined)) => {
-          return Err(Error::Message(
-            "modify_post must return the modified post or null".into(),
-          ));
-        }
-        Right(AsJson(updated_post)) => {
-          posts.push(updated_post);
-        }
+    match self.runtime.call_fn("modify_posts", args).await? {
+      Left(Left(Null)) => {
+        // returning null means the post should be removed
+      }
+      Left(Right(Undefined)) => {
+        return Err(Error::Message(
+          "modify_post must return the modified post or null".into(),
+        ));
+      }
+      Right(returned_posts) => {
+        posts = returned_posts;
       }
     }
+
+    let posts = posts
+      .into_iter()
+      .filter_map(|post| match post {
+        Left(AsJson(post)) => Some(post),
+        Right(_) => None,
+      })
+      .collect();
 
     feed.set_posts(posts);
     Ok(())
