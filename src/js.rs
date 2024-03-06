@@ -342,3 +342,34 @@ impl From<&rquickjs::Exception<'_>> for Exception {
     }
   }
 }
+
+impl std::fmt::Display for Exception {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(
+      f,
+      "{}\n{}:{}:{}\n",
+      self.message.as_deref().unwrap_or(""),
+      self.file.as_deref().unwrap_or(""),
+      self.line.unwrap_or(0),
+      self.column.unwrap_or(0),
+    )?;
+
+    match (self.source.as_deref(), self.line, self.column) {
+      (Some(source), Some(line), Some(column)) => {
+        dbg!(source);
+        for (i, text) in source.lines().enumerate() {
+          writeln!(f, "{}", text)?;
+          if line == (i + 1) as i32 {
+            for _ in 0..column {
+              f.write_str("-")?;
+            }
+            f.write_str("^\n")?;
+          }
+        }
+      }
+      _ => {}
+    };
+
+    Ok(())
+  }
+}
