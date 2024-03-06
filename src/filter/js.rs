@@ -67,7 +67,7 @@ impl FeedFilterConfig for ModifyPostConfig {
 
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     let code = format!(
-      "function modify_post(feed, post) {{ {}; return post; }}",
+      "async function modify_post(feed, post) {{ {}; return post; }}",
       self.code
     );
     JsConfig { code }.build().await

@@ -105,12 +105,14 @@ mod tests {
       source: fixture:///minimal_rss_20.xml
       filters:
         - modify_post: |
-            let x = fetch("http://example.com");
-            console.log(x);
+            let x = await fetch("http://example.com");
+            console.log(JSON.stringify(x));
             post.description = x.body;
     "#;
 
     let _feed = fetch_endpoint(config, "").await;
+
+    assert!(false);
 
     Ok(())
   }

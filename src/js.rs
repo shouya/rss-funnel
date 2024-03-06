@@ -11,13 +11,13 @@ use rquickjs::loader::{
 use rquickjs::markers::ParallelSend;
 use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
-use rquickjs::{Context, Ctx, FromJs, Function, IntoJs, Module, Value};
+use rquickjs::{AsyncContext, Ctx, FromJs, Function, IntoJs, Module, Value};
 use url::Url;
 
 use crate::util::JsError;
 
 pub struct Runtime {
-  context: rquickjs::Context,
+  context: rquickjs::AsyncContext,
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
@@ -54,11 +54,11 @@ where
 
 impl Runtime {
   pub async fn new() -> Result<Self, JsError> {
-    let runtime = rquickjs::Runtime::new()?;
+    let runtime = rquickjs::AsyncRuntime::new()?;
     // limit memory usage to 32MB
-    runtime.set_memory_limit(32 * 1024 * 1024);
+    runtime.set_memory_limit(32 * 1024 * 1024).await;
     // limit max_stack_size to 1MB
-    runtime.set_max_stack_size(1024 * 1024);
+    runtime.set_max_stack_size(1024 * 1024).await;
 
     let resolver = (
       BuiltinResolver::default(),
@@ -72,10 +72,10 @@ impl Runtime {
       remote_loader,
       ScriptLoader::default(),
     );
-    runtime.set_loader(resolver, loader);
+    runtime.set_loader(resolver, loader).await;
 
-    let context = Context::full(&runtime)?;
-    context.with(|ctx| builtin::register_builtin(&ctx))?;
+    let context = AsyncContext::full(&runtime).await?;
+    context.with(|ctx| builtin::register_builtin(&ctx)).await?;
 
     Ok(Self { context })
   }
@@ -85,10 +85,13 @@ impl Runtime {
   where
     T: for<'js> IntoJs<'js> + ParallelSend,
   {
-    self.context.with(|ctx| {
-      let val = value.into_js(&ctx).unwrap();
-      ctx.globals().set(key, val).unwrap();
-    })
+    self
+      .context
+      .with(|ctx| {
+        let val = value.into_js(&ctx).unwrap();
+        ctx.globals().set(key, val).unwrap();
+      })
+      .await
   }
 
   // return exported names
@@ -101,27 +104,31 @@ impl Runtime {
     let code = code.to_string();
 
     let mut names = Vec::new();
-    self.context.with(|ctx: Ctx<'_>| -> Result<(), JsError> {
-      let module = Module::evaluate(ctx.clone(), name, code);
+    self
+      .context
+      .with(|ctx: Ctx<'_>| -> Result<(), JsError> {
+        let module = Module::evaluate(ctx.clone(), name, code);
 
-      if let Err(rquickjs::Error::Exception) = module {
-        let exception = ctx.catch();
-        let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-        return Err(JsError::Exception(exception_repr));
-      }
+        if let Err(rquickjs::Error::Exception) = module {
+          let exception = ctx.catch();
+          let exception_repr =
+            format!("{:?}", exception.as_exception().unwrap());
+          return Err(JsError::Exception(exception_repr));
+        }
 
-      let globals = ctx.globals();
+        let globals = ctx.globals();
 
-      for item in module?.entries() {
-        let (name, value): (String, Value) = item?;
-        globals.set(&name, value)?;
-        names.push(name);
-      }
+        for item in module?.entries() {
+          let (name, value): (String, Value) = item?;
+          globals.set(&name, value)?;
+          names.push(name);
+        }
 
-      Ok(())
-    })?;
+        Ok(())
+      })
+      .await?;
 
-    self.context.runtime().execute_pending_job().ok();
+    // self.context.runtime().execute_pending_job().await.ok();
     Ok(names)
   }
 
@@ -131,29 +138,36 @@ impl Runtime {
   {
     let code = code.to_string();
 
-    let res = self.context.with(|ctx: Ctx<'_>| -> Result<V, JsError> {
-      let res = ctx.eval(code);
+    let res = self
+      .context
+      .with(|ctx: Ctx<'_>| -> Result<V, JsError> {
+        let res = ctx.eval(code);
 
-      if let Err(rquickjs::Error::Exception) = res {
-        let exception = ctx.catch();
-        let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-        return Err(JsError::Exception(exception_repr));
-      }
+        if let Err(rquickjs::Error::Exception) = res {
+          let exception = ctx.catch();
+          let exception_repr =
+            format!("{:?}", exception.as_exception().unwrap());
+          return Err(JsError::Exception(exception_repr));
+        }
 
-      Ok(res?)
-    });
+        Ok(res?)
+      })
+      .await;
 
-    self.context.runtime().execute_pending_job().ok();
+    // self.context.runtime().execute_pending_job().await.ok();
 
     res
   }
 
   pub async fn fn_exists(&self, name: &str) -> bool {
-    self.context.runtime().execute_pending_job().ok();
-    self.context.with(|ctx| -> bool {
-      let value: Result<Function<'_>, _> = ctx.globals().get(name);
-      value.is_ok()
-    })
+    // self.context.runtime().execute_pending_job().await.ok();
+    self
+      .context
+      .with(|ctx| -> bool {
+        let value: Result<Function<'_>, _> = ctx.globals().get(name);
+        value.is_ok()
+      })
+      .await
   }
 
   pub async fn call_fn<V, Args>(
@@ -165,24 +179,33 @@ impl Runtime {
     V: for<'js> FromJs<'js> + ParallelSend,
     Args: for<'js> IntoArgs<'js> + ParallelSend,
   {
-    self.context.runtime().execute_pending_job().ok();
+    // self.context.runtime().execute_pending_job().await.ok();
 
-    self.context.with(|ctx| -> Result<V, JsError> {
-      let value: Result<Function<'_>, _> = ctx.globals().get(name);
-      let Ok(fun) = value else {
-        return Err(JsError::Exception(format!("function {} not found", name)));
-      };
+    let retval = self
+      .context
+      .with(|ctx| -> Result<V, JsError> {
+        let value: Result<Function<'_>, _> = ctx.globals().get(name);
+        let Ok(fun) = value else {
+          return Err(JsError::Exception(format!(
+            "function {} not found",
+            name
+          )));
+        };
 
-      let res = fun.call(args);
+        let res = fun.call(args);
 
-      if let Err(rquickjs::Error::Exception) = res {
-        let exception = ctx.catch();
-        let exception_repr = format!("{:?}", exception.as_exception().unwrap());
-        return Err(JsError::Exception(exception_repr));
-      }
+        if let Err(rquickjs::Error::Exception) = res {
+          let exception = ctx.catch();
+          let exception_repr =
+            format!("{:?}", exception.as_exception().unwrap());
+          return Err(JsError::Exception(exception_repr));
+        }
 
-      Ok(res?)
-    })
+        Ok(res?)
+      })
+      .await?;
+
+    Ok(retval)
   }
 }
 
