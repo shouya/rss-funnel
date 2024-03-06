@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use rquickjs::{class::Trace, function::Opt, Ctx, Exception};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::AsJson;
 
@@ -45,9 +46,55 @@ impl Default for RequestParams {
 #[derive(Trace, Serialize, Debug)]
 #[rquickjs::class]
 pub(super) struct Response {
+  #[qjs(get)]
   status: u16,
+  #[qjs(get)]
   headers: HashMap<String, String>,
+  #[qjs(get)]
   body: String,
+}
+
+#[rquickjs::methods]
+impl Response {
+  fn json(&self, ctx: Ctx<'_>) -> Result<AsJson<Value>, rquickjs::Error> {
+    if self
+      .content_type()
+      .filter(|v| v.starts_with("application/json"))
+      .is_none()
+    {
+      return Err(Exception::throw_message(&ctx, "response is not JSON"));
+    }
+
+    let json: serde_json::Value = match serde_json::from_str(&self.body) {
+      Ok(json) => json,
+      Err(e) => return Err(Exception::throw_message(&ctx, &e.to_string())),
+    };
+
+    Ok(AsJson(json))
+  }
+
+  fn content_type(&self) -> Option<String> {
+    if let Some(content_type) = self.headers.get("content-type") {
+      return Some(content_type.to_string());
+    };
+
+    if let Some(content_type) = self.headers.get("Content-Type") {
+      return Some(content_type.to_string());
+    }
+
+    self
+      .headers
+      .iter()
+      .filter_map(|(k, v)| {
+        if k.to_ascii_lowercase() == "content-type" {
+          Some(v)
+        } else {
+          None
+        }
+      })
+      .next()
+      .cloned()
+  }
 }
 
 pub(super) async fn fetch(
