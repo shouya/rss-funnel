@@ -41,6 +41,16 @@ impl Console {
     println!("[console.log] {}", msg);
     Ok(())
   }
+
+  fn error(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
+    let msg = match value.try_into_string() {
+      Ok(s) => s.to_string()?,
+      Err(v) => format!("[{}] {:?}", v.type_name(), v),
+    };
+
+    eprintln!("[console.error] {}", msg);
+    Ok(())
+  }
 }
 
 #[derive(Trace)]

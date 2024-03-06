@@ -52,11 +52,27 @@ pub struct JsFilter {
 
 const MODIFY_POSTS_CODE: &str = r#"
   async function modify_posts(feed) {
-    const items = feed.items || feed.entries || [];
+    const posts = feed.items || feed.entries || [];
     if (modify_post[Symbol.toStringTag] === 'AsyncFunction') {
-      return await Promise.all(items.map(post => modify_post(feed, post)));
+      const modify_post_with_exception_handled = async function(post) {
+        try {
+          return await modify_post(feed, post);
+        } catch (e) {
+          console.error(e);
+          return post;
+        }
+      };
+      return await Promise.all(posts.map(modify_post_with_exception_handled));
     } else {
-      return items.map(post => modify_post(feed, post));
+      const modify_post_with_exception_handled = function(post) {
+        try {
+          return modify_post(feed, post);
+        } catch (e) {
+          console.error(e);
+          return post;
+        }
+      };
+      return posts.map(modify_post_with_exception_handled);
     }
   }
 "#;
