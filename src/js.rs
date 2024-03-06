@@ -11,7 +11,10 @@ use rquickjs::loader::{
 use rquickjs::markers::ParallelSend;
 use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
-use rquickjs::{AsyncContext, Ctx, FromJs, Function, IntoJs, Module, Value};
+use rquickjs::promise::Promise;
+use rquickjs::{
+  async_with, AsyncContext, Ctx, FromJs, Function, IntoJs, Module, Value,
+};
 use url::Url;
 
 use crate::util::JsError;
@@ -138,7 +141,7 @@ impl Runtime {
   {
     let code = code.to_string();
 
-    let res = self
+    self
       .context
       .with(|ctx: Ctx<'_>| -> Result<V, JsError> {
         let res = ctx.eval(code);
@@ -152,11 +155,7 @@ impl Runtime {
 
         Ok(res?)
       })
-      .await;
-
-    // self.context.runtime().execute_pending_job().await.ok();
-
-    res
+      .await
   }
 
   pub async fn fn_exists(&self, name: &str) -> bool {
@@ -170,42 +169,48 @@ impl Runtime {
       .await
   }
 
+  /// Automatically detect if the function is async and wait for the result
   pub async fn call_fn<V, Args>(
     &self,
     name: &str,
     args: Args,
   ) -> Result<V, JsError>
   where
-    V: for<'js> FromJs<'js> + ParallelSend,
+    V: for<'js> FromJs<'js> + ParallelSend + 'static,
     Args: for<'js> IntoArgs<'js> + ParallelSend,
   {
     // self.context.runtime().execute_pending_job().await.ok();
 
-    let retval = self
-      .context
-      .with(|ctx| -> Result<V, JsError> {
-        let value: Result<Function<'_>, _> = ctx.globals().get(name);
-        let Ok(fun) = value else {
-          return Err(JsError::Exception(format!(
-            "function {} not found",
-            name
-          )));
-        };
+    async_with!(self.context => |ctx| {
+      let value: Result<Function<'_>, _> = ctx.globals().get(name);
+      let Ok(fun) = value else {
+        return Err(JsError::Exception(format!("function {} not found", name)));
+      };
 
-        let res = fun.call(args);
+      let is_async: bool = ctx.eval(format!("{name}[Symbol.toStringTag] === 'AsyncFunction'"))?;
 
-        if let Err(rquickjs::Error::Exception) = res {
+      let val = if is_async {
+        match fun.call::<_, Promise<_>>(args) {
+          Ok(promise) => V::from_js(&ctx, promise.await?),
+          Err(e) => Err(e),
+        }
+      } else {
+        fun.call::<_, V>(args)
+      };
+
+      match val {
+        Ok(v) => Ok(v),
+        Err(rquickjs::Error::Exception) => {
           let exception = ctx.catch();
-          let exception_repr =
-            format!("{:?}", exception.as_exception().unwrap());
+          let exception_repr = format!("{:?}", exception.as_exception().unwrap());
           return Err(JsError::Exception(exception_repr));
         }
-
-        Ok(res?)
-      })
-      .await?;
-
-    Ok(retval)
+        Err(e) => {
+          return Err(JsError::from(e));
+        }
+      }
+    })
+    .await
   }
 }
 
