@@ -104,18 +104,9 @@ impl Runtime {
 
     self
       .context
-      .with(|ctx: Ctx<'_>| -> Result<V, JsError> {
-        let res = ctx.eval(code.clone());
-
-        if let Err(rquickjs::Error::Exception) = res {
-          let exception = ctx.catch();
-          let mut exception: Exception =
-            exception.as_exception().unwrap().into();
-          exception.source = Some(code);
-          return Err(JsError::Exception(exception));
-        }
-
-        Ok(res?)
+      .with(|ctx: Ctx<'_>| -> Result<V, _> {
+        let res = ctx.eval(code.clone()).map_err(|e| e.into());
+        handle_exception_with_source(&ctx, &code, res)
       })
       .await
   }
@@ -138,10 +129,10 @@ impl Runtime {
     args: Args,
   ) -> Result<V, JsError>
   where
-    V: for<'js> FromJs<'js> + Send + 'static,
+    V: for<'js> FromJs<'js> + Send + 'static + std::fmt::Debug,
     Args: for<'js> IntoArgs<'js> + Send,
   {
-    async_with!(self.context => |ctx| {
+    let retval = async_with!(self.context => |ctx| {
       let value: Result<Function<'_>, _> = ctx.globals().get(name);
       let Ok(fun) = value else {
         return Err(JsError::Message(format!("function {} not found", name)));
@@ -161,19 +152,15 @@ impl Runtime {
       };
 
       // catch any exceptions raised by the function
-      match val {
-        Ok(v) => Ok(v),
-        Err(rquickjs::Error::Exception) => {
-          let exception = ctx.catch();
-          let exception = exception.as_exception().unwrap().into();
-          return Err(JsError::Exception(exception));
-        }
-        Err(e) => {
-          return Err(JsError::from(e));
-        }
-      }
-    })
-    .await
+      handle_exception(&ctx, val.map_err(|e| e.into()))
+    }) .await;
+
+    // sometimes exceptions can raise after promise is resolved, those
+    // can only be handled here.
+    self
+      .context
+      .with(|ctx| handle_exception(&ctx, retval))
+      .await
   }
 }
 
@@ -354,22 +341,52 @@ impl std::fmt::Display for Exception {
       self.column.unwrap_or(0),
     )?;
 
-    match (self.source.as_deref(), self.line, self.column) {
-      (Some(source), Some(line), Some(column)) => {
-        dbg!(source);
-        for (i, text) in source.lines().enumerate() {
-          writeln!(f, "{}", text)?;
-          if line == (i + 1) as i32 {
-            for _ in 0..column {
-              f.write_str("-")?;
-            }
-            f.write_str("^\n")?;
+    if let (Some(source), Some(line), Some(column)) =
+      (self.source.as_deref(), self.line, self.column)
+    {
+      for (i, text) in source.lines().enumerate() {
+        writeln!(f, "{}", text)?;
+        if line == (i + 1) as i32 {
+          for _ in 0..column {
+            f.write_str("-")?;
           }
+          f.write_str("^\n")?;
         }
       }
-      _ => {}
-    };
+    }
 
     Ok(())
+  }
+}
+
+fn handle_exception_with_source<T>(
+  ctx: &Ctx<'_>,
+  source: &str,
+  result: Result<T, JsError>,
+) -> Result<T, JsError> {
+  match result {
+    Ok(v) => Ok(v),
+    Err(JsError::Error(rquickjs::Error::Exception)) => {
+      let exception = ctx.catch();
+      let mut exception: Exception = exception.as_exception().unwrap().into();
+      exception.source = Some(source.to_string());
+      Err(JsError::Exception(exception))
+    }
+    Err(e) => Err(e),
+  }
+}
+
+fn handle_exception<T>(
+  ctx: &Ctx<'_>,
+  result: Result<T, JsError>,
+) -> Result<T, JsError> {
+  match result {
+    Ok(v) => Ok(v),
+    Err(JsError::Error(rquickjs::Error::Exception)) => {
+      let exception = ctx.catch();
+      let exception = exception.as_exception().unwrap().into();
+      Err(JsError::Exception(exception))
+    }
+    Err(e) => Err(e),
   }
 }
