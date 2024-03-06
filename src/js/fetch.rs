@@ -83,8 +83,6 @@ pub(super) async fn fetch(
     .await
     .map_err(|e| Exception::throw_message(&ctx, &e.to_string()))?;
 
-  dbg!(&body);
-
   Ok(Response {
     status,
     headers,
