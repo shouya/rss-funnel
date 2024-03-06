@@ -1,5 +1,7 @@
 * RSS Funnel
 
+*This project is in early stage of development. Please expect frequent breaking changes in configuration syntax and features.*
+
 The RSS Funnel is a modular RSS processing pipeline. It is designed to be used to modify existing RSS source in various interesting ways such as:
 
 - Fetch full content
@@ -10,7 +12,7 @@ The RSS Funnel is a modular RSS processing pipeline. It is designed to be used t
 - Redact or replace text in the article (using a regular expression)
 - Split a single RSS article into multiple articles
 - Merge multiple feeds into a single feed
-- Run arbitrary JS code to transform the feed or articles (with [[https://github.com/shouya/rss-funnel/wiki/JS-DOM-API][DOM API support]])
+- Run arbitrary JS code to transform the feed or articles ([[https://github.com/shouya/rss-funnel/wiki/JavaScript-API][API]])
 
 [[https://rss-funnel-demo.fly.dev/][Try out the live demo!]]
 
@@ -58,18 +60,6 @@ endpoints:
       - full_text: {}
       - simplify_html: {}
 
-  - path: /solidot.xml
-    note: Solidot news with links
-    source: https://www.solidot.org/index.rss
-    filters:
-      - full_text: {}
-      - keep_element: .p_mainnew
-      - simplify_html: {}
-      - sanitize:
-          - replace_regex:
-              from: "(?<link>http(s)?://[^< \n]*)"
-              to: '<a href="$link">$link</a>'
-
   - path: /hackernews.xml
     note: Full text of Hacker News
     source: https://news.ycombinator.com/rss
@@ -91,7 +81,7 @@ The endpoints like =http://127.0.0.1:4080/tokio-blog.xml= should be serving the 
 
 ** Endpoint
 
-Each of the configuration contains a number of endpoints. Each endpoint correspond to a RSS feed.
+The most important part of the configuration is the definition of endpoints. Each endpoint correspond to a RSS feed ready for consumption.
 
 Properties:
 
