@@ -81,13 +81,15 @@ h4 {
 
 #feed-error,
 #config-error {
-  p {
+  pre {
     padding: 0.5rem;
     color: #721c24;
     background-color: #f8d7da;
     margin-top: 0;
     display: block;
     border-radius: 0.3rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
   }
 }
 
