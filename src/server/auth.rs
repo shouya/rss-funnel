@@ -42,7 +42,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Auth {
 }
 
 fn login() -> Response {
-  Redirect::to("/_inspector/login.html?requires_login=1").into_response()
+  Redirect::to("/_inspector/login.html?login_required=1").into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -67,5 +67,9 @@ pub async fn handle_login(
 
 pub async fn handle_logout(cookie_jar: CookieJar) -> Response {
   let cookie_jar = cookie_jar.remove("session_id");
-  (cookie_jar, Redirect::to("/_inspector/login.html")).into_response()
+  (
+    cookie_jar,
+    Redirect::to("/_inspector/login.html?logged_out=1"),
+  )
+    .into_response()
 }
