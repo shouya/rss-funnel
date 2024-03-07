@@ -1,5 +1,5 @@
-pub(crate) mod endpoint;
 mod auth;
+mod endpoint;
 mod feed_service;
 #[cfg(feature = "inspector-ui")]
 mod inspector;
