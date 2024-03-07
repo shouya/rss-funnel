@@ -7,7 +7,7 @@
     "parcel": "^2.11.0",
     "process": "^0.11.10"
   },
-  "source": "src/index.html",
+  "source": ["src/index.html", "src/login.html"],
   "targets": {
     "default": {
       "distDir": "./dist",
