@@ -49,6 +49,7 @@ chrono = "0.4.34"
 # webui (inspector) support
 rust-embed = { version = "8.3.0", features = ["include-exclude"], optional = true }
 schemars = { git = "https://github.com/shouya/schemars", features = ["url", "preserve_order"] }
+rand = "0.8.5" # for generating session_id
 
 # HTML manipulation in the feeds
 scraper = "0.19.0"
@@ -75,6 +76,7 @@ regex = "1.10.3"
 # Logging
 tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
+axum-extra = { version = "0.9.2", features = ["cookie"] }
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }

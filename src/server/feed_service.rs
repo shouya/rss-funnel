@@ -6,6 +6,7 @@ use axum::{
   Extension,
 };
 use http::StatusCode;
+use rand::{rngs::OsRng, RngCore};
 use tokio::sync::RwLock;
 use tower::Service;
 use tracing::info;
@@ -22,6 +23,7 @@ pub struct FeedService {
 struct Inner {
   config_error: Option<ConfigError>,
   root_config: Arc<RootConfig>,
+  session_id: Option<String>,
   // maps path to service
   endpoints: HashMap<String, EndpointService>,
 }
@@ -38,6 +40,7 @@ impl FeedService {
 
     let inner = Inner {
       config_error: None,
+      session_id: None,
       root_config: Arc::new(root_config),
       endpoints,
     };
@@ -58,6 +61,33 @@ impl FeedService {
   pub async fn root_config(&self) -> Arc<RootConfig> {
     let inner = self.inner.read().await;
     inner.root_config.clone()
+  }
+
+  pub async fn requires_auth(&self) -> bool {
+    let inner = self.inner.read().await;
+    inner.root_config.auth.is_some()
+  }
+
+  pub async fn validate_session_id(&self, session_id: &str) -> bool {
+    let inner = self.inner.read().await;
+    inner.session_id.as_deref() == Some(session_id)
+  }
+
+  pub async fn login(&self, username: &str, password: &str) -> Option<String> {
+    let inner = self.inner.read().await;
+    let auth = inner.root_config.auth.as_ref()?;
+    if !(auth.username == username && auth.password == password) {
+      return None;
+    }
+    drop(inner);
+
+    let mut buffer = [0u8; 32];
+    OsRng.fill_bytes(&mut buffer);
+    let session_id = format!("{:x?}", buffer);
+
+    let mut inner = self.inner.write().await;
+    inner.session_id = Some(session_id.clone());
+    Some(session_id)
   }
 
   // Update the feed definition and reconfigure the services. Return true if

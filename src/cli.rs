@@ -64,7 +64,17 @@ impl TestConfig {
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 pub struct RootConfig {
+  pub auth: Option<AuthConfig>,
   pub endpoints: Vec<EndpointConfig>,
+}
+
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
+pub struct AuthConfig {
+  pub username: String,
+  #[serde(skip_serializing)]
+  pub password: String,
 }
 
 impl RootConfig {

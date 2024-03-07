@@ -93,9 +93,15 @@ h4 {
   }
 }
 
-#reload-config-button {
-  text-align: center;
-  margin-bottom: 0.5rem;
+#control-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  & > .button {
+    flex: 1;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
 }
 
 .button {
@@ -105,6 +111,10 @@ h4 {
   border-radius: 0.3rem;
   white-space: nowrap;
   transition: all 0.1s ease-in-out;
+  display: block;
+  /* make a.button look the same as div.button */
+  color: inherit;
+  text-decoration: none;
 
   &:hover {
     background-color: #f4f4f4;

@@ -61,6 +61,12 @@ export class FeedInspector {
       return;
     }
 
+    if (this.config.auth) {
+      $("#logout-button").classList.remove("hidden");
+    } else {
+      $("#logout-button").classList.add("hidden");
+    }
+
     if (!this.current_endpoint) {
       await this.load_endpoints();
       await this.reset_main_ui();
