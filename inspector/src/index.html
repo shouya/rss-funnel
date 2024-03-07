@@ -13,7 +13,10 @@
   <body>
     <div class="container">
       <div id="sidebar-panel">
-        <div class="button" id="reload-config-button">Reload Config</div>
+        <div id="control-buttons">
+          <div class="button" id="reload-config-button">Reload Config</div>
+          <a class="button hidden" id="logout-button" href="/logout">Logout</a>
+        </div>
         <div id="config-error" class="hidden">
           <h4>Error detected in config</h4>
           <pre id="config-error-message"></p>
