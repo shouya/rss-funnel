@@ -73,6 +73,7 @@ pub struct RootConfig {
 )]
 pub struct AuthConfig {
   pub username: String,
+  #[serde(skip_serializing)]
   pub password: String,
 }
 
