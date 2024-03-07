@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use axum::extract::Query;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
-use axum::{routing::get, Extension, Router};
+use axum::{
+  routing::{get, post},
+  Extension, Router,
+};
 use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
 use serde_json::json;
@@ -11,6 +14,7 @@ use serde_json::json;
 use crate::filter::FilterConfig;
 use crate::util::Error;
 
+use super::auth::{handle_login, handle_logout, Auth};
 use super::feed_service::FeedService;
 use super::EndpointParam;
 
@@ -20,19 +24,31 @@ struct Asset;
 
 pub fn router() -> Router {
   Router::new()
-    .route("/_inspector/index.html", get(index_handler))
+    .route("/login", post(handle_login))
+    .route("/logout", get(handle_logout))
+    .route("/_inspector/index.html", get(inspector_page_handler))
+    .route("/_inspector/login.html", get(login_page_handler))
     .route("/_inspector/dist/*file", get(static_handler))
     .route("/_inspector/config", get(config_handler))
     .route("/_inspector/filter_schema", get(filter_schema_handler))
     .route("/_inspector/preview", get(preview_handler))
-    .route(
-      "/",
-      get(|| async { Redirect::temporary("/_inspector/index.html") }),
-    )
+    .route("/", get(index_handler))
 }
 
-async fn index_handler() -> impl IntoResponse {
+async fn index_handler(auth: Option<Auth>) -> impl IntoResponse {
+  if auth.is_some() {
+    Redirect::temporary("/_inspector/index.html")
+  } else {
+    Redirect::temporary("/_inspector/login.html")
+  }
+}
+
+async fn inspector_page_handler(_auth: Auth) -> impl IntoResponse {
   static_handler("/index.html".parse().unwrap()).await
+}
+
+async fn login_page_handler() -> impl IntoResponse {
+  static_handler("/login.html".parse().unwrap()).await
 }
 
 async fn static_handler(uri: Uri) -> impl IntoResponse {
@@ -73,6 +89,7 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
 
 async fn config_handler(
   Extension(feed_service): Extension<FeedService>,
+  _auth: Auth,
 ) -> impl IntoResponse {
   let json = json!({
     "config_error": feed_service.with_error(|e| e.to_string()).await,
@@ -88,6 +105,7 @@ struct FilterSchemaHandlerParams {
 
 async fn filter_schema_handler(
   Query(params): Query<FilterSchemaHandlerParams>,
+  _auth: Auth,
 ) -> Result<Json<HashMap<String, RootSchema>>, BadRequest<String>> {
   if params.filters == "all" {
     return Ok(Json(FilterConfig::schema_for_all()));
@@ -112,6 +130,7 @@ async fn preview_handler(
   Extension(feed_service): Extension<FeedService>,
   endpoint_param: EndpointParam,
   Query(params): Query<PreviewHandlerParams>,
+  _auth: Auth,
 ) -> Result<impl IntoResponse, PreviewError> {
   let path = params.endpoint.trim_start_matches('/');
   let endpoint_service = feed_service.get_endpoint(path).await;
