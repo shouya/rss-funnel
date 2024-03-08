@@ -224,6 +224,10 @@ ul#filter-list {
         white-space: pre-wrap;
         word-wrap: break-word;
       }
+      p.note-filter {
+        margin-top: 0;
+        margin-bottom: 0;
+      }
 
       ul {
         list-style: square;
