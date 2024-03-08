@@ -34,7 +34,7 @@ impl FeedService {
     for endpoint_config in root_config.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
       let endpoint_service = endpoint_config.build().await?;
-      info!("loaded endpoint: {}", path);
+      info!("loaded endpoint: /{}", path);
       endpoints.insert(path, endpoint_service);
     }
 
