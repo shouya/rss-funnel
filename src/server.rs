@@ -24,7 +24,12 @@ use self::feed_service::FeedService;
 #[derive(Parser, Clone)]
 pub struct ServerConfig {
   /// The address to bind to
-  #[clap(long, short, default_value = "127.0.0.1:4080")]
+  #[clap(
+    long,
+    short,
+    default_value = "127.0.0.1:4080",
+    env = "RSS_FUNNEL_BIND"
+  )]
   bind: Arc<str>,
 
   /// Whether to enable the inspector UI
@@ -35,18 +40,20 @@ pub struct ServerConfig {
     num_args = 0..=1,
     require_equals = true,
     default_value = "true",
-    default_missing_value = "true"
+    default_missing_value = "true",
+    env = "RSS_FUNNEL_INSPECTOR_UI"
   )]
   inspector_ui: bool,
 
   /// Watch the config file for changes and restart the server
-  #[clap(long, short)]
+  #[clap(long, short, env = "RSS_FUNNEL_WATCH")]
   watch: bool,
 }
 
 impl ServerConfig {
   pub async fn run(self, config_path: &Path) -> Result<()> {
     if self.watch {
+      info!("watching config file for changes");
       self.run_with_fs_watcher(config_path).await
     } else {
       self.run_without_fs_watcher(config_path).await
