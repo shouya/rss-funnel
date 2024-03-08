@@ -96,7 +96,11 @@ impl FeedFilterConfig for ModifyPostConfig {
 
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     let code = format!(
-      "async function modify_post(feed, post) {{ (function(){{ {} }})(); return post; }}",
+      "async function modify_post(feed, post) {{
+        const retval = await (async function(){{ {} }})();
+        if (retval === null) return null;
+        return post;
+      }}",
       self.code
     );
     JsConfig { code }.build().await
@@ -109,7 +113,10 @@ impl FeedFilterConfig for ModifyFeedConfig {
 
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     let code = format!(
-      "function modify_feed(feed) {{ (function(){{ {} }})(); return feed; }}",
+      "async function modify_feed(feed) {{
+         await (async function(){{ {}; }})();
+         return feed;
+       }}",
       self.code
     );
     JsConfig { code }.build().await
