@@ -1941,7 +1941,7 @@ dependencies = [
 
 [[package]]
 name = "rss-funnel"
-version = "0.0.5"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "atom_syndication",
