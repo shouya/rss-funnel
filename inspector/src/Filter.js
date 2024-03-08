@@ -84,7 +84,9 @@ export class Filter {
   }
 
   render_note_config() {
-    return elt("p", { class: "note-filter" }, this.config);
+    let node = elt("p", { class: "note-filter" }, "");
+    node.innerHTML = this.config;
+    return node;
   }
 
   render_js_config() {

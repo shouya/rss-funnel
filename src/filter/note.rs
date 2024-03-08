@@ -12,7 +12,7 @@ use crate::{
 )]
 #[serde(transparent)]
 /// The note filter has no effect. It serves only documentation
-/// purposes.
+/// purposes. Supports HTML.
 pub struct NoteFilterConfig {
   note: String,
 }
