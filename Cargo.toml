@@ -26,7 +26,7 @@ tokio = { version = "1.36.0", features = ["macros", "net", "rt-multi-thread", "s
 lazy_static = "1.4.0"
 
 # Command line and config parsing
-clap = { version = "4.5.1", features = ["derive"] }
+clap = { version = "4.5.1", features = ["derive", "env"] }
 serde = { version = "1.0.197", features = ["derive", "rc"] }
 serde_yaml = "0.9.32"
 duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }
