@@ -27,7 +27,7 @@ build-docker-multiarch:
 	podman tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
 
 build-docker-$(TARGET): $(BINARY)
-	echo "FROM scratch\nCOPY $< /$(APP_NAME)\nCMD [\"/$(APP_NAME)\"]\n" | \
+	echo "FROM scratch\nCOPY $< /$(APP_NAME)\nENTRYPOINT [\"/$(APP_NAME)\"]\nCMD [\"server\"]\n" | \
 		podman build -f - . \
 			--platform $(PLATFORM) \
 			-t $(IMAGE_NAME):latest-$(TARGET) \
