@@ -83,6 +83,10 @@ export class Filter {
     // return highlight_json(JSON.stringify(this.config, null, 2));
   }
 
+  render_note_config() {
+    return elt("p", { class: "note-filter" }, this.config);
+  }
+
   render_js_config() {
     return highlight_js(this.config);
   }
