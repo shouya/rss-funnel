@@ -2,7 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.5-pre.1] - 2024-02-19
+## [0.1.0] - 2024-03-08
+
+### Bug Fixes
+
+- Fix typo in release workflow
+- Handle non-utf8 feeds correctly (#67)
+- Specify default timeout for client
+
+### Features
+
+- Create feed from scratch (#44)
+- Specify local endpoints as source (#47)
+- Feature flag to disable inspector-ui on build time (#48)
+- Add `note` filter (#50)
+- Add `modify_post` and `modify_feed` filters (#51)
+- Show filter docs (#55)
+- Support merging multiple sources in parallel (#58)
+- Optimize reload logic (#60)
+- Show config and feed error message (#63)
+- [**breaking**] Show json preview for the feed (#64)
+- Add `convert_to` filter for converting feed format (#68)
+- Implement fetch api for js runtime (#69)
+- Authentication support (#70)
+- Support early return in `modify_post` and `modify_feed` (#72)
+- Render note filter's value as documentation (#73)
+- Specify server flags via environment (#74)
+- Render HTML inside note filter
+
+### Performance
+
+- Parallelize feed post-processing (#61)
+
+## [0.0.5] - 2024-02-20
 
 ### Bug Fixes
 
@@ -13,6 +45,7 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - Default bind adress in docker compose example (#21)
+- Update README
 
 ### Features
 
