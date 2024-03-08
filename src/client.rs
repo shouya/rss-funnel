@@ -23,7 +23,7 @@ struct HttpFixture {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
+  JsonSchema, Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, Hash,
 )]
 pub struct ClientConfig {
   /// The "user-agent" header to send with requests
@@ -43,29 +43,13 @@ pub struct ClientConfig {
   #[schemars(with = "String")]
   cache_ttl: Option<Duration>,
   /// Request timeout (Format: "4s", "10m", "1h", "1d")
-  #[serde(default = "default_timeout")]
-  #[serde(deserialize_with = "duration_str::deserialize_duration")]
+  #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
   #[schemars(with = "String")]
-  timeout: Duration,
+  timeout: Option<Duration>,
   /// Sometimes the feed doesn't report a correct content type, so we
   /// need to override it.
   #[serde(default)]
   assume_content_type: Option<String>,
-}
-
-impl Default for ClientConfig {
-  fn default() -> Self {
-    Self {
-      user_agent: None,
-      accept: None,
-      set_cookie: None,
-      referer: None,
-      timeout: default_timeout(),
-      cache_size: None,
-      cache_ttl: None,
-      assume_content_type: None,
-    }
-  }
 }
 
 impl ClientConfig {
@@ -102,7 +86,8 @@ impl ClientConfig {
       builder = builder.default_headers(header_map);
     }
 
-    builder = builder.timeout(self.timeout);
+    let default_timeout = Duration::from_secs(10);
+    builder = builder.timeout(self.timeout.unwrap_or(default_timeout));
 
     builder
   }
@@ -213,10 +198,6 @@ impl Client {
   pub fn insert(&self, url: Url, resp: Response) {
     self.cache.insert(url, resp);
   }
-}
-
-fn default_timeout() -> Duration {
-  Duration::from_secs(10)
 }
 
 #[cfg(test)]
