@@ -15,7 +15,7 @@ pub struct Cli {
   #[clap(subcommand)]
   subcmd: SubCommand,
 
-  #[clap(long, short)]
+  #[clap(long, short, env = "RSS_FUNNEL_CONFIG")]
   config: PathBuf,
 }
 
