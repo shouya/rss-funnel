@@ -43,17 +43,17 @@ pub struct MergeFullConfig {
   parallelism: Option<usize>,
   /// Client configuration
   #[serde(default)]
-  client: ClientConfig,
+  client: Option<ClientConfig>,
   /// Filters to apply to the merged feed
   #[serde(default)]
-  filters: FilterPipelineConfig,
+  filters: Option<FilterPipelineConfig>,
 }
 
 impl From<MergeSimpleConfig> for MergeFullConfig {
   fn from(config: MergeSimpleConfig) -> Self {
     Self {
       source: config.source,
-      client: ClientConfig::default(),
+      client: Default::default(),
       filters: Default::default(),
       parallelism: None,
     }
@@ -80,8 +80,10 @@ impl FeedFilterConfig for MergeConfig {
       source,
       parallelism,
     } = self.into();
-    let client = client.build(Duration::from_secs(15 * 60))?;
-    let filters = filters.build().await?;
+    let client = client
+      .unwrap_or_default()
+      .build(Duration::from_secs(15 * 60))?;
+    let filters = filters.unwrap_or_default().build().await?;
     let sources = source
       .into_vec()
       .into_iter()
