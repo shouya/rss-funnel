@@ -35,7 +35,7 @@ services:
       - ./funnel.yaml:/funnel.yaml
     environment:
       RSS_FUNNEL_CONFIG: /funnel.yaml
-      RSS_FUNNEL_BIND: 0.0.0.0
+      RSS_FUNNEL_BIND: 0.0.0.0:4080
 #+end_src
 
 The web UI will be available at =http://localhost:4080=.
@@ -87,12 +87,9 @@ You can optionally specify the bind address and port (default =127.0.0.1:4080=).
 
 The endpoints like =http://127.0.0.1:4080/tokio-blog.xml= should serve the filtered feeds.
 
-** Config Syntax and Filters
+** Documentation
 
-You can check out the [[https://github.com/shouya/rss-funnel/wiki/Config-syntax][Config syntax]] documentation for information about each component in the configuration file.
-
-See the [[https://github.com/shouya/rss-funnel/wiki/Filters][Filters]] documentation for all available filters.
-
-** Cookbook
-
-Check out the [[https://github.com/shouya/rss-funnel/wiki/Cookbook][Cookbook]] for some examples of using =rss-funnel=.
+- [[https://github.com/shouya/rss-funnel/wiki/Config-syntax][Config syntax]] contains information about each component in the configuration file.
+- [[https://github.com/shouya/rss-funnel/wiki/Filter-config][Filter config]] details the configuration for all filters.
+- [[https://github.com/shouya/rss-funnel/wiki/Cookbook][Cookbook]] contains snippets on how to use =rss-funnel= for several practical applications.
+- [[https://github.com/shouya/rss-funnel/wiki/Deployment][Deployment]] includes examples of docker-compose and kubernetes definitions.
