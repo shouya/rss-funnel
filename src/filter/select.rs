@@ -1,4 +1,4 @@
-use regex::RegexSet;
+use regex::{RegexSet, RegexSetBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -56,7 +56,7 @@ struct MatchConfig {
 
   /// Whether to match case sensitively
   #[serde(default)]
-  case_sensitive: bool,
+  case_sensitive: Option<bool>,
 }
 
 impl Default for MatchConfig {
@@ -65,7 +65,7 @@ impl Default for MatchConfig {
       matches: SingleOrVec::empty(),
       contains: SingleOrVec::empty(),
       field: Field::default(),
-      case_sensitive: false,
+      case_sensitive: None,
     }
   }
 }
@@ -101,7 +101,12 @@ impl MatchConfig {
   }
 
   fn regex_set(&self) -> Result<RegexSet, ConfigError> {
-    Ok(RegexSet::new(self.regexes())?)
+    let case_sensitive = self.case_sensitive.unwrap_or(false);
+    let regex_set = RegexSetBuilder::new(self.regexes())
+      .case_insensitive(!case_sensitive)
+      .build()
+      .map_err(ConfigError::from)?;
+    Ok(regex_set)
   }
 
   fn into_select(self, action: Action) -> Result<Select, ConfigError> {
@@ -217,7 +222,7 @@ impl FeedFilter for Select {
 #[cfg(test)]
 mod test {
   use super::*;
-  use crate::test_utils::assert_filter_parse;
+  use crate::test_utils::{assert_filter_parse, fetch_endpoint};
 
   #[test]
   fn test_config_keep_only_full() {
@@ -234,7 +239,7 @@ mod test {
       matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
       contains: SingleOrVec::empty(),
       field: Field::Title,
-      case_sensitive: true,
+      case_sensitive: Some(true),
     }));
 
     assert_filter_parse(config, expected);
@@ -282,9 +287,42 @@ mod test {
       matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
       contains: SingleOrVec::empty(),
       field: Field::Title,
-      case_sensitive: true,
+      case_sensitive: Some(true),
     }));
 
     assert_filter_parse(config, expected);
+  }
+
+  #[tokio::test]
+  async fn test_keep_only_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///youtube.xml
+      filters:
+        - keep_only: ElEcT
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    assert_eq!(posts.len(), 1);
+    assert_eq!(posts[0].title().unwrap(), "This Crystal Is ELECTRIC");
+  }
+
+  #[tokio::test]
+  async fn test_keep_only_case_sensitive_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///youtube.xml
+      filters:
+        - keep_only:
+            case_sensitive: true
+            contains: ElEcT
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    assert_eq!(posts.len(), 0);
   }
 }
