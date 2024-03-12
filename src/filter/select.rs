@@ -308,4 +308,21 @@ mod test {
     assert_eq!(posts.len(), 1);
     assert_eq!(posts[0].title().unwrap(), "This Crystal Is ELECTRIC");
   }
+
+  #[tokio::test]
+  async fn test_keep_only_case_sensitive_filter() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///youtube.xml
+      filters:
+        - keep_only:
+            case_sensitive: true
+            contains: ElEcT
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    assert_eq!(posts.len(), 0);
+  }
 }
