@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -12,9 +12,11 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
-struct SanitizeOpReplaceConfig {
+struct ReplaceConfig {
   from: String,
   to: String,
+  #[serde(default)]
+  case_sensitive: Option<bool>,
 }
 
 #[derive(
@@ -26,9 +28,9 @@ pub struct SanitizeOpConfig {
   /// Remove all matches of the regex
   remove_regex: Option<String>,
   /// Replace all occurrences of the string
-  replace: Option<SanitizeOpReplaceConfig>,
+  replace: Option<ReplaceConfig>,
   /// Replace all matches of the regex
-  replace_regex: Option<SanitizeOpReplaceConfig>,
+  replace_regex: Option<ReplaceConfig>,
 }
 
 impl SanitizeOpConfig {
@@ -48,7 +50,16 @@ impl SanitizeOpConfig {
 
     macro_rules! parse_regex {
       ($regex:expr) => {
-        Regex::new(&$regex).map_err(ConfigError::from)?
+        RegexBuilder::new(&$regex)
+          .case_insensitive(true)
+          .build()
+          .map_err(ConfigError::from)?
+      };
+      ($regex:expr, $cs:expr) => {
+        RegexBuilder::new(&$regex)
+          .case_insensitive($cs.unwrap_or(true))
+          .build()
+          .map_err(ConfigError::from)?
       };
     }
 
@@ -62,13 +73,15 @@ impl SanitizeOpConfig {
     }
 
     if let Some(text) = self.replace {
-      let from = parse_regex!(regex::escape(&text.from));
+      let case_sensitive = text.case_sensitive;
+      let from = parse_regex!(regex::escape(&text.from), case_sensitive);
       let to = text.to;
       return Ok(SanitizeOp::Replace(from, to));
     }
 
     if let Some(repl) = self.replace_regex {
-      let from = parse_regex!(repl.from);
+      let case_sensitive = repl.case_sensitive;
+      let from = parse_regex!(repl.from, case_sensitive);
       let to = repl.to;
       return Ok(SanitizeOp::Replace(from, to));
     }
@@ -182,9 +195,10 @@ mod test {
         SanitizeOpConfig {
           remove: None,
           remove_regex: None,
-          replace: Some(SanitizeOpReplaceConfig {
+          replace: Some(ReplaceConfig {
             from: "bar".into(),
             to: "baz".into(),
+            case_sensitive: None,
           }),
           replace_regex: None,
         },
@@ -192,9 +206,10 @@ mod test {
           remove: None,
           remove_regex: None,
           replace: None,
-          replace_regex: Some(SanitizeOpReplaceConfig {
+          replace_regex: Some(ReplaceConfig {
             from: r"\w+".into(),
             to: "qux".into(),
+            case_sensitive: None,
           }),
         },
       ],
