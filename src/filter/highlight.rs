@@ -19,7 +19,10 @@ pub struct HighlightConfig {
   #[serde(flatten)]
   keywords: KeywordsOrPatterns,
   /// Background color to use for highlighting. Default is yellow.
+  #[serde(default)]
   bg_color: Option<String>,
+  #[serde(default)]
+  case_sensitive: Option<bool>,
 }
 
 #[derive(
@@ -55,7 +58,8 @@ impl FeedFilterConfig for HighlightConfig {
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     let patterns = self.keywords.into_patterns()?;
     let bg_color = self.bg_color.unwrap_or_else(|| "#ffff00".into());
-    Highlight::new(&patterns, bg_color)
+    let case_sensitive = self.case_sensitive.unwrap_or(false);
+    Highlight::new(&patterns, bg_color, case_sensitive)
   }
 }
 
@@ -104,13 +108,18 @@ impl Highlight {
   fn new<T: AsRef<str>>(
     patterns: &[T],
     bg_color: String,
+    case_sensitive: bool,
   ) -> Result<Self, ConfigError> {
     let regexset = RegexSetBuilder::new(patterns)
-      .case_insensitive(true)
+      .case_insensitive(!case_sensitive)
       .build()?;
     let patterns = patterns
       .iter()
-      .map(|p| RegexBuilder::new(p.as_ref()).case_insensitive(true).build())
+      .map(|p| {
+        RegexBuilder::new(p.as_ref())
+          .case_insensitive(!case_sensitive)
+          .build()
+      })
       .collect::<Result<Vec<Regex>, _>>()?;
 
     Ok(Self {
@@ -241,7 +250,7 @@ mod test {
   #[test]
   fn test_highlighting() {
     let keywords = vec!["foo", "bar"];
-    let highlight = Highlight::new(&keywords, "#ffff00".into())
+    let highlight = Highlight::new(&keywords, "#ffff00".into(), false)
       .expect("failed to build highlighter");
 
     let html = r#"<html><p class="foo">FOO<div><!-- bar -->foo<br> bar</div></p></html>
@@ -274,6 +283,7 @@ highlight:
           keywords: vec!["foo".into(), "bar".into()],
         },
         bg_color: Some("#ffff00".into()),
+        case_sensitive: None,
       },
     );
 
@@ -289,6 +299,7 @@ highlight:
           patterns: vec![r"\bfoo\b".into()],
         },
         bg_color: Some("#ffff00".into()),
+        case_sensitive: None,
       },
     );
   }
