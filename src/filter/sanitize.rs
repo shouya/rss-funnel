@@ -57,7 +57,7 @@ impl SanitizeOpConfig {
       };
       ($regex:expr, $cs:expr) => {
         RegexBuilder::new(&$regex)
-          .case_insensitive($cs.unwrap_or(true))
+          .case_insensitive(!$cs.unwrap_or(false))
           .build()
           .map_err(ConfigError::from)?
       };
