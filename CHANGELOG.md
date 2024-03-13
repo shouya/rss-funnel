@@ -2,13 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0] - 2024-03-08
+## [0.1.1] - 2024-03-13
+
+### Bug Fixes
+
+- Mark `client` optional for merge filter (#77)
+- Fix a typo and broken links in README
+
+- Respect case-insensitive field of `keep_only`/`discard` filters (#79)
+
+### Features
+
+- `case_sensitive` option for `highlight` and `sanitize` filter (#82)
+
+## [0.1.0-pre.4] - 2024-03-08
+
+### Bug Fixes
+
+- Specify default timeout for client
+
+### Features
+
+- Render HTML inside note filter
+
+## [0.1.0-pre.1] - 2024-03-08
 
 ### Bug Fixes
 
 - Fix typo in release workflow
 - Handle non-utf8 feeds correctly (#67)
-- Specify default timeout for client
 
 ### Features
 
@@ -28,7 +50,6 @@ All notable changes to this project will be documented in this file.
 - Support early return in `modify_post` and `modify_feed` (#72)
 - Render note filter's value as documentation (#73)
 - Specify server flags via environment (#74)
-- Render HTML inside note filter
 
 ### Performance
 
