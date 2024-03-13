@@ -111,13 +111,13 @@ impl Highlight {
     case_sensitive: bool,
   ) -> Result<Self, ConfigError> {
     let regexset = RegexSetBuilder::new(patterns)
-      .case_insensitive(case_sensitive)
+      .case_insensitive(!case_sensitive)
       .build()?;
     let patterns = patterns
       .iter()
       .map(|p| {
         RegexBuilder::new(p.as_ref())
-          .case_insensitive(case_sensitive)
+          .case_insensitive(!case_sensitive)
           .build()
       })
       .collect::<Result<Vec<Regex>, _>>()?;
@@ -250,7 +250,7 @@ mod test {
   #[test]
   fn test_highlighting() {
     let keywords = vec!["foo", "bar"];
-    let highlight = Highlight::new(&keywords, "#ffff00".into())
+    let highlight = Highlight::new(&keywords, "#ffff00".into(), false)
       .expect("failed to build highlighter");
 
     let html = r#"<html><p class="foo">FOO<div><!-- bar -->foo<br> bar</div></p></html>
@@ -283,6 +283,7 @@ highlight:
           keywords: vec!["foo".into(), "bar".into()],
         },
         bg_color: Some("#ffff00".into()),
+        case_sensitive: None,
       },
     );
 
@@ -298,6 +299,7 @@ highlight:
           patterns: vec![r"\bfoo\b".into()],
         },
         bg_color: Some("#ffff00".into()),
+        case_sensitive: None,
       },
     );
   }
