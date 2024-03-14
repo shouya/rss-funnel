@@ -1,6 +1,12 @@
-use std::path::{Path, PathBuf};
+use std::{
+  path::{Path, PathBuf},
+  time::Duration,
+};
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+  sync::mpsc::{self, Receiver, Sender},
+  time::sleep,
+};
 use tracing::{error, warn};
 
 use crate::util::{ConfigError, Result};
@@ -21,7 +27,7 @@ impl Watcher {
 
     // sometimes the editor may touch the file multiple times in quick
     // succession when saving, so we debounce the events
-    let rx = debounce(std::time::Duration::from_millis(500), rx);
+    let rx = debounce(Duration::from_millis(500), rx);
 
     Ok(Self {
       path: path.to_owned(),
@@ -88,7 +94,7 @@ impl Watcher {
         "{} does not exist, waiting for it to be created",
         self.path.display()
       );
-      tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+      sleep(Duration::from_secs(10)).await;
     }
 
     watcher
@@ -104,7 +110,7 @@ impl Watcher {
 }
 
 fn debounce<T: Send + 'static>(
-  duration: std::time::Duration,
+  duration: Duration,
   mut rx: Receiver<T>,
 ) -> Receiver<T> {
   let (debounced_tx, debounced_rx) = mpsc::channel(1);
@@ -115,7 +121,7 @@ fn debounce<T: Send + 'static>(
         val = rx.recv() => {
           last = val;
         }
-        _ = tokio::time::sleep(duration) => {
+        _ = sleep(duration) => {
           if let Some(val) = last.take() {
             debounced_tx.send(val).await.unwrap();
           }
