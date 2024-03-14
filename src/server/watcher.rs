@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::util::{ConfigError, Result};
 
@@ -84,7 +84,7 @@ impl Watcher {
 
     // if the file does not exist, simply wait for it to be created
     while !self.path.exists() {
-      error!(
+      warn!(
         "{} does not exist, waiting for it to be created",
         self.path.display()
       );
