@@ -70,8 +70,10 @@ impl ServerConfig {
 
     // watcher must not be dropped until the end of the function
     let mut watcher = Watcher::new(config_path)?;
-    watcher.setup()?;
-    let mut change_alert = watcher.take_change_alert().expect(" failed");
+    let mut change_alert =
+      watcher.take_change_alert().expect("change alert taken");
+
+    tokio::task::spawn(watcher.run());
 
     // signal for reload on config update
     let feed_service_clone = feed_service.clone();

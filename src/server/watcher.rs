@@ -10,11 +10,14 @@ pub struct Watcher {
   watcher: Option<notify::RecommendedWatcher>,
   rx: Option<Receiver<()>>,
   tx: Sender<()>,
+  reload_tx: Sender<()>,
+  reload_rx: Receiver<()>,
 }
 
 impl Watcher {
   pub fn new(path: &Path) -> Result<Self> {
     let (tx, rx) = mpsc::channel(1);
+    let (reload_tx, reload_rx) = mpsc::channel(1);
 
     // sometimes the editor may touch the file multiple times in quick
     // succession when saving, so we debounce the events
@@ -23,6 +26,8 @@ impl Watcher {
     Ok(Self {
       path: path.to_owned(),
       watcher: None,
+      reload_tx,
+      reload_rx,
       rx: Some(rx),
       tx,
     })
@@ -32,17 +37,35 @@ impl Watcher {
     self.rx.take()
   }
 
-  pub fn setup(&mut self) -> Result<()> {
-    use notify::{Event, RecursiveMode, Watcher};
+  pub async fn run(mut self) -> Result<()> {
+    self.setup()?;
+
+    loop {
+      self.reload_rx.recv().await.unwrap();
+      self.setup()?;
+      // the file is re-created, trigger a reload
+      self.tx.send(()).await.unwrap();
+    }
+  }
+
+  fn setup(&mut self) -> Result<()> {
+    use notify::{event::ModifyKind, Event, EventKind, RecursiveMode, Watcher};
 
     let tx = self.tx.clone();
+    let reload_tx = self.reload_tx.clone();
     let event_handler = move |event: Result<Event, notify::Error>| match event {
-      Ok(event) if event.kind.is_modify() => {
+      Ok(Event {
+        kind: EventKind::Modify(ModifyKind::Data(_)),
+        ..
+      }) => {
         tx.blocking_send(()).unwrap();
       }
-      Ok(e) => {
-        dbg!(e);
+      Ok(event) if event.kind.is_remove() => {
+        // Captures vim's backupcopy=yes behavior. The file is likely
+        // renamed and deleted, try monitor the same file name again.
+        reload_tx.blocking_send(()).unwrap();
       }
+      Ok(_event) => {}
       Err(_) => {
         error!("file watcher error: {:?}", event);
       }
@@ -58,6 +81,8 @@ impl Watcher {
       .map_err(|e| {
         ConfigError::Message(format!("failed to watch file: {:?}", e))
       })?;
+
+    self.watcher.replace(watcher);
 
     Ok(())
   }
