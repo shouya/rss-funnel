@@ -38,17 +38,17 @@ impl Watcher {
   }
 
   pub async fn run(mut self) -> Result<()> {
-    self.setup()?;
+    self.setup().await?;
 
     loop {
       self.reload_rx.recv().await.unwrap();
-      self.setup()?;
+      self.setup().await?;
       // the file is re-created, trigger a reload
       self.tx.send(()).await.unwrap();
     }
   }
 
-  fn setup(&mut self) -> Result<()> {
+  async fn setup(&mut self) -> Result<()> {
     use notify::{
       event::{ModifyKind, RemoveKind},
       Event, EventKind, RecursiveMode, Watcher,
@@ -88,7 +88,7 @@ impl Watcher {
         "{} does not exist, waiting for it to be created",
         self.path.display()
       );
-      std::thread::sleep(std::time::Duration::from_secs(5));
+      tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     }
 
     watcher
