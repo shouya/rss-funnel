@@ -49,7 +49,10 @@ impl Watcher {
   }
 
   fn setup(&mut self) -> Result<()> {
-    use notify::{event::ModifyKind, Event, EventKind, RecursiveMode, Watcher};
+    use notify::{
+      event::{ModifyKind, RemoveKind},
+      Event, EventKind, RecursiveMode, Watcher,
+    };
 
     let tx = self.tx.clone();
     let reload_tx = self.reload_tx.clone();
@@ -60,7 +63,10 @@ impl Watcher {
       }) => {
         tx.blocking_send(()).unwrap();
       }
-      Ok(event) if event.kind.is_remove() => {
+      Ok(Event {
+        kind: EventKind::Remove(RemoveKind::File),
+        ..
+      }) => {
         // Captures vim's backupcopy=yes behavior. The file is likely
         // renamed and deleted, try monitor the same file name again.
         reload_tx.blocking_send(()).unwrap();
@@ -75,6 +81,15 @@ impl Watcher {
       notify::recommended_watcher(event_handler).map_err(|e| {
         ConfigError::Message(format!("failed to create file watcher: {:?}", e))
       })?;
+
+    // if the file does not exist, simply wait for it to be created
+    while !self.path.exists() {
+      error!(
+        "{} does not exist, waiting for it to be created",
+        self.path.display()
+      );
+      std::thread::sleep(std::time::Duration::from_secs(5));
+    }
 
     watcher
       .watch(&self.path, RecursiveMode::NonRecursive)
