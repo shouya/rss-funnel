@@ -3,23 +3,20 @@ mod endpoint;
 mod feed_service;
 #[cfg(feature = "inspector-ui")]
 mod inspector;
+mod watcher;
 
 use std::{path::Path, sync::Arc};
 
 use axum::{routing::get, Extension, Router};
 use clap::Parser;
 use http::StatusCode;
-use tokio::sync::mpsc;
 use tower_http::compression::CompressionLayer;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
-use crate::{
-  cli::RootConfig,
-  util::{ConfigError, Result},
-};
+use crate::{cli::RootConfig, util::Result};
 pub use endpoint::{EndpointConfig, EndpointParam};
 
-use self::feed_service::FeedService;
+use self::{feed_service::FeedService, watcher::Watcher};
 
 #[derive(Parser, Clone)]
 pub struct ServerConfig {
@@ -72,13 +69,15 @@ impl ServerConfig {
     let feed_service = FeedService::try_from(config).await?;
 
     // watcher must not be dropped until the end of the function
-    let (_watcher, mut config_update) = fs_watcher(config_path)?;
+    let mut watcher = Watcher::new(config_path)?;
+    watcher.setup()?;
+    let mut change_alert = watcher.take_change_alert().expect(" failed");
 
     // signal for reload on config update
     let feed_service_clone = feed_service.clone();
     let config_path_clone = config_path.to_owned();
     tokio::task::spawn(async move {
-      while config_update.recv().await.is_some() {
+      while change_alert.recv().await.is_some() {
         info!("config updated, reloading service");
         if !feed_service_clone.reload(&config_path_clone).await {
           feed_service_clone
@@ -124,60 +123,4 @@ impl ServerConfig {
 
     Ok(server.await?)
   }
-}
-
-fn fs_watcher(
-  config_path: &Path,
-) -> Result<(notify::RecommendedWatcher, mpsc::Receiver<()>)> {
-  use notify::{Event, RecursiveMode, Watcher};
-  let (tx, rx) = mpsc::channel(1);
-
-  let event_handler = move |event: Result<Event, notify::Error>| match event {
-    Ok(event) if event.kind.is_modify() => {
-      tx.blocking_send(()).unwrap();
-    }
-    Ok(_) => {}
-    Err(_) => {
-      error!("file watcher error: {:?}", event);
-    }
-  };
-
-  let mut watcher =
-    notify::recommended_watcher(event_handler).map_err(|e| {
-      ConfigError::Message(format!("failed to create file watcher: {:?}", e))
-    })?;
-
-  watcher
-    .watch(config_path, RecursiveMode::NonRecursive)
-    .map_err(|e| {
-      ConfigError::Message(format!("failed to watch file: {:?}", e))
-    })?;
-
-  // sometimes the editor may touch the file multiple times in quick
-  // succession when saving, so we debounce the events
-  let rx = debounce(std::time::Duration::from_millis(500), rx);
-  Ok((watcher, rx))
-}
-
-fn debounce<T: Send + 'static>(
-  duration: std::time::Duration,
-  mut rx: mpsc::Receiver<T>,
-) -> mpsc::Receiver<T> {
-  let (debounced_tx, debounced_rx) = mpsc::channel(1);
-  tokio::task::spawn(async move {
-    let mut last = None;
-    loop {
-      tokio::select! {
-        val = rx.recv() => {
-          last = val;
-        }
-        _ = tokio::time::sleep(duration) => {
-          if let Some(val) = last.take() {
-            debounced_tx.send(val).await.unwrap();
-          }
-        }
-      }
-    }
-  });
-  debounced_rx
 }
