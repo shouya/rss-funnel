@@ -403,12 +403,12 @@ impl Split {
       || titles.len() != pub_dates.len()
     {
       let msg = format!(
-        "Selector error: title ({}), link ({}), \
-         description ({}), and author ({}) count mismatch",
+        "Selector error: title ({}), link ({}), description ({}), author ({}), and date ({}) count mismatch",
         titles.len(),
         links.len(),
         descriptions.len(),
-        authors.len()
+        authors.len(),
+        pub_dates.len()
       );
       return Err(Error::Message(msg));
     }
