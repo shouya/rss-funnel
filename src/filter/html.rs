@@ -6,9 +6,10 @@
 //! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML description
 //! - [`SplitConfig`] (`split`): split a post into multiple posts
 
+use chrono::{DateTime, FixedOffset};
 use ego_tree::NodeId;
 use schemars::JsonSchema;
-use scraper::{Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use serde::{Deserialize, Serialize};
 
 use crate::feed::Post;
@@ -212,6 +213,10 @@ pub struct SplitConfig {
   /// selected elements will be used. If specified, it must select the
   /// same number of elements as title_selector.
   author_selector: Option<String>,
+  /// The CSS selector for the elements with the publication date.
+  /// rss-funnel uses heuristics to find the publication date from the
+  /// textContent and the attributes of the selected elements.
+  date_selector: Option<String>,
 }
 
 pub struct Split {
@@ -219,6 +224,7 @@ pub struct Split {
   link_selector: Option<Selector>,
   description_selector: Option<Selector>,
   author_selector: Option<Selector>,
+  date_selector: Option<Selector>,
 }
 
 #[async_trait::async_trait]
@@ -238,12 +244,14 @@ impl FeedFilterConfig for SplitConfig {
     let link_selector = parse_selector_opt(&self.link_selector)?;
     let description_selector = parse_selector_opt(&self.description_selector)?;
     let author_selector = parse_selector_opt(&self.author_selector)?;
+    let date_selector = parse_selector_opt(&self.date_selector)?;
 
     Ok(Split {
       title_selector,
       link_selector,
       description_selector,
       author_selector,
+      date_selector,
     })
   }
 }
@@ -316,6 +324,22 @@ impl Split {
     Ok(Some(authors))
   }
 
+  fn select_date(
+    &self,
+    doc: &Html,
+  ) -> Result<Option<Vec<DateTime<FixedOffset>>>> {
+    let Some(date_selector) = self.date_selector.as_ref() else {
+      return Ok(None);
+    };
+
+    let dates = doc
+      .select(date_selector)
+      .map(parse_date_from_element)
+      .collect::<Option<Vec<_>>>();
+
+    Ok(dates)
+  }
+
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
     if let Some(description) = template_post.description_mut() {
@@ -337,6 +361,7 @@ impl Split {
     link: &str,
     description: Option<&str>,
     author: Option<&str>,
+    pub_date: Option<DateTime<FixedOffset>>,
   ) {
     template.set_title(title);
     template.set_link(link);
@@ -345,6 +370,9 @@ impl Split {
     }
     if let Some(author) = author {
       template.set_author(author);
+    }
+    if let Some(pub_date) = pub_date {
+      template.set_pub_date(pub_date);
     }
     template.set_guid(link);
   }
@@ -368,22 +396,27 @@ impl Split {
     let n = titles.len();
     let descriptions = transpose_option_vec(self.select_description(&doc)?, n);
     let authors = transpose_option_vec(self.select_author(&doc)?, n);
+    let pub_dates = transpose_option_vec(self.select_date(&doc)?, n);
 
-    if titles.len() != descriptions.len() || titles.len() != authors.len() {
+    if titles.len() != descriptions.len()
+      || titles.len() != authors.len()
+      || titles.len() != pub_dates.len()
+    {
       let msg = format!(
-        "Selector error: title ({}), link ({}), \
-         description ({}), and author ({}) count mismatch",
+        "Selector error: title ({}), link ({}), description ({}), author ({}), and date ({}) count mismatch",
         titles.len(),
         links.len(),
         descriptions.len(),
-        authors.len()
+        authors.len(),
+        pub_dates.len()
       );
       return Err(Error::Message(msg));
     }
 
-    let iter = itertools::multizip((titles, links, descriptions, authors));
+    let iter =
+      itertools::multizip((titles, links, descriptions, authors, pub_dates));
 
-    for (title, link, description, author) in iter {
+    for (title, link, description, author, pub_date) in iter {
       let mut post = self.prepare_template(post);
       self.apply_template(
         &mut post,
@@ -391,6 +424,7 @@ impl Split {
         &link,
         description.as_deref(),
         author.as_deref(),
+        pub_date,
       );
       posts.push(post);
     }
@@ -407,6 +441,37 @@ fn transpose_option_vec<T: Clone>(
     Some(v) => v.into_iter().map(|x| Some(x)).collect(),
     None => vec![None; n],
   }
+}
+
+fn parse_date_from_element(
+  elem: ElementRef<'_>,
+) -> Option<DateTime<FixedOffset>> {
+  fn parse_standard_date(s: &str) -> Option<DateTime<FixedOffset>> {
+    // ISO 8601 date (1996-12-19T16:39:57-08:00)
+    if let Ok(d) = DateTime::parse_from_rfc3339(s) {
+      return Some(d);
+    }
+
+    // RFC 2822 date (Tue, 19 Dec 1996 16:39:57 -0800)
+    if let Ok(d) = DateTime::parse_from_rfc2822(s) {
+      return Some(d);
+    }
+
+    None
+  }
+
+  let text = elem.text().collect::<String>();
+  if let Some(d) = parse_standard_date(&text) {
+    return Some(d);
+  }
+
+  for (_name, attr) in elem.value().attrs() {
+    if let Some(d) = parse_standard_date(attr) {
+      return Some(d);
+    }
+  }
+
+  None
 }
 
 #[async_trait::async_trait]
