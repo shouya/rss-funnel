@@ -6,7 +6,7 @@
 //! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML description
 //! - [`SplitConfig`] (`split`): split a post into multiple posts
 
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 use ego_tree::NodeId;
 use schemars::JsonSchema;
 use scraper::{ElementRef, Html, Selector};
@@ -361,6 +361,7 @@ impl Split {
     link: &str,
     description: Option<&str>,
     author: Option<&str>,
+    pub_date: Option<DateTime<FixedOffset>>,
   ) {
     template.set_title(title);
     template.set_link(link);
@@ -369,6 +370,9 @@ impl Split {
     }
     if let Some(author) = author {
       template.set_author(author);
+    }
+    if let Some(pub_date) = pub_date {
+      template.set_pub_date(pub_date);
     }
     template.set_guid(link);
   }
@@ -392,8 +396,12 @@ impl Split {
     let n = titles.len();
     let descriptions = transpose_option_vec(self.select_description(&doc)?, n);
     let authors = transpose_option_vec(self.select_author(&doc)?, n);
+    let pub_dates = transpose_option_vec(self.select_date(&doc)?, n);
 
-    if titles.len() != descriptions.len() || titles.len() != authors.len() {
+    if titles.len() != descriptions.len()
+      || titles.len() != authors.len()
+      || titles.len() != pub_dates.len()
+    {
       let msg = format!(
         "Selector error: title ({}), link ({}), \
          description ({}), and author ({}) count mismatch",
@@ -405,9 +413,10 @@ impl Split {
       return Err(Error::Message(msg));
     }
 
-    let iter = itertools::multizip((titles, links, descriptions, authors));
+    let iter =
+      itertools::multizip((titles, links, descriptions, authors, pub_dates));
 
-    for (title, link, description, author) in iter {
+    for (title, link, description, author, pub_date) in iter {
       let mut post = self.prepare_template(post);
       self.apply_template(
         &mut post,
@@ -415,6 +424,7 @@ impl Split {
         &link,
         description.as_deref(),
         author.as_deref(),
+        pub_date,
       );
       posts.push(post);
     }
@@ -433,8 +443,8 @@ fn transpose_option_vec<T: Clone>(
   }
 }
 
-fn parse_date_from_element<'a>(
-  elem: ElementRef<'a>,
+fn parse_date_from_element(
+  elem: ElementRef<'_>,
 ) -> Option<DateTime<FixedOffset>> {
   fn parse_standard_date(s: &str) -> Option<DateTime<FixedOffset>> {
     // ISO 8601 date (1996-12-19T16:39:57-08:00)

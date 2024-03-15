@@ -1,5 +1,6 @@
 mod conversion;
 
+use chrono::DateTime;
 use paste::paste;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -291,6 +292,30 @@ enum PostField {
 }
 
 impl Post {
+  pub fn set_pub_date(&mut self, date: DateTime<chrono::FixedOffset>) {
+    match self {
+      Post::Rss(item) => {
+        item.pub_date = Some(date.to_rfc2822());
+      }
+      Post::Atom(item) => {
+        item.updated = date;
+      }
+    }
+  }
+
+  #[allow(unused)]
+  pub fn pub_date(&self) -> Option<DateTime<chrono::FixedOffset>> {
+    match self {
+      Post::Rss(item) => item
+        .pub_date
+        .as_ref()
+        .and_then(|s| DateTime::parse_from_rfc2822(s).ok()),
+      Post::Atom(item) => Some(item.updated),
+    }
+  }
+}
+
+impl Post {
   fn get_field(&self, field: PostField) -> Option<&str> {
     match (self, field) {
       (Post::Rss(item), PostField::Title) => item.title.as_deref(),
@@ -535,7 +560,7 @@ fn fix_escaping_in_extension_attr(feed: &mut atom_syndication::Feed) {
 }
 
 fn rss_item_timestamp(item: &rss::Item) -> Option<i64> {
-  use chrono::{DateTime, FixedOffset};
+  use chrono::FixedOffset;
 
   let Some(pub_date) = item.pub_date.as_ref() else {
     return None;
