@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2024-03-16
+
+### Bug Fixes
+
+- Merge feeds with extra namespaces (#90)
+
+### Features
+
+- Reliably detect config file modification (#84)
+- Select publication date in `split` filter (#85)
+
 ## [0.1.1] - 2024-03-13
 
 ### Bug Fixes
