@@ -176,9 +176,11 @@ impl Feed {
   pub fn merge(&mut self, other: Feed) -> Result<()> {
     match (self, other) {
       (Feed::Rss(channel), Feed::Rss(other)) => {
+        channel.namespaces.extend(other.namespaces);
         channel.items.extend(other.items);
       }
       (Feed::Atom(feed), Feed::Atom(other)) => {
+        feed.namespaces.extend(other.namespaces);
         feed.entries.extend(other.entries);
       }
       (Feed::Rss(_), _) => {
