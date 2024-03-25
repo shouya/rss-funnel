@@ -221,9 +221,9 @@ impl FeedFilter for Highlight {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      if let Some(description) = post.description_mut() {
-        *description = self.highlight_html(description);
-      }
+      post.modify_body(|body| {
+        *body = self.highlight_html(body);
+      });
     }
 
     feed.set_posts(posts);
