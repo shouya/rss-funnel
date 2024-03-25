@@ -60,13 +60,17 @@ impl FeedFilterConfig for RemoveElementConfig {
 }
 
 impl RemoveElement {
-  fn filter_description(&self, description: &str) -> Option<String> {
-    let mut html = Html::parse_fragment(description);
+  fn filter_body(&self, body: &mut String) {
+    let mut html = Html::parse_fragment(body);
     let mut selected_node_ids = vec![];
     for selector in &self.selectors {
       for elem in html.select(selector) {
         selected_node_ids.push(elem.id());
       }
+    }
+
+    if selected_node_ids.is_empty() {
+      return;
     }
 
     for id in selected_node_ids {
@@ -75,7 +79,7 @@ impl RemoveElement {
       }
     }
 
-    Some(html.html())
+    body.replace_range(.., &html.html());
   }
 }
 
@@ -89,10 +93,9 @@ impl FeedFilter for RemoveElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      let description_mut = post.description_or_insert();
-      if let Some(description) = self.filter_description(description_mut) {
-        *description_mut = description;
-      }
+      post.modify_body(|body| {
+        self.filter_body(body);
+      })
     }
 
     feed.set_posts(posts);
@@ -154,8 +157,8 @@ impl KeepElement {
     Some(())
   }
 
-  pub fn filter_description(&self, description: &str) -> Option<String> {
-    let mut html = Html::parse_fragment(description);
+  pub fn filter_body(&self, body: &mut String) {
+    let mut html = Html::parse_fragment(body);
 
     for selector in &self.selectors {
       let mut selected = vec![];
@@ -164,11 +167,12 @@ impl KeepElement {
       }
 
       if Self::keep_only_selected(&mut html, &selected).is_none() {
-        return Some("<no element kept>".to_string());
+        body.replace_range(.., "<no element kept>");
+        return;
       }
     }
 
-    Some(html.html())
+    body.replace_range(.., &html.html());
   }
 }
 
@@ -182,10 +186,7 @@ impl FeedFilter for KeepElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      let description_mut = post.description_or_insert();
-      if let Some(description) = self.filter_description(description_mut) {
-        *description_mut = description;
-      }
+      post.modify_body(|body| self.filter_body(body));
     }
 
     feed.set_posts(posts);
