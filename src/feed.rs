@@ -314,6 +314,7 @@ impl Post {
       Post::Atom(item) => Some(item.updated),
     }
   }
+
   pub fn modify_body(&mut self, f: impl FnMut(&mut String)) {
     match self {
       Post::Rss(item) => {
@@ -327,6 +328,27 @@ impl Post {
     }
   }
 
+  pub fn ensure_body(&mut self) -> &mut String {
+    let mut body = None;
+    self.modify_body(|b| {
+      body.get_or_insert(b);
+    });
+
+    if let Some(body) = body {
+      return body;
+    }
+
+    match self {
+      Post::Rss(item) => {
+        item.description = Some(String::new());
+      }
+      Post::Atom(item) => {
+        item.summary = Some(atom_syndication::Text::html(String::new()));
+      }
+    }
+
+    self.ensure_body()
+  }
 }
 
 impl Post {
