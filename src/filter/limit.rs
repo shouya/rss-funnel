@@ -15,7 +15,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 #[serde(untagged)]
-enum LimitConfig {
+pub enum LimitConfig {
   Count(LimitByCount),
   Duration(LimitByDuration),
 }
@@ -25,14 +25,14 @@ enum LimitConfig {
 )]
 #[serde(transparent)]
 /// Only this many posts are kept.
-struct LimitByCount(usize);
+pub struct LimitByCount(usize);
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 #[serde(transparent)]
-/// Only posts published within this duration are kept.
-struct LimitByDuration(
+/// Only posts published within this duration are kept. (Examples: "1d", "3w")
+pub struct LimitByDuration(
   #[serde(deserialize_with = "duration_str::deserialize_duration")]
   #[schemars(with = "String")]
   Duration,
