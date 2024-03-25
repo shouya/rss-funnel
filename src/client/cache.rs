@@ -32,9 +32,7 @@ impl ResponseCache {
 
   pub fn get_cached(&self, url: &Url) -> Option<Response> {
     let mut map = self.map.write().ok()?;
-    let Some(entry) = map.get(url) else {
-      return None;
-    };
+    let entry = map.get(url)?;
     if entry.created.elapsed() > self.timeout {
       map.pop(url);
       return None;
