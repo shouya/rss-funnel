@@ -3,6 +3,7 @@ mod full_text;
 mod highlight;
 mod html;
 mod js;
+mod limit;
 mod merge;
 mod note;
 mod sanitize;
