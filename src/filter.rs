@@ -3,6 +3,7 @@ mod full_text;
 mod highlight;
 mod html;
 mod js;
+mod limit;
 mod merge;
 mod note;
 mod sanitize;
@@ -188,4 +189,5 @@ define_filters!(
   Merge => merge::MergeConfig, "Merge extra feed into the main feed";
   Note => note::NoteFilterConfig, "Add non-functional comment";
   ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
+  Limit => limit::LimitConfig, "Limit the number of posts";
 );

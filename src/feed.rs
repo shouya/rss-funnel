@@ -564,9 +564,7 @@ fn fix_escaping_in_extension_attr(feed: &mut atom_syndication::Feed) {
 fn rss_item_timestamp(item: &rss::Item) -> Option<i64> {
   use chrono::FixedOffset;
 
-  let Some(pub_date) = item.pub_date.as_ref() else {
-    return None;
-  };
+  let pub_date = item.pub_date.as_ref()?;
 
   let Ok(date) = DateTime::<FixedOffset>::parse_from_rfc2822(pub_date) else {
     return None;
