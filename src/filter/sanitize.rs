@@ -122,21 +122,17 @@ impl FeedFilterConfig for SanitizeConfig {
 }
 
 impl Sanitize {
-  fn filter_description(&self, description: &str) -> String {
-    let mut description = Cow::Borrowed(description);
-
+  fn filter_body(&self, body: &mut String) {
     for op in &self.ops {
       let (needle, repl) = match op {
         SanitizeOp::Remove(needle) => (needle, ""),
         SanitizeOp::Replace(needle, repl) => (needle, repl.as_str()),
       };
 
-      if let Cow::Owned(o) = needle.replace_all(&description, repl) {
-        description = Cow::Owned(o)
+      if let Cow::Owned(o) = needle.replace_all(&body, repl) {
+        *body = o;
       }
     }
-
-    description.to_string()
   }
 }
 
@@ -149,9 +145,7 @@ impl FeedFilter for Sanitize {
   ) -> Result<Feed> {
     let mut posts = feed.take_posts();
     for post in &mut posts {
-      if let Some(description) = post.description_mut() {
-        *description = self.filter_description(description);
-      }
+      post.modify_body(|body| self.filter_body(body));
     }
 
     feed.set_posts(posts);

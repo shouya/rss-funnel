@@ -343,9 +343,7 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    if let Some(description) = template_post.description_mut() {
-      description.clear()
-    }
+    template_post.modify_body(|body| body.clear());
 
     if self.author_selector.is_some() {
       if let Some(author) = template_post.author_mut() {
@@ -367,7 +365,7 @@ impl Split {
     template.set_title(title);
     template.set_link(link);
     if let Some(description) = description {
-      template.set_description(description);
+      template.modify_body(|body| body.replace_range(.., description));
     }
     if let Some(author) = author {
       template.set_author(author);
@@ -381,7 +379,8 @@ impl Split {
   fn split(&self, post: &Post) -> Result<Vec<Post>> {
     let mut posts = vec![];
 
-    let doc = Html::parse_fragment(post.description_or_err()?);
+    let body = post.ensure_body();
+    let doc = Html::parse_fragment(body);
 
     let titles = self.select_title(&doc)?;
     let links = self.select_link(post.link_or_err()?, &doc)?;
