@@ -209,7 +209,7 @@ pub struct SplitConfig {
   /// The CSS selector for the body elements. The innerHTML of
   /// the selected elements will be used. If specified, it must select
   /// the same number of elements as title_selector.
-  #[deprecated]
+  #[deprecated(note = "Use `body_selector` instead")]
   description_selector: Option<String>,
   /// The CSS selector for the body elements. The innerHTML of
   /// the selected elements will be used. If specified, it must select
