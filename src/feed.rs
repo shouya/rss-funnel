@@ -334,6 +334,11 @@ impl Post {
           .into_iter()
           .filter_map(|tag| tag.value.as_mut())
           .for_each(|v| bodies.push(v));
+        item
+          .itunes_ext
+          .as_mut()
+          .and_then(|ext| ext.summary.as_mut())
+          .map(|v| bodies.push(v));
       }
       Post::Atom(item) => {
         item
@@ -367,6 +372,11 @@ impl Post {
           .into_iter()
           .filter_map(|tag| tag.value.as_deref())
           .for_each(|v| bodies.push(v));
+        item
+          .itunes_ext
+          .as_ref()
+          .and_then(|ext| ext.summary.as_deref())
+          .map(|v| bodies.push(v));
       }
       Post::Atom(item) => {
         item
