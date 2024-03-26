@@ -14,7 +14,7 @@ use crate::{
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
-/// Highlight the given keywords in the feed's description
+/// Highlight the given keywords in the post's body
 pub struct HighlightConfig {
   #[serde(flatten)]
   keywords: KeywordsOrPatterns,
@@ -129,8 +129,8 @@ impl Highlight {
     })
   }
 
-  fn highlight_html(&self, description: &str) -> String {
-    let mut html = Html::parse_fragment(description);
+  fn highlight_html(&self, body: &str) -> String {
+    let mut html = Html::parse_fragment(body);
     let text_node_ids: Vec<NodeId> = html
       .tree
       .nodes()

@@ -25,7 +25,7 @@ pub struct FullTextConfig {
   parallelism: Option<usize>,
   /// Whether to simplify the HTML before saving it
   simplify: Option<bool>,
-  /// Whether to append the full text to the description or replace it
+  /// Whether to append the full text to the body or replace it
   append_mode: Option<bool>,
   /// Keep only content inside an element of the full text
   keep_element: Option<KeepElementConfig>,
@@ -126,7 +126,7 @@ impl FullTextFilter {
 
   async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
     // if anything went wrong when fetching the full text, we simply
-    // append the error message to the description instead of failing
+    // append the error message to the body instead of failing
     // completely.
     match self.try_fetch_full_post(&mut post).await {
       Ok(_) => Ok(post),
