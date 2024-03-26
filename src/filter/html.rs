@@ -376,10 +376,15 @@ impl Split {
     template.set_guid(link);
   }
 
-  fn split(&self, post: &Post) -> Result<Vec<Post>> {
+  fn split(&self, mut post: Post) -> Result<Vec<Post>> {
     let mut posts = vec![];
 
-    let body = post.ensure_body();
+    let Some(body) = post.first_body() else {
+      let body = post.create_body();
+      body.push_str("split failed: no body");
+      return Ok(vec![post]);
+    };
+
     let doc = Html::parse_fragment(body);
 
     let titles = self.select_title(&doc)?;
@@ -417,7 +422,7 @@ impl Split {
       itertools::multizip((titles, links, descriptions, authors, pub_dates));
 
     for (title, link, description, author, pub_date) in iter {
-      let mut post = self.prepare_template(post);
+      let mut post = self.prepare_template(&post);
       self.apply_template(
         &mut post,
         &title,
@@ -482,7 +487,7 @@ impl FeedFilter for Split {
     mut feed: Feed,
   ) -> Result<Feed> {
     let mut posts = vec![];
-    for post in &feed.take_posts() {
+    for post in feed.take_posts() {
       let mut split_posts = self.split(post)?;
       posts.append(&mut split_posts);
     }
