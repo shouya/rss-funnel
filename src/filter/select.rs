@@ -301,12 +301,12 @@ mod test {
       path: /feed.xml
       source: fixture:///youtube.xml
       filters:
-        - keep_only: ElEcT
+        - keep_only: ElecTric
     "#;
 
     let mut feed = fetch_endpoint(config, "").await;
     let posts = feed.take_posts();
-    assert_eq!(posts.len(), 1);
+    assert_eq!(posts.len(), 2);
     assert_eq!(posts[0].title().unwrap(), "This Crystal Is ELECTRIC");
   }
 
