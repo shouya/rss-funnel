@@ -133,15 +133,15 @@ enum Field {
 
 impl Field {
   fn extract<'a>(&self, post: &'a crate::feed::Post) -> Vec<&'a str> {
-    let vec = match self {
-      Self::Title => vec![post.title()],
-      Self::Content => vec![post.description()],
-      Self::Any => {
-        vec![post.title(), post.description()]
-      }
-    };
-
-    vec.into_iter().flatten().collect()
+    match self {
+      Self::Title => post.title().into_iter().collect(),
+      Self::Content => post.body_values(),
+      Self::Any => post
+        .title()
+        .into_iter()
+        .chain(post.body_values().into_iter())
+        .collect(),
+    }
   }
 }
 

@@ -352,6 +352,33 @@ impl Post {
 
     self.ensure_body()
   }
+
+  // read only version of modify_body. you should ensure the visiting
+  // order
+  pub fn visit_body(&self, f: impl FnMut(&str)) {
+    match self {
+      Post::Rss(item) => {
+        item.content.as_deref().map(f);
+        item.description.as_deref().map(f);
+      }
+      Post::Atom(item) => {
+        item
+          .content
+          .as_ref()
+          .and_then(|c| c.value.as_deref())
+          .map(f);
+        item.summary.as_ref().map(|s| f(&s.value));
+      }
+    }
+  }
+
+  // a post can have many fields that shows as the body in the feed. this function
+  // returns all of them.
+  pub fn body_values(&self) -> Vec<&str> {
+    let mut values = Vec::new();
+    self.visit_body(|v| values.push(v));
+    values
+  }
 }
 
 impl Post {
