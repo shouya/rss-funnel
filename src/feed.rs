@@ -315,69 +315,84 @@ impl Post {
     }
   }
 
-  // the visiting order should match the actual display order in rss
+  // the order should match the actual display order in rss
   // readers. This allows ensure_body to return the body field that is
   // most likely to affect the actual appearance.
-  pub fn modify_body(&mut self, f: impl FnMut(&mut String)) {
+  #[allow(clippy::option_map_unit_fn)]
+  pub fn bodies_mut(&mut self) -> Vec<&mut String> {
+    let mut bodies = Vec::new();
     match self {
       Post::Rss(item) => {
-        item.content.as_mut().map(f);
-        item.description.as_mut().map(f);
+        item.content.as_mut().map(|v| bodies.push(v));
+        item.description.as_mut().map(|v| bodies.push(v));
       }
       Post::Atom(item) => {
-        item.content.as_mut().and_then(|c| c.value.as_mut()).map(f);
-        item.summary.as_mut().map(|s| f(&mut s.value));
+        item
+          .content
+          .as_mut()
+          .and_then(|c| c.value.as_mut())
+          .map(|v| bodies.push(v));
+        item.summary.as_mut().map(|s| bodies.push(&mut s.value));
       }
     }
+    bodies
   }
 
-  pub fn ensure_body(&mut self) -> &mut String {
-    let mut body = None;
-    self.modify_body(|b| {
-      body.get_or_insert(b);
-    });
-
-    if let Some(body) = body {
-      return body;
-    }
-
+  #[allow(clippy::option_map_unit_fn)]
+  pub fn bodies(&self) -> Vec<&str> {
+    let mut bodies = Vec::new();
     match self {
       Post::Rss(item) => {
-        item.description = Some(String::new());
-      }
-      Post::Atom(item) => {
-        item.summary = Some(atom_syndication::Text::html(String::new()));
-      }
-    }
-
-    self.ensure_body()
-  }
-
-  // read only version of modify_body. you should ensure the visiting
-  // order
-  pub fn visit_body(&self, f: impl FnMut(&str)) {
-    match self {
-      Post::Rss(item) => {
-        item.content.as_deref().map(f);
-        item.description.as_deref().map(f);
+        item.content.as_deref().map(|v| bodies.push(v));
+        item.description.as_deref().map(|v| bodies.push(v));
       }
       Post::Atom(item) => {
         item
           .content
           .as_ref()
           .and_then(|c| c.value.as_deref())
-          .map(f);
-        item.summary.as_ref().map(|s| f(&s.value));
+          .map(|v| bodies.push(v));
+        item.summary.as_ref().map(|s| bodies.push(&s.value));
+      }
+    }
+    bodies
+  }
+
+  pub fn modify_body(&mut self, mut f: impl FnMut(&mut String)) {
+    for body in self.bodies_mut() {
+      f(body);
+    }
+  }
+
+  pub fn first_body(&self) -> Option<&str> {
+    self.bodies().into_iter().next()
+  }
+
+  pub fn first_body_mut(&mut self) -> Option<&mut String> {
+    self.bodies_mut().into_iter().next()
+  }
+
+  pub fn create_body(&mut self) -> &mut String {
+    match self {
+      Post::Rss(item) => {
+        item.description = Some(String::new());
+        item.description.as_mut().unwrap()
+      }
+      Post::Atom(item) => {
+        item.summary = Some(atom_syndication::Text::html(String::new()));
+        &mut item.summary.as_mut().unwrap().value
       }
     }
   }
 
-  // a post can have many fields that shows as the body in the feed. this function
-  // returns all of them.
-  pub fn body_values(&self) -> Vec<&str> {
-    let mut values = Vec::new();
-    self.visit_body(|v| values.push(v));
-    values
+  pub fn ensure_body(&mut self) -> &mut String {
+    let needs_body = self.first_body_mut().is_none();
+
+    if needs_body {
+      self.create_body()
+    } else {
+      self.first_body_mut().unwrap()
+    }
   }
 }
 
