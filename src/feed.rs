@@ -315,15 +315,18 @@ impl Post {
     }
   }
 
+  // the visiting order should match the actual display order in rss
+  // readers. This allows ensure_body to return the body field that is
+  // most likely to affect the actual appearance.
   pub fn modify_body(&mut self, f: impl FnMut(&mut String)) {
     match self {
       Post::Rss(item) => {
-        item.description.as_mut().map(f);
         item.content.as_mut().map(f);
+        item.description.as_mut().map(f);
       }
       Post::Atom(item) => {
-        item.summary.as_mut().map(|s| f(&mut s.value));
         item.content.as_mut().and_then(|c| c.value.as_mut()).map(f);
+        item.summary.as_mut().map(|s| f(&mut s.value));
       }
     }
   }
