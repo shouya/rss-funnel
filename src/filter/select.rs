@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use regex::{RegexSet, RegexSetBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -127,6 +129,8 @@ impl MatchConfig {
 #[serde(rename_all = "snake_case")]
 enum Field {
   Title,
+  Body,
+  #[deprecated(note = "use `body` instead")]
   Content,
   Any,
 }
@@ -135,7 +139,8 @@ impl Field {
   fn extract<'a>(&self, post: &'a crate::feed::Post) -> Vec<&'a str> {
     match self {
       Self::Title => post.title().into_iter().collect(),
-      Self::Content => post.bodies(),
+      #[allow(deprecated)]
+      Self::Body | Self::Content => post.bodies(),
       Self::Any => post.title().into_iter().chain(post.bodies()).collect(),
     }
   }
