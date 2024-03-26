@@ -221,7 +221,7 @@ impl FeedFilter for Highlight {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      post.modify_body(|body| {
+      post.modify_bodies(|body| {
         *body = self.highlight_html(body);
       });
     }

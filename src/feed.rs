@@ -386,7 +386,7 @@ impl Post {
     bodies
   }
 
-  pub fn modify_body(&mut self, mut f: impl FnMut(&mut String)) {
+  pub fn modify_bodies(&mut self, mut f: impl FnMut(&mut String)) {
     for body in self.bodies_mut() {
       f(body);
     }

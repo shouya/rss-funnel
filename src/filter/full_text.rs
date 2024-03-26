@@ -105,7 +105,7 @@ impl FullTextFilter {
     .await?;
 
     post.ensure_body();
-    post.modify_body(|body| {
+    post.modify_bodies(|body| {
       if self.append_mode {
         body.push_str("\n<br><hr><br>\n");
         body.push_str(&text);
@@ -132,7 +132,7 @@ impl FullTextFilter {
       Ok(_) => Ok(post),
       Err(e) => {
         let message = format!("\n<br>\n<br>\nerror fetching full text: {}", e);
-        post.modify_body(|body| {
+        post.modify_bodies(|body| {
           body.push_str(&message);
         });
         Ok(post)

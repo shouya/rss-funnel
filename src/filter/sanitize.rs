@@ -145,7 +145,7 @@ impl FeedFilter for Sanitize {
   ) -> Result<Feed> {
     let mut posts = feed.take_posts();
     for post in &mut posts {
-      post.modify_body(|body| self.filter_body(body));
+      post.modify_bodies(|body| self.filter_body(body));
     }
 
     feed.set_posts(posts);

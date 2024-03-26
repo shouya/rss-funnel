@@ -93,7 +93,7 @@ impl FeedFilter for RemoveElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      post.modify_body(|body| {
+      post.modify_bodies(|body| {
         self.filter_body(body);
       })
     }
@@ -186,7 +186,7 @@ impl FeedFilter for KeepElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      post.modify_body(|body| self.filter_body(body));
+      post.modify_bodies(|body| self.filter_body(body));
     }
 
     feed.set_posts(posts);
@@ -349,7 +349,7 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    template_post.modify_body(|body| body.clear());
+    template_post.modify_bodies(|body| body.clear());
 
     if self.author_selector.is_some() {
       if let Some(author) = template_post.author_mut() {
@@ -371,7 +371,7 @@ impl Split {
     template.set_title(title);
     template.set_link(link);
     if let Some(new_body) = body {
-      template.modify_body(|body| body.replace_range(.., new_body));
+      template.modify_bodies(|body| body.replace_range(.., new_body));
     }
     if let Some(author) = author {
       template.set_author(author);

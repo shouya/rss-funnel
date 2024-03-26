@@ -37,7 +37,7 @@ impl FeedFilter for SimplifyHtmlFilter {
 
     for post in &mut posts {
       let link = post.link().unwrap_or("").to_string();
-      post.modify_body(|body| {
+      post.modify_bodies(|body| {
         if let Some(simplified) = simplify(body, &link) {
           *body = simplified;
         }
