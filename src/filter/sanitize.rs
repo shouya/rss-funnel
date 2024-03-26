@@ -129,7 +129,7 @@ impl Sanitize {
         SanitizeOp::Replace(needle, repl) => (needle, repl.as_str()),
       };
 
-      if let Cow::Owned(o) = needle.replace_all(&body, repl) {
+      if let Cow::Owned(o) = needle.replace_all(body, repl) {
         *body = o;
       }
     }

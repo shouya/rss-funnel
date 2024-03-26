@@ -135,12 +135,8 @@ impl Field {
   fn extract<'a>(&self, post: &'a crate::feed::Post) -> Vec<&'a str> {
     match self {
       Self::Title => post.title().into_iter().collect(),
-      Self::Content => post.body_values(),
-      Self::Any => post
-        .title()
-        .into_iter()
-        .chain(post.body_values().into_iter())
-        .collect(),
+      Self::Content => post.bodies(),
+      Self::Any => post.title().into_iter().chain(post.bodies()).collect(),
     }
   }
 }
