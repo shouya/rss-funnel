@@ -1,4 +1,5 @@
 mod conversion;
+mod extension;
 
 use chrono::DateTime;
 use paste::paste;
@@ -12,6 +13,8 @@ use crate::html::html_body;
 use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
+
+use extension::ExtensionExt;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
@@ -325,6 +328,12 @@ impl Post {
       Post::Rss(item) => {
         item.content.as_mut().map(|v| bodies.push(v));
         item.description.as_mut().map(|v| bodies.push(v));
+        item
+          .extensions
+          .tags_mut_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_mut())
+          .for_each(|v| bodies.push(v));
       }
       Post::Atom(item) => {
         item
@@ -333,11 +342,18 @@ impl Post {
           .and_then(|c| c.value.as_mut())
           .map(|v| bodies.push(v));
         item.summary.as_mut().map(|s| bodies.push(&mut s.value));
+        item
+          .extensions
+          .tags_mut_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_mut())
+          .for_each(|v| bodies.push(v));
       }
     }
     bodies
   }
 
+  // Please make sure this function matches the order of bodies_mut
   #[allow(clippy::option_map_unit_fn)]
   pub fn bodies(&self) -> Vec<&str> {
     let mut bodies = Vec::new();
@@ -345,6 +361,12 @@ impl Post {
       Post::Rss(item) => {
         item.content.as_deref().map(|v| bodies.push(v));
         item.description.as_deref().map(|v| bodies.push(v));
+        item
+          .extensions
+          .tags_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_deref())
+          .for_each(|v| bodies.push(v));
       }
       Post::Atom(item) => {
         item
@@ -353,6 +375,12 @@ impl Post {
           .and_then(|c| c.value.as_deref())
           .map(|v| bodies.push(v));
         item.summary.as_ref().map(|s| bodies.push(&s.value));
+        item
+          .extensions
+          .tags_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_deref())
+          .for_each(|v| bodies.push(v));
       }
     }
     bodies
