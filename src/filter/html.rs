@@ -2,8 +2,8 @@
 //!
 //! # Included filters
 //!
-//! - [`RemoveElementConfig`] (`remove_element`): remove elements from HTML description
-//! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML description
+//! - [`RemoveElementConfig`] (`remove_element`): remove elements from HTML body
+//! - [`KeepElementConfig`] (`keep_element`): keep only selected elements from HTML body
 //! - [`SplitConfig`] (`split`): split a post into multiple posts
 
 use chrono::{DateTime, FixedOffset};
@@ -18,7 +18,7 @@ use crate::{feed::Feed, util::ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
-/// Remove elements from HTML description. Specify the list of CSS
+/// Remove elements from the post's body parsed as HTML. Specify the list of CSS
 /// selectors for elements to remove.<br><br>
 ///
 ///   - remove_element:<br>
@@ -60,13 +60,17 @@ impl FeedFilterConfig for RemoveElementConfig {
 }
 
 impl RemoveElement {
-  fn filter_description(&self, description: &str) -> Option<String> {
-    let mut html = Html::parse_fragment(description);
+  fn filter_body(&self, body: &mut String) {
+    let mut html = Html::parse_fragment(body);
     let mut selected_node_ids = vec![];
     for selector in &self.selectors {
       for elem in html.select(selector) {
         selected_node_ids.push(elem.id());
       }
+    }
+
+    if selected_node_ids.is_empty() {
+      return;
     }
 
     for id in selected_node_ids {
@@ -75,7 +79,7 @@ impl RemoveElement {
       }
     }
 
-    Some(html.html())
+    body.replace_range(.., &html.html());
   }
 }
 
@@ -89,10 +93,9 @@ impl FeedFilter for RemoveElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      let description_mut = post.description_or_insert();
-      if let Some(description) = self.filter_description(description_mut) {
-        *description_mut = description;
-      }
+      post.modify_bodies(|body| {
+        self.filter_body(body);
+      })
     }
 
     feed.set_posts(posts);
@@ -100,7 +103,7 @@ impl FeedFilter for RemoveElement {
   }
 }
 
-/// Keep only selected elements from HTML description.
+/// Keep only selected elements from the post's body parsed as HTML.
 ///
 /// You can specify the a CSS selector to keep a specific element.
 ///
@@ -154,8 +157,8 @@ impl KeepElement {
     Some(())
   }
 
-  pub fn filter_description(&self, description: &str) -> Option<String> {
-    let mut html = Html::parse_fragment(description);
+  pub fn filter_body(&self, body: &mut String) {
+    let mut html = Html::parse_fragment(body);
 
     for selector in &self.selectors {
       let mut selected = vec![];
@@ -164,11 +167,12 @@ impl KeepElement {
       }
 
       if Self::keep_only_selected(&mut html, &selected).is_none() {
-        return Some("<no element kept>".to_string());
+        body.replace_range(.., "<no element kept>");
+        return;
       }
     }
 
-    Some(html.html())
+    body.replace_range(.., &html.html());
   }
 }
 
@@ -182,10 +186,7 @@ impl FeedFilter for KeepElement {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {
-      let description_mut = post.description_or_insert();
-      if let Some(description) = self.filter_description(description_mut) {
-        *description_mut = description;
-      }
+      post.modify_bodies(|body| self.filter_body(body));
     }
 
     feed.set_posts(posts);
@@ -205,10 +206,15 @@ pub struct SplitConfig {
   /// title_selector. If specified, it must select the same number of
   /// elements as title_selector.
   link_selector: Option<String>,
-  /// The CSS selector for the description elements. The innerHTML of
+  /// The CSS selector for the body elements. The innerHTML of
   /// the selected elements will be used. If specified, it must select
   /// the same number of elements as title_selector.
+  #[deprecated(note = "Use `body_selector` instead")]
   description_selector: Option<String>,
+  /// The CSS selector for the body elements. The innerHTML of
+  /// the selected elements will be used. If specified, it must select
+  /// the same number of elements as title_selector.
+  body_selector: Option<String>,
   /// The CSS selector for the author elements. The textContent of the
   /// selected elements will be used. If specified, it must select the
   /// same number of elements as title_selector.
@@ -222,7 +228,7 @@ pub struct SplitConfig {
 pub struct Split {
   title_selector: Selector,
   link_selector: Option<Selector>,
-  description_selector: Option<Selector>,
+  body_selector: Option<Selector>,
   author_selector: Option<Selector>,
   date_selector: Option<Selector>,
 }
@@ -242,14 +248,16 @@ impl FeedFilterConfig for SplitConfig {
 
     let title_selector = parse_selector(&self.title_selector)?;
     let link_selector = parse_selector_opt(&self.link_selector)?;
-    let description_selector = parse_selector_opt(&self.description_selector)?;
+    #[allow(deprecated)]
+    let body_selector = parse_selector_opt(&self.body_selector)
+      .or_else(|_| parse_selector_opt(&self.description_selector))?;
     let author_selector = parse_selector_opt(&self.author_selector)?;
     let date_selector = parse_selector_opt(&self.date_selector)?;
 
     Ok(Split {
       title_selector,
       link_selector,
-      description_selector,
+      body_selector,
       author_selector,
       date_selector,
     })
@@ -300,15 +308,14 @@ impl Split {
     Ok(links)
   }
 
-  fn select_description(&self, doc: &Html) -> Result<Option<Vec<String>>> {
-    let Some(description_selector) = &self.description_selector else {
+  fn select_body(&self, doc: &Html) -> Result<Option<Vec<String>>> {
+    let Some(body_selector) = &self.body_selector else {
       return Ok(None);
     };
 
-    let descriptions =
-      doc.select(description_selector).map(|e| e.html()).collect();
+    let bodies = doc.select(body_selector).map(|e| e.html()).collect();
 
-    Ok(Some(descriptions))
+    Ok(Some(bodies))
   }
 
   fn select_author(&self, doc: &Html) -> Result<Option<Vec<String>>> {
@@ -342,9 +349,7 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    if let Some(description) = template_post.description_mut() {
-      description.clear()
-    }
+    template_post.modify_bodies(|body| body.clear());
 
     if self.author_selector.is_some() {
       if let Some(author) = template_post.author_mut() {
@@ -359,14 +364,14 @@ impl Split {
     template: &mut Post,
     title: &str,
     link: &str,
-    description: Option<&str>,
+    body: Option<&str>,
     author: Option<&str>,
     pub_date: Option<DateTime<FixedOffset>>,
   ) {
     template.set_title(title);
     template.set_link(link);
-    if let Some(description) = description {
-      template.set_description(description);
+    if let Some(new_body) = body {
+      template.modify_bodies(|body| body.replace_range(.., new_body));
     }
     if let Some(author) = author {
       template.set_author(author);
@@ -377,10 +382,16 @@ impl Split {
     template.set_guid(link);
   }
 
-  fn split(&self, post: &Post) -> Result<Vec<Post>> {
+  fn split(&self, mut post: Post) -> Result<Vec<Post>> {
     let mut posts = vec![];
 
-    let doc = Html::parse_fragment(post.description_or_err()?);
+    let Some(body) = post.first_body() else {
+      let body = post.create_body();
+      body.push_str("split failed: no body");
+      return Ok(vec![post]);
+    };
+
+    let doc = Html::parse_fragment(body);
 
     let titles = self.select_title(&doc)?;
     let links = self.select_link(post.link_or_err()?, &doc)?;
@@ -394,35 +405,34 @@ impl Split {
     }
 
     let n = titles.len();
-    let descriptions = transpose_option_vec(self.select_description(&doc)?, n);
+    let bodies = transpose_option_vec(self.select_body(&doc)?, n);
     let authors = transpose_option_vec(self.select_author(&doc)?, n);
     let pub_dates = transpose_option_vec(self.select_date(&doc)?, n);
 
-    if titles.len() != descriptions.len()
+    if titles.len() != bodies.len()
       || titles.len() != authors.len()
       || titles.len() != pub_dates.len()
     {
       let msg = format!(
-        "Selector error: title ({}), link ({}), description ({}), author ({}), and date ({}) count mismatch",
+        "Selector error: title ({}), link ({}), body ({}), author ({}), and date ({}) count mismatch",
         titles.len(),
         links.len(),
-        descriptions.len(),
+        bodies.len(),
         authors.len(),
         pub_dates.len()
       );
       return Err(Error::Message(msg));
     }
 
-    let iter =
-      itertools::multizip((titles, links, descriptions, authors, pub_dates));
+    let iter = itertools::multizip((titles, links, bodies, authors, pub_dates));
 
-    for (title, link, description, author, pub_date) in iter {
-      let mut post = self.prepare_template(post);
+    for (title, link, body, author, pub_date) in iter {
+      let mut post = self.prepare_template(&post);
       self.apply_template(
         &mut post,
         &title,
         &link,
-        description.as_deref(),
+        body.as_deref(),
         author.as_deref(),
         pub_date,
       );
@@ -482,7 +492,7 @@ impl FeedFilter for Split {
     mut feed: Feed,
   ) -> Result<Feed> {
     let mut posts = vec![];
-    for post in &feed.take_posts() {
+    for post in feed.take_posts() {
       let mut split_posts = self.split(post)?;
       posts.append(&mut split_posts);
     }

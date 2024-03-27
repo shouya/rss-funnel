@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use regex::{RegexSet, RegexSetBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -127,21 +129,20 @@ impl MatchConfig {
 #[serde(rename_all = "snake_case")]
 enum Field {
   Title,
+  Body,
+  #[deprecated(note = "use `body` instead")]
   Content,
   Any,
 }
 
 impl Field {
   fn extract<'a>(&self, post: &'a crate::feed::Post) -> Vec<&'a str> {
-    let vec = match self {
-      Self::Title => vec![post.title()],
-      Self::Content => vec![post.description()],
-      Self::Any => {
-        vec![post.title(), post.description()]
-      }
-    };
-
-    vec.into_iter().flatten().collect()
+    match self {
+      Self::Title => post.title().into_iter().collect(),
+      #[allow(deprecated)]
+      Self::Body | Self::Content => post.bodies(),
+      Self::Any => post.title().into_iter().chain(post.bodies()).collect(),
+    }
   }
 }
 
@@ -300,12 +301,12 @@ mod test {
       path: /feed.xml
       source: fixture:///youtube.xml
       filters:
-        - keep_only: ElEcT
+        - keep_only: ElecTric
     "#;
 
     let mut feed = fetch_endpoint(config, "").await;
     let posts = feed.take_posts();
-    assert_eq!(posts.len(), 1);
+    assert_eq!(posts.len(), 2);
     assert_eq!(posts[0].title().unwrap(), "This Crystal Is ELECTRIC");
   }
 

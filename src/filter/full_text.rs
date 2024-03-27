@@ -25,7 +25,7 @@ pub struct FullTextConfig {
   parallelism: Option<usize>,
   /// Whether to simplify the HTML before saving it
   simplify: Option<bool>,
-  /// Whether to append the full text to the description or replace it
+  /// Whether to append the full text to the body or replace it
   append_mode: Option<bool>,
   /// Keep only content inside an element of the full text
   keep_element: Option<KeepElementConfig>,
@@ -93,24 +93,26 @@ impl FullTextFilter {
 
   async fn try_fetch_full_post(&self, post: &mut Post) -> Result<()> {
     let link = post.link_or_err()?.to_owned();
-    let mut text = self.fetch_html(&link).await?;
+    let text = self.fetch_html(&link).await?;
 
     // Optimization: the strip_post_content can be CPU intensive. Spawn the blocking
     // task on a different CPU to improve parallelism.
     let simplify = self.simplify;
     let keep_element = Arc::new(self.keep_element.clone());
-    text = tokio::task::spawn_blocking(move || {
+    let text = tokio::task::spawn_blocking(move || {
       strip_post_content(text, &link, simplify, keep_element)
     })
     .await?;
 
-    let description = post.description_or_insert();
-    if self.append_mode {
-      description.push_str("\n<br><hr><br>\n");
-      description.push_str(&text);
-    } else {
-      *description = text;
-    };
+    post.ensure_body();
+    post.modify_bodies(|body| {
+      if self.append_mode {
+        body.push_str("\n<br><hr><br>\n");
+        body.push_str(&text);
+      } else {
+        body.replace_range(.., &text);
+      };
+    });
 
     if !self.keep_guid {
       if let Some(mut guid) = post.guid().map(|v| v.to_string()) {
@@ -124,13 +126,15 @@ impl FullTextFilter {
 
   async fn fetch_full_post(&self, mut post: Post) -> Result<Post> {
     // if anything went wrong when fetching the full text, we simply
-    // append the error message to the description instead of failing
+    // append the error message to the body instead of failing
     // completely.
     match self.try_fetch_full_post(&mut post).await {
       Ok(_) => Ok(post),
       Err(e) => {
         let message = format!("\n<br>\n<br>\nerror fetching full text: {}", e);
-        post.description_or_insert().push_str(&message);
+        post.modify_bodies(|body| {
+          body.push_str(&message);
+        });
         Ok(post)
       }
     }
@@ -178,17 +182,7 @@ fn strip_post_content(
   }
 
   if let Some(k) = keep_element.as_ref() {
-    match k.filter_description(&text) {
-      Some(filtered) => {
-        text = filtered;
-      }
-      None => {
-        text = format!(
-          "<p>Failed to filter description with keep_element</p>\n{}",
-          text
-        );
-      }
-    }
+    k.filter_body(&mut text)
   }
 
   text

@@ -1,4 +1,5 @@
 mod conversion;
+mod extension;
 
 use chrono::DateTime;
 use paste::paste;
@@ -12,6 +13,8 @@ use crate::html::html_body;
 use crate::source::FromScratch;
 use crate::util::Error;
 use crate::util::Result;
+
+use extension::ExtensionExt;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
@@ -288,7 +291,6 @@ pub enum Post {
 enum PostField {
   Title,
   Link,
-  Description,
   Author,
   Guid,
 }
@@ -315,6 +317,121 @@ impl Post {
       Post::Atom(item) => Some(item.updated),
     }
   }
+
+  // the order should match the actual display order in rss
+  // readers. This allows ensure_body to return the body field that is
+  // most likely to affect the actual appearance.
+  #[allow(clippy::option_map_unit_fn)]
+  pub fn bodies_mut(&mut self) -> Vec<&mut String> {
+    let mut bodies = Vec::new();
+    match self {
+      Post::Rss(item) => {
+        item.content.as_mut().map(|v| bodies.push(v));
+        item.description.as_mut().map(|v| bodies.push(v));
+        item
+          .extensions
+          .tags_mut_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_mut())
+          .for_each(|v| bodies.push(v));
+        item
+          .itunes_ext
+          .as_mut()
+          .and_then(|ext| ext.summary.as_mut())
+          .map(|v| bodies.push(v));
+      }
+      Post::Atom(item) => {
+        item
+          .content
+          .as_mut()
+          .and_then(|c| c.value.as_mut())
+          .map(|v| bodies.push(v));
+        item.summary.as_mut().map(|s| bodies.push(&mut s.value));
+        item
+          .extensions
+          .tags_mut_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_mut())
+          .for_each(|v| bodies.push(v));
+      }
+    }
+    bodies
+  }
+
+  // Please make sure this function matches the order of bodies_mut
+  #[allow(clippy::option_map_unit_fn)]
+  pub fn bodies(&self) -> Vec<&str> {
+    let mut bodies = Vec::new();
+    match self {
+      Post::Rss(item) => {
+        item.content.as_deref().map(|v| bodies.push(v));
+        item.description.as_deref().map(|v| bodies.push(v));
+        item
+          .extensions
+          .tags_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_deref())
+          .for_each(|v| bodies.push(v));
+        item
+          .itunes_ext
+          .as_ref()
+          .and_then(|ext| ext.summary.as_deref())
+          .map(|v| bodies.push(v));
+      }
+      Post::Atom(item) => {
+        item
+          .content
+          .as_ref()
+          .and_then(|c| c.value.as_deref())
+          .map(|v| bodies.push(v));
+        item.summary.as_ref().map(|s| bodies.push(&s.value));
+        item
+          .extensions
+          .tags_with_names(&["media:description"])
+          .into_iter()
+          .filter_map(|tag| tag.value.as_deref())
+          .for_each(|v| bodies.push(v));
+      }
+    }
+    bodies
+  }
+
+  pub fn modify_bodies(&mut self, mut f: impl FnMut(&mut String)) {
+    for body in self.bodies_mut() {
+      f(body);
+    }
+  }
+
+  pub fn first_body(&self) -> Option<&str> {
+    self.bodies().into_iter().next()
+  }
+
+  pub fn first_body_mut(&mut self) -> Option<&mut String> {
+    self.bodies_mut().into_iter().next()
+  }
+
+  pub fn create_body(&mut self) -> &mut String {
+    match self {
+      Post::Rss(item) => {
+        item.description = Some(String::new());
+        item.description.as_mut().unwrap()
+      }
+      Post::Atom(item) => {
+        item.summary = Some(atom_syndication::Text::html(String::new()));
+        &mut item.summary.as_mut().unwrap().value
+      }
+    }
+  }
+
+  pub fn ensure_body(&mut self) -> &mut String {
+    let needs_body = self.first_body_mut().is_none();
+
+    if needs_body {
+      self.create_body()
+    } else {
+      self.first_body_mut().unwrap()
+    }
+  }
 }
 
 impl Post {
@@ -322,7 +439,6 @@ impl Post {
     match (self, field) {
       (Post::Rss(item), PostField::Title) => item.title.as_deref(),
       (Post::Rss(item), PostField::Link) => item.link.as_deref(),
-      (Post::Rss(item), PostField::Description) => item.description.as_deref(),
       (Post::Rss(item), PostField::Author) => item.author.as_deref(),
       (Post::Rss(item), PostField::Guid) => {
         item.guid.as_ref().map(|v| v.value.as_str())
@@ -330,9 +446,6 @@ impl Post {
       (Post::Atom(item), PostField::Title) => Some(&item.title.value),
       (Post::Atom(item), PostField::Link) => {
         item.links.first().map(|v| v.href.as_str())
-      }
-      (Post::Atom(item), PostField::Description) => {
-        item.content.as_ref().and_then(|c| c.value.as_deref())
       }
       (Post::Atom(item), PostField::Author) => {
         item.authors.first().map(|v| v.name.as_str())
@@ -345,9 +458,6 @@ impl Post {
     match (self, field) {
       (Post::Rss(item), PostField::Title) => item.title = Some(value.into()),
       (Post::Rss(item), PostField::Link) => item.link = Some(value.into()),
-      (Post::Rss(item), PostField::Description) => {
-        item.description = Some(value.into())
-      }
       (Post::Rss(item), PostField::Author) => item.author = Some(value.into()),
       (Post::Rss(item), PostField::Guid) => {
         item.guid = Some(rss::Guid {
@@ -365,13 +475,6 @@ impl Post {
           });
         }
       },
-      (Post::Atom(item), PostField::Description) => {
-        item.content = Some(atom_syndication::Content {
-          value: Some(value.into()),
-          content_type: Some("html".to_string()),
-          ..Default::default()
-        })
-      }
       (Post::Atom(item), PostField::Author) => match item.authors.get_mut(0) {
         Some(author) => author.name = value.into(),
         None => {
@@ -389,7 +492,6 @@ impl Post {
     match (self, field) {
       (Post::Rss(item), PostField::Title) => item.title.as_mut(),
       (Post::Rss(item), PostField::Link) => item.link.as_mut(),
-      (Post::Rss(item), PostField::Description) => item.description.as_mut(),
       (Post::Rss(item), PostField::Author) => item.author.as_mut(),
       (Post::Rss(item), PostField::Guid) => {
         item.guid.as_mut().map(|v| &mut v.value)
@@ -397,9 +499,6 @@ impl Post {
       (Post::Atom(item), PostField::Title) => Some(&mut item.title.value),
       (Post::Atom(item), PostField::Link) => {
         item.links.get_mut(0).map(|v| &mut v.href)
-      }
-      (Post::Atom(item), PostField::Description) => {
-        item.content.as_mut().and_then(|c| c.value.as_mut())
       }
       (Post::Atom(item), PostField::Author) => {
         item.authors.get_mut(0).map(|v| &mut v.name)
@@ -415,9 +514,6 @@ impl Post {
       }
       (Post::Rss(item), PostField::Link) => {
         item.link.get_or_insert_with(String::new)
-      }
-      (Post::Rss(item), PostField::Description) => {
-        item.description.get_or_insert_with(String::new)
       }
       (Post::Rss(item), PostField::Author) => {
         item.author.get_or_insert_with(String::new)
@@ -442,16 +538,6 @@ impl Post {
         )
         .href
       }
-      (Post::Atom(item), PostField::Description) => item
-        .content
-        .get_or_insert_with(|| atom_syndication::Content {
-          value: Some(String::new()),
-          content_type: Some("html".to_string()),
-          ..Default::default()
-        })
-        .value
-        .as_mut()
-        .unwrap(),
       (Post::Atom(item), PostField::Author) => {
         &mut vec_first_or_insert(
           &mut item.authors,
@@ -508,7 +594,6 @@ macro_rules! impl_post_accessors {
 impl_post_accessors! {
   title => Title;
   link => Link;
-  description => Description;
   author => Author;
   guid => Guid
 }
