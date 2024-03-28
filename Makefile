@@ -4,13 +4,12 @@ IMAGE_HOST ?= ghcr.io
 IMAGE_NAME ?= $(IMAGE_HOST)/$(IMAGE_USER)/$(APP_NAME)
 
 TARGETS ?= x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+VERSION ?= $(shell git describe --tags --always --dirty)
 
 PLATFORM_x86_64-unknown-linux-musl = linux/amd64
 PLATFORM_aarch64-unknown-linux-musl = linux/arm64/v8
 
 SOURCES := $(wildcard **/*.rs) Cargo.toml Cargo.lock
-
-VERSION ?= v$(shell git describe --tags --always --dirty)
 
 .PHONY: \
 	inspector-assets \
@@ -41,7 +40,11 @@ $(IMAGE_NAME)\:$(VERSION)-%: target/%/release/$(APP_NAME)
 	echo "FROM scratch\nCOPY $< /$(APP_NAME)\nENTRYPOINT [\"/$(APP_NAME)\"]\nCMD [\"server\"]\n" | \
 		podman build -f - . --platform $(PLATFORM_$*) -t $@
 
-# multiarch
+# building multiarch manifest requires the image to be pushed to the
+# registry first.
+push-docker-$(VERSION)-%: $(IMAGE_NAME)\:$(VERSION)-%
+	podman push $<
+
 $(IMAGE_NAME)\:$(VERSION) $(IMAGE_NAME)\:latest : \
 $(IMAGE_NAME)\:%: $(foreach target,$(TARGETS),$(IMAGE_NAME)\:%-$(target)) \
 		$(foreach target,$(TARGETS),push-docker-%-$(target))
@@ -52,5 +55,5 @@ push-docker-$(VERSION) push-docker-latest : \
 push-docker-%: $(IMAGE_NAME)\:%
 	podman manifest push $<
 
-push-docker-$(VERSION)-%: $(IMAGE_NAME)\:$(VERSION)-%
-	podman push $<
+build-docker-nightly: push-docker-$(VERSION)
+build-docker-release: push-docker-latest push-docker-$(VERSION)
