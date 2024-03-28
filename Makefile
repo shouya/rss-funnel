@@ -23,7 +23,7 @@ SOURCES := $(wildcard **/*.rs) Cargo.toml Cargo.lock
 # $(foreach target,$(TARGETS),push-docker-$(VERSION)-$(target)) \
 
 inspector-assets:
-	cd inspector && pnpm build
+	cd inspector && pnpm install && pnpm build
 
 target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
 	cargo build --release --target x86_64-unknown-linux-musl
