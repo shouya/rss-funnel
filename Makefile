@@ -15,7 +15,10 @@ SOURCES := $(wildcard **/*.rs) Cargo.toml Cargo.lock
 	inspector-assets \
 	$(IMAGE_NAME)\:$(VERSION) \
 	$(IMAGE_NAME)\:latest \
-	push-docker-latest
+	$(IMAGE_NAME)\:nightly \
+	push-manifest-$(VERSION) \
+	push-manifest-latest \
+	push-manifest-nightly
 
 # The following rules are skipped because "The implicit rule search (see Implicit Rules) is skipped for .PHONY targets."
 # $(foreach target,$(TARGETS),$(IMAGE_NAME)\:$(VERSION)-$(target)) \
@@ -42,18 +45,18 @@ $(IMAGE_NAME)\:$(VERSION)-%: target/%/release/$(APP_NAME)
 
 # building multiarch manifest requires the image to be pushed to the
 # registry first.
-push-docker-$(VERSION)-%: $(IMAGE_NAME)\:$(VERSION)-%
+push-image-%: $(IMAGE_NAME)\:%
 	podman push $<
 
 $(IMAGE_NAME)\:$(VERSION) $(IMAGE_NAME)\:latest $(IMAGE_NAME)\:nightly : \
 $(IMAGE_NAME)\:%: $(foreach target,$(TARGETS),$(IMAGE_NAME)\:%-$(target)) \
-		$(foreach target,$(TARGETS),push-docker-%-$(target))
+		$(foreach target,$(TARGETS),push-image-%-$(target))
 	podman manifest create $@ \
 		$(foreach target,$(TARGETS),$(IMAGE_NAME)\:$*-$(target))
 
-push-docker-$(VERSION) push-docker-latest push-docker-nightly : \
-push-docker-%: $(IMAGE_NAME)\:%
+push-manifest-$(VERSION) push-manifest-latest push-manifest-nightly : \
+push-manifest-%: $(IMAGE_NAME)\:%
 	podman manifest push $< $<
 
-build-and-push-nightly: push-docker-$(VERSION) push-docker-nightly
-build-and-push-latest: push-docker-$(VERSION) push-docker-latest
+build-and-push-nightly: push-manifest-$(VERSION) push-manifest-nightly
+build-and-push-latest: push-manifest-$(VERSION) push-manifest-latest
