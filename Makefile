@@ -53,7 +53,7 @@ $(IMAGE_NAME)\:%: $(foreach target,$(TARGETS),$(IMAGE_NAME)\:%-$(target)) \
 
 push-docker-$(VERSION) push-docker-latest : \
 push-docker-%: $(IMAGE_NAME)\:%
-	podman manifest push $<
+	podman manifest push $< $<
 
 build-and-push-nightly: push-docker-$(VERSION) push-docker-nightly
 build-and-push-latest: push-docker-$(VERSION) push-docker-latest
