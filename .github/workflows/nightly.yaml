@@ -1,4 +1,4 @@
-name: Build and Push Nightly Docker Image
+name: Nightly Image
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build and Push Nightly Docker Image
+    name: Nightly Image
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -37,4 +37,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Nightly Docker Image
-        run: make push-docker-nightly
+        run: make build-and-push-nightly

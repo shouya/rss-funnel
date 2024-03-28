@@ -55,5 +55,5 @@ push-docker-$(VERSION) push-docker-latest : \
 push-docker-%: $(IMAGE_NAME)\:%
 	podman manifest push $<
 
-build-docker-nightly: push-docker-$(VERSION)
-build-docker-release: push-docker-latest push-docker-$(VERSION)
+build-and-push-nightly: push-docker-$(VERSION)
+build-and-push-release: push-docker-latest push-docker-$(VERSION)
