@@ -1,44 +1,62 @@
 APP_NAME ?= rss-funnel
 IMAGE_USER ?= shouya
-IMAGE_HOST ?= git.lain.li
+IMAGE_HOST ?= ghcr.io
 IMAGE_NAME ?= $(IMAGE_HOST)/$(IMAGE_USER)/$(APP_NAME)
 
-PLATFORM ?= linux/amd64
-TARGET ?= x86_64-unknown-linux-musl
-BINARY = target/$(TARGET)/release/$(APP_NAME)
-SOURCES = $(wildcard **/*.rs) Cargo.toml Cargo.lock
+TARGETS ?= x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+VERSION ?= $(shell git describe --tags --always --dirty)
 
-VERSION ?= v$(shell git describe --tags --always --dirty)
+PLATFORM_x86_64-unknown-linux-musl = linux/amd64
+PLATFORM_aarch64-unknown-linux-musl = linux/arm64/v8
 
-.PHONY: inspector-assets
+SOURCES := $(wildcard **/*.rs) Cargo.toml Cargo.lock
+
+.PHONY: \
+	inspector-assets \
+	$(IMAGE_NAME)\:$(VERSION) \
+	$(IMAGE_NAME)\:latest \
+	$(IMAGE_NAME)\:nightly \
+	push-manifest-$(VERSION) \
+	push-manifest-latest \
+	push-manifest-nightly
+
+# The following rules are skipped because "The implicit rule search (see Implicit Rules) is skipped for .PHONY targets."
+# $(foreach target,$(TARGETS),$(IMAGE_NAME)\:$(VERSION)-$(target)) \
+# $(foreach target,$(TARGETS),$(IMAGE_NAME)\:latest-$(target)) \
+# $(foreach target,$(TARGETS),push-docker-$(VERSION)-$(target)) \
+
 inspector-assets:
-	cd inspector && pnpm build
+	cd inspector && pnpm install && pnpm build
 
 target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
 	cargo build --release --target x86_64-unknown-linux-musl
 
 target/aarch64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
+# https://github.com/cross-rs/cross/issues/724
+	cargo clean
 	cross build --release --target aarch64-unknown-linux-musl
 
-build-docker-multiarch:
-	podman manifest create $(IMAGE_NAME):$(VERSION) \
-		$(IMAGE_NAME):$(VERSION)-x86_64-unknown-linux-musl \
-		$(IMAGE_NAME):$(VERSION)-aarch64-unknown-linux-musl
-	podman tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
+$(IMAGE_NAME)\:latest-% $(IMAGE_NAME)\:nightly-%: $(IMAGE_NAME)\:$(VERSION)-%
+	podman tag $< $@
 
-build-docker-$(TARGET): $(BINARY)
+$(IMAGE_NAME)\:$(VERSION)-%: target/%/release/$(APP_NAME)
 	echo "FROM scratch\nCOPY $< /$(APP_NAME)\nENTRYPOINT [\"/$(APP_NAME)\"]\nCMD [\"server\"]\n" | \
-		podman build -f - . \
-			--platform $(PLATFORM) \
-			-t $(IMAGE_NAME):latest-$(TARGET) \
-			-t $(IMAGE_NAME):$(VERSION)-$(TARGET)
+		podman build -f - . --platform $(PLATFORM_$*) -t $@
 
-push-docker: build-docker-$(TARGET)
-	podman push $(IMAGE_NAME):$(VERSION)-$(TARGET)
-	podman push $(IMAGE_NAME):latest-$(TARGET)
+# building multiarch manifest requires the image to be pushed to the
+# registry first.
+push-image-%: $(IMAGE_NAME)\:%
+	podman push $<
 
-push-docker-multiarch: build-docker-multiarch
-	podman manifest push $(IMAGE_NAME):$(VERSION)
-	podman manifest push $(IMAGE_NAME):latest
+$(IMAGE_NAME)\:$(VERSION) $(IMAGE_NAME)\:latest $(IMAGE_NAME)\:nightly : \
+$(IMAGE_NAME)\:%: $(foreach target,$(TARGETS),$(IMAGE_NAME)\:%-$(target)) \
+		$(foreach target,$(TARGETS),push-image-%-$(target))
+	podman manifest create $@ \
+		$(foreach target,$(TARGETS),$(IMAGE_NAME)\:$*-$(target))
 
-.PHONY: build-docker build-docker-multiarch push-docker push-docker-multiarch
+push-manifest-$(VERSION) push-manifest-latest push-manifest-nightly : \
+push-manifest-%: $(IMAGE_NAME)\:%
+	podman manifest push $< $<
+
+build-and-push-nightly: push-manifest-$(VERSION) push-manifest-nightly
+build-and-push-latest: push-manifest-$(VERSION) push-manifest-latest

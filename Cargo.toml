@@ -80,7 +80,3 @@ axum-extra = { version = "0.9.2", features = ["cookie"] }
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }
-
-[profile.release]
-lto = "fat"
-strip = true
