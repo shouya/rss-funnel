@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build and Push Nightly Docker Image
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
 
     steps:
       - uses: actions/checkout@v2
@@ -30,9 +32,9 @@ jobs:
       - name: Log in to Container Registry
         uses: redhat-actions/podman-login@v1
         with:
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-          registry: ${{ secrets.REGISTRY_HOSTNAME }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Nightly Docker Image
         run: make push-docker-nightly
