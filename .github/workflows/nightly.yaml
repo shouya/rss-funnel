@@ -13,7 +13,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -24,10 +24,10 @@ jobs:
       - name: Install Cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Install Podman
+      - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install podman
+          sudo apt-get -y install podman musl-tools
 
       - name: Log in to Container Registry
         uses: redhat-actions/podman-login@v1
