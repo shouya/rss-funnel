@@ -1,0 +1,38 @@
+name: Build and Push Nightly Docker Image
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    name: Build and Push Nightly Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust (stable)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install Cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman
+
+      - name: Log in to Container Registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry: ${{ secrets.REGISTRY_HOSTNAME }}
+
+      - name: Build and Push Nightly Docker Image
+        run: make push-docker-nightly
