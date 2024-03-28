@@ -33,7 +33,7 @@ target/aarch64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-asse
 	cargo clean
 	cross build --release --target aarch64-unknown-linux-musl
 
-$(IMAGE_NAME)\:latest-%: $(IMAGE_NAME)\:$(VERSION)-%
+$(IMAGE_NAME)\:latest-% $(IMAGE_NAME)\:nightly-%: $(IMAGE_NAME)\:$(VERSION)-%
 	podman tag $< $@
 
 $(IMAGE_NAME)\:$(VERSION)-%: target/%/release/$(APP_NAME)
@@ -45,7 +45,7 @@ $(IMAGE_NAME)\:$(VERSION)-%: target/%/release/$(APP_NAME)
 push-docker-$(VERSION)-%: $(IMAGE_NAME)\:$(VERSION)-%
 	podman push $<
 
-$(IMAGE_NAME)\:$(VERSION) $(IMAGE_NAME)\:latest : \
+$(IMAGE_NAME)\:$(VERSION) $(IMAGE_NAME)\:latest $(IMAGE_NAME)\:nightly : \
 $(IMAGE_NAME)\:%: $(foreach target,$(TARGETS),$(IMAGE_NAME)\:%-$(target)) \
 		$(foreach target,$(TARGETS),push-docker-%-$(target))
 	podman manifest create $@ \
@@ -55,5 +55,5 @@ push-docker-$(VERSION) push-docker-latest : \
 push-docker-%: $(IMAGE_NAME)\:%
 	podman manifest push $<
 
-build-and-push-nightly: push-docker-$(VERSION)
-build-and-push-release: push-docker-latest push-docker-$(VERSION)
+build-and-push-nightly: push-docker-$(VERSION) push-docker-nightly
+build-and-push-latest: push-docker-$(VERSION) push-docker-latest

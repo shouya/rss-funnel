@@ -18,4 +18,4 @@ git tag -a "$version" -m "Release $version"
 
 git push origin HEAD && git push origin "$version"
 
-make build-and-push-release
+make build-and-push-latest
