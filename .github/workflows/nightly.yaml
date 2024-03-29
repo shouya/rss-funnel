@@ -1,0 +1,49 @@
+name: Nightly Image
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Nightly Image
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # fetch tags and all history for tagging the commit with the
+          # most recent tag.
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
+
+      - name: Install Cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman musl-tools
+
+      - name: Log in to Container Registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8.14.x
+
+      - name: Build and Push Nightly Docker Image
+        run: make build-and-push-nightly
