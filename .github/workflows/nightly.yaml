@@ -3,7 +3,7 @@ name: Nightly Image
 on:
   push:
     branches:
-      - "**"
+      - master
 
 jobs:
   build:
