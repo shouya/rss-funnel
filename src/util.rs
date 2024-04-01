@@ -43,6 +43,9 @@ pub enum ConfigError {
   #[error("Js runtime initialization error: {0}")]
   Js(#[from] JsError),
 
+  #[error("Client config error - bad header value: {0}")]
+  ClientHeader(#[from] reqwest::header::InvalidHeaderValue),
+
   #[error("Duplicate endpoint: {0}")]
   DuplicateEndpoint(String),
 
