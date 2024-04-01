@@ -50,10 +50,14 @@ pub struct ClientConfig {
   /// need to override it.
   #[serde(default)]
   assume_content_type: Option<String>,
+  /// The proxy to use for requests
+  /// (Format: "http://user:pass@host:port", "socks5://user:pass@host:port")
+  #[serde(default)]
+  proxy: Option<String>,
 }
 
 impl ClientConfig {
-  fn to_builder(&self) -> reqwest::ClientBuilder {
+  fn to_builder(&self) -> Result<reqwest::ClientBuilder, ConfigError> {
     let mut builder = reqwest::Client::builder();
 
     if let Some(user_agent) = &self.user_agent {
@@ -64,22 +68,15 @@ impl ClientConfig {
 
     let mut header_map = HeaderMap::new();
     if let Some(accept) = &self.accept {
-      header_map
-        .append("Accept", accept.try_into().expect("invalid Accept value"));
+      header_map.append("Accept", accept.try_into()?);
     }
 
     if let Some(set_cookie) = &self.set_cookie {
-      header_map.append(
-        "Set-Cookie",
-        set_cookie.try_into().expect("invalid Set-Cookie value"),
-      );
+      header_map.append("Set-Cookie", set_cookie.try_into()?);
     }
 
     if let Some(referer) = &self.referer {
-      header_map.append(
-        "Referer",
-        referer.try_into().expect("invalid Referer value"),
-      );
+      header_map.append("Referer", referer.try_into()?);
     }
 
     if !header_map.is_empty() {
@@ -89,14 +86,18 @@ impl ClientConfig {
     let default_timeout = Duration::from_secs(10);
     builder = builder.timeout(self.timeout.unwrap_or(default_timeout));
 
-    builder
+    if let Some(proxy) = &self.proxy {
+      builder = builder.proxy(reqwest::Proxy::all(proxy)?);
+    }
+
+    Ok(builder)
   }
 
   pub fn build(
     &self,
     default_cache_ttl: Duration,
   ) -> Result<Client, ConfigError> {
-    let reqwest_client = self.to_builder().build()?;
+    let reqwest_client = self.to_builder()?.build()?;
     let client = Client::new(
       self.cache_size.unwrap_or(64),
       self.cache_ttl.unwrap_or(default_cache_ttl),
