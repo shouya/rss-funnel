@@ -43,6 +43,9 @@ pub enum ConfigError {
   #[error("Js runtime initialization error: {0}")]
   Js(#[from] JsError),
 
+  #[error("Duplicate endpoint: {0}")]
+  DuplicateEndpoint(String),
+
   #[error("{0}")]
   Message(String),
 }

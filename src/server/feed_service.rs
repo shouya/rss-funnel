@@ -35,6 +35,10 @@ impl FeedService {
       let path = endpoint_config.path_sans_slash().to_owned();
       let endpoint_service = endpoint_config.build().await?;
       info!("loaded endpoint: /{}", path);
+      if endpoints.contains_key(&path) {
+        return Err(ConfigError::DuplicateEndpoint(path));
+      }
+
       endpoints.insert(path, endpoint_service);
     }
 
@@ -106,6 +110,11 @@ impl FeedService {
     let mut endpoints = HashMap::new();
     for endpoint_config in feed_defn.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
+      if endpoints.contains_key(&path) {
+        inner.config_error = Some(ConfigError::DuplicateEndpoint(path));
+        return false;
+      }
+
       let config = endpoint_config.clone();
       let endpoint = load_endpoint(&mut inner, &path, config).await;
 
