@@ -66,7 +66,7 @@ either = "1.10.0" # used for returning sum types from the JS runtime
 
 # Web client (blocking and async both used, blocking used in the JS runtime)
 # TODO: upgrade reqwest after its hyper 1.0 upgrade
-reqwest = { version = "0.11.24", default-features = false, features = ["blocking", "rustls-tls", "trust-dns"] }
+reqwest = { version = "0.12.2", default-features = false, features = ["blocking", "rustls-tls", "trust-dns"] }
 encoding_rs = "0.8.33"
 lru = "0.12.3"
 
