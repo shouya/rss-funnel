@@ -244,14 +244,14 @@ export class FeedInspector {
     });
   }
 
-  async render_feed_rendered({ structured }) {
+  async render_feed_rendered({ unified }) {
     $("#feed-preview #rendered").innerHTML = "";
-    const title_node = elt("h2", { class: "feed-title" }, structured.title);
+    const title_node = elt("h2", { class: "feed-title" }, unified.title);
     $("#feed-preview #rendered").appendChild(title_node);
 
     const sanitizer = new HtmlSanitizer({});
 
-    for (const post of structured.posts) {
+    for (const post of unified.posts) {
       const post_content = elt("p", { class: "feed-post-content" }, []);
       post_content.innerHTML = sanitizer.sanitizeHtml(post.body || "");
       const post_node = elt("div", { class: "feed-post" }, [
@@ -483,39 +483,4 @@ export class FeedInspector {
     setTimeout(() => (node.style.opacity = 0), 3000);
     setTimeout(() => node.remove(), 4000);
   }
-}
-
-// return {title: string, posts: [post]}
-// post: {title: string, link: string, date: string, content: string}
-function parse_feed(xml) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, "text/xml");
-
-  if (doc.documentElement.tagName == "rss") {
-    const title = doc.querySelector("channel > title").textContent.trim();
-    const posts = Array.from(doc.querySelectorAll("item")).map((item) => {
-      return {
-        title: item.querySelector("title")?.textContent?.trim(),
-        link: item.querySelector("link")?.textContent?.trim(),
-        date: item.querySelector("pubDate")?.textContent?.trim(),
-        content: item.querySelector("description")?.textContent?.trim(),
-      };
-    });
-
-    return { title, posts };
-  } else if (doc.documentElement.tagName == "feed") {
-    const title = doc.querySelector("feed > title").textContent.trim();
-    const posts = Array.from(doc.querySelectorAll("entry")).map((entry) => {
-      return {
-        title: entry.querySelector("title")?.textContent?.trim(),
-        link: entry.querySelector("link")?.getAttribute("href"),
-        date: entry.querySelector("published")?.textContent?.trim(),
-        content: entry.querySelector("content")?.textContent?.trim(),
-      };
-    });
-
-    return { title, posts };
-  }
-
-  return null;
 }

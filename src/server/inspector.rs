@@ -143,7 +143,7 @@ async fn preview_handler(
   let body = json!({
     "content_type": feed.content_type(),
     "post_count": feed.post_count(),
-    "structured": feed.preview(),
+    "unified": feed.preview(),
     "raw": feed.serialize(true)?,
     "json": feed
   });

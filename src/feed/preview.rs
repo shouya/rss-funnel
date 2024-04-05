@@ -15,5 +15,5 @@ pub struct PostPreview {
   pub author: Option<String>,
   pub link: String,
   pub body: Option<String>,
-  pub published: Option<DateTime<FixedOffset>>,
+  pub date: Option<DateTime<FixedOffset>>,
 }

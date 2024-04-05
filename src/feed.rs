@@ -366,7 +366,7 @@ impl Post {
       author,
       link,
       body,
-      published,
+      date: published,
     }
   }
   pub fn set_pub_date(&mut self, date: DateTime<chrono::FixedOffset>) {
