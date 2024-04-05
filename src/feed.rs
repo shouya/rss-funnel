@@ -42,6 +42,13 @@ impl Feed {
     }
   }
 
+  pub fn post_count(&self) -> usize {
+    match self {
+      Feed::Rss(channel) => channel.items.len(),
+      Feed::Atom(feed) => feed.entries.len(),
+    }
+  }
+
   pub fn into_format(self, format: FeedFormat) -> Self {
     use conversion::W;
 
