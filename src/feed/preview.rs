@@ -3,17 +3,17 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct FeedPreview {
-  title: String,
-  link: String,
-  description: Option<String>,
-  posts: Vec<PostPreview>,
+  pub title: String,
+  pub link: String,
+  pub description: Option<String>,
+  pub posts: Vec<PostPreview>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct PostPreview {
-  title: String,
-  author: Option<String>,
-  link: String,
-  body: String,
-  published: DateTime<FixedOffset>,
+  pub title: String,
+  pub author: Option<String>,
+  pub link: String,
+  pub body: Option<String>,
+  pub published: Option<DateTime<FixedOffset>>,
 }

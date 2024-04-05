@@ -18,12 +18,13 @@ use crate::util::Result;
 use extension::ExtensionExt;
 
 use self::preview::FeedPreview;
+use self::preview::PostPreview;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Feed {
   Rss(rss::Channel),
-  Atom(atom::Feed),
+  Atom(atom_syndication::Feed),
 }
 
 #[derive(
@@ -76,7 +77,20 @@ impl Feed {
     let title = self.title().to_string();
     let link = self.link().to_string();
     let description = self.description().map(String::from);
-    let posts = todo!();
+
+    // TODO: inefficient clone, consider using references
+    let posts = match self {
+      Feed::Rss(channel) => channel
+        .items
+        .iter()
+        .map(|item| Post::Rss(item.clone()).preview())
+        .collect(),
+      Feed::Atom(feed) => feed
+        .entries
+        .iter()
+        .map(|entry| Post::Atom(entry.clone()).preview())
+        .collect(),
+    };
 
     FeedPreview {
       title,
@@ -329,7 +343,7 @@ impl Feed {
 #[serde(untagged)]
 pub enum Post {
   Rss(rss::Item),
-  Atom(atom::Entry),
+  Atom(atom_syndication::Entry),
 }
 
 enum PostField {
@@ -340,6 +354,21 @@ enum PostField {
 }
 
 impl Post {
+  pub fn preview(&self) -> PostPreview {
+    let title = self.title().map(String::from).unwrap_or_default();
+    let author = self.author().map(String::from);
+    let link = self.link().map(String::from).unwrap_or_default();
+    let body = self.first_body().map(String::from);
+    let published = self.pub_date();
+
+    PostPreview {
+      title,
+      author,
+      link,
+      body,
+      published,
+    }
+  }
   pub fn set_pub_date(&mut self, date: DateTime<chrono::FixedOffset>) {
     match self {
       Post::Rss(item) => {
