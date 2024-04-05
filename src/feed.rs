@@ -313,7 +313,7 @@ impl From<&FromScratch> for Feed {
 
 // Generic field accessors
 impl Feed {
-  fn title(&self) -> &str {
+  pub fn title(&self) -> &str {
     match self {
       Feed::Rss(channel) => &channel.title,
       Feed::Atom(feed) => feed.title.as_str(),
