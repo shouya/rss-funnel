@@ -1,5 +1,6 @@
 mod conversion;
 mod extension;
+mod preview;
 
 use chrono::DateTime;
 use paste::paste;
@@ -16,11 +17,13 @@ use crate::util::Result;
 
 use extension::ExtensionExt;
 
+use self::preview::FeedPreview;
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Feed {
   Rss(rss::Channel),
-  Atom(atom_syndication::Feed),
+  Atom(atom::Feed),
 }
 
 #[derive(
@@ -66,6 +69,20 @@ impl Feed {
         Feed::Rss(channel)
       }
       (original_self, _) => original_self,
+    }
+  }
+
+  pub fn preview(&self) -> FeedPreview {
+    let title = self.title().to_string();
+    let link = self.link().to_string();
+    let description = self.description().map(String::from);
+    let posts = todo!();
+
+    FeedPreview {
+      title,
+      link,
+      description,
+      posts,
     }
   }
 
@@ -175,14 +192,6 @@ impl Feed {
     }
   }
 
-  #[allow(unused)]
-  pub fn title(&self) -> &str {
-    match self {
-      Feed::Rss(channel) => &channel.title,
-      Feed::Atom(feed) => feed.title.as_str(),
-    }
-  }
-
   pub fn merge(&mut self, other: Feed) -> Result<()> {
     match (self, other) {
       (Feed::Rss(channel), Feed::Rss(other)) => {
@@ -288,11 +297,39 @@ impl From<&FromScratch> for Feed {
   }
 }
 
+// Generic field accessors
+impl Feed {
+  fn title(&self) -> &str {
+    match self {
+      Feed::Rss(channel) => &channel.title,
+      Feed::Atom(feed) => feed.title.as_str(),
+    }
+  }
+
+  fn link(&self) -> &str {
+    match self {
+      Feed::Rss(channel) => &channel.link,
+      Feed::Atom(feed) => feed
+        .links
+        .first()
+        .map(|link| link.href.as_str())
+        .unwrap_or_default(),
+    }
+  }
+
+  fn description(&self) -> Option<&str> {
+    match self {
+      Feed::Rss(channel) => Some(channel.description.as_str()),
+      Feed::Atom(feed) => feed.subtitle.as_ref().map(|s| s.value.as_str()),
+    }
+  }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum Post {
   Rss(rss::Item),
-  Atom(atom_syndication::Entry),
+  Atom(atom::Entry),
 }
 
 enum PostField {
