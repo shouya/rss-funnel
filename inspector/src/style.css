@@ -445,21 +445,53 @@ ul#filter-list {
   .feed-title {
     margin: 0;
     padding: 0.5rem;
-    width: 100%;
-    background-color: #fff;
+  }
+
+  .feed-description {
+    padding: 0.5rem;
+    font-size: 0.9em;
   }
 
   .feed-post {
-    padding: 0.5rem;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
     border: 1px solid #ddd;
-    border-radius: 0.3rem;
     background-color: #fafafa;
+    max-width: 90%;
+    margin: 0.5rem 0.5rem;
+
+    .feed-post-show-all {
+      cursor: pointer;
+      font-size: 0.8em;
+      margin-right: 0.5rem;
+      color: #666;
+    }
 
     .feed-post-title {
       margin: 0;
+    }
+
+    .feed-post-date {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 0.6rem;
       padding-bottom: 0.5rem;
-      font-size: 1.2em;
       border-bottom: 1px solid #ddd;
+    }
+
+    .feed-post-body {
+      padding: 1rem;
+      font-size: 0.9rem;
+      max-height: 20rem;
+      overflow-y: scroll;
+
+      img {
+        max-width: 100%;
+      }
+    }
+
+    .feed-post-body.expanded {
+      max-height: initial;
     }
   }
 }

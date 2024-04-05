@@ -246,22 +246,43 @@ export class FeedInspector {
 
   async render_feed_rendered({ unified }) {
     $("#feed-preview #rendered").innerHTML = "";
-    const title_node = elt("h2", { class: "feed-title" }, unified.title);
+    const title_node = elt(
+      "h3",
+      { class: "feed-title" },
+      elt("a", { href: unified.link }, unified.title),
+    );
+    const description_node = elt(
+      "div",
+      { class: "feed-description" },
+      unified.description,
+    );
+
     $("#feed-preview #rendered").appendChild(title_node);
+    $("#feed-preview #rendered").appendChild(description_node);
 
     const sanitizer = new HtmlSanitizer({});
 
     for (const post of unified.posts) {
-      const post_content = elt("p", { class: "feed-post-content" }, []);
-      post_content.innerHTML = sanitizer.sanitizeHtml(post.body || "");
+      const post_body = elt("div", { class: "feed-post-body" }, []);
+      post_body.innerHTML = sanitizer.sanitizeHtml(post.body || "");
+
+      let expand = elt("span", { class: "feed-post-show-all" }, "(expand)");
+      expand.addEventListener("click", (e) => {
+        post_body.classList.toggle("expanded");
+        expand.innerText = post_body.classList.contains("expanded")
+          ? "(collapse)"
+          : "(expand)";
+      });
+
       const post_node = elt("div", { class: "feed-post" }, [
         elt(
           "h3",
           { class: "feed-post-title" },
           elt("a", { class: "feed-post-link", href: post.link }, post.title),
         ),
-        post_content,
-        elt("p", { class: "feed-post-date" }, post.date),
+        elt("div", { class: "feed-post-date" }, post.date),
+        post_body,
+        expand,
       ]);
       $("#feed-preview #rendered").appendChild(post_node);
     }
