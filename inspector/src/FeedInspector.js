@@ -17,9 +17,8 @@ export class FeedInspector {
     this.filter_schema = null;
     this.current_endpoint = null;
     this.raw_editor = null;
-    this.raw_feed_content = null;
     this.json_preview_editor = null;
-    this.json_preview_content = null;
+    this.preview = null;
   }
 
   async init() {
@@ -237,58 +236,73 @@ export class FeedInspector {
         $(`#feed-preview #${mode}`).classList.add("hidden");
       }
 
-      const raw_feed_xml_xml = this.raw_feed_content;
+      const preview = this.preview;
       const function_name = `render_feed_${mode}`;
       if (this[function_name]) {
-        this[function_name](raw_feed_xml_xml);
+        this[function_name](preview);
       }
     });
   }
 
-  async render_feed_rendered(raw_feed_xml_xml) {
-    const parsed = parse_feed(raw_feed_xml_xml);
-    if (!parsed) {
-      console.error("Failed to parse feed");
-      return;
-    }
-
+  async render_feed_rendered({ unified }) {
     $("#feed-preview #rendered").innerHTML = "";
-    const title_node = elt("h2", { class: "feed-title" }, parsed.title);
+    const title_node = elt(
+      "h3",
+      { class: "feed-title" },
+      elt("a", { href: unified.link }, unified.title),
+    );
+    const description_node = elt(
+      "div",
+      { class: "feed-description" },
+      unified.description,
+    );
+
     $("#feed-preview #rendered").appendChild(title_node);
+    $("#feed-preview #rendered").appendChild(description_node);
 
     const sanitizer = new HtmlSanitizer({});
 
-    for (const post of parsed.posts) {
-      const post_content = elt("p", { class: "feed-post-content" }, []);
-      post_content.innerHTML = sanitizer.sanitizeHtml(post.content || "");
+    for (const post of unified.posts) {
+      const post_body = elt("div", { class: "feed-post-body" }, []);
+      post_body.innerHTML = sanitizer.sanitizeHtml(post.body || "");
+
+      let expand = elt("span", { class: "feed-post-show-all" }, "(expand)");
+      expand.addEventListener("click", (e) => {
+        post_body.classList.toggle("expanded");
+        expand.innerText = post_body.classList.contains("expanded")
+          ? "(collapse)"
+          : "(expand)";
+      });
+
       const post_node = elt("div", { class: "feed-post" }, [
         elt(
           "h3",
           { class: "feed-post-title" },
           elt("a", { class: "feed-post-link", href: post.link }, post.title),
         ),
-        post_content,
-        elt("p", { class: "feed-post-date" }, post.date),
+        elt("div", { class: "feed-post-date" }, post.date),
+        post_body,
+        expand,
       ]);
       $("#feed-preview #rendered").appendChild(post_node);
     }
   }
 
-  async render_feed_raw(raw_feed_xml_xml) {
-    if (this.raw_editor.state.doc.toString() === raw_feed_xml_xml) {
+  async render_feed_raw({ raw }) {
+    if (this.raw_editor.state.doc.toString() === raw) {
       return;
     }
     this.raw_editor.dispatch({
       changes: {
         from: 0,
         to: this.raw_editor.state.doc.length,
-        insert: raw_feed_xml_xml,
+        insert: raw,
       },
     });
   }
 
-  async render_feed_json(_unused) {
-    const json = JSON.stringify(this.json_preview_content, null, 2);
+  async render_feed_json({ json }) {
+    json = JSON.stringify(json, null, 2);
     if (this.json_preview_editor.state.doc.toString() === json) {
       return;
     }
@@ -424,15 +438,13 @@ export class FeedInspector {
     let status_text = "";
 
     if (resp.status != 200) {
-      status_text = `Failed fetching ${path}`;
-      status_text += ` (status: ${resp.status} ${resp.statusText})`;
+      status_text = `Failed fetching ${path} (status: ${resp.status} ${resp.statusText})`;
       this.update_feed_error(await resp.text());
     } else {
       this.update_feed_error(null);
       const preview = await resp.json();
-      this.raw_feed_content = preview.content;
-      this.json_preview_content = preview.json;
-      status_text = `Fetched ${path} (${preview.content_type})`;
+      this.preview = preview;
+      status_text = `Fetched feed with ${preview.post_count} posts from ${path} (${preview.content_type})`;
     }
 
     status_text += ` in ${performance.now() - time_start}ms.`;
@@ -492,39 +504,4 @@ export class FeedInspector {
     setTimeout(() => (node.style.opacity = 0), 3000);
     setTimeout(() => node.remove(), 4000);
   }
-}
-
-// return {title: string, posts: [post]}
-// post: {title: string, link: string, date: string, content: string}
-function parse_feed(xml) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, "text/xml");
-
-  if (doc.documentElement.tagName == "rss") {
-    const title = doc.querySelector("channel > title").textContent.trim();
-    const posts = Array.from(doc.querySelectorAll("item")).map((item) => {
-      return {
-        title: item.querySelector("title")?.textContent?.trim(),
-        link: item.querySelector("link")?.textContent?.trim(),
-        date: item.querySelector("pubDate")?.textContent?.trim(),
-        content: item.querySelector("description")?.textContent?.trim(),
-      };
-    });
-
-    return { title, posts };
-  } else if (doc.documentElement.tagName == "feed") {
-    const title = doc.querySelector("feed > title").textContent.trim();
-    const posts = Array.from(doc.querySelectorAll("entry")).map((entry) => {
-      return {
-        title: entry.querySelector("title")?.textContent?.trim(),
-        link: entry.querySelector("link")?.getAttribute("href"),
-        date: entry.querySelector("published")?.textContent?.trim(),
-        content: entry.querySelector("content")?.textContent?.trim(),
-      };
-    });
-
-    return { title, posts };
-  }
-
-  return null;
 }
