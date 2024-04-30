@@ -73,6 +73,14 @@ impl Util {
   }
 
   fn encode_base64(bytes: Vec<u8>) -> String {
-    BASE64_STANDARD.encode(&bytes)
+    BASE64_STANDARD.encode(bytes)
+  }
+
+  fn encode_url(url: String) -> String {
+    urlencoding::encode(&url).to_string()
+  }
+
+  fn decode_url(url: String) -> Option<String> {
+    urlencoding::decode(&url).ok().map(|s| s.to_string())
   }
 }
