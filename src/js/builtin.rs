@@ -1,3 +1,4 @@
+use base64::prelude::{Engine as _, BASE64_STANDARD};
 use rquickjs::{
   class::Trace,
   function::{Async, Func},
@@ -65,5 +66,22 @@ impl Util {
 
   fn encode_html(html: String) -> String {
     htmlescape::encode_minimal(&html)
+  }
+
+  fn decode_base64(base64: String) -> Option<String> {
+    let bytes = BASE64_STANDARD.decode(base64).ok()?;
+    String::from_utf8(bytes).ok()
+  }
+
+  fn encode_base64(bytes: String) -> String {
+    BASE64_STANDARD.encode(bytes)
+  }
+
+  fn encode_url(url: String) -> String {
+    urlencoding::encode(&url).to_string()
+  }
+
+  fn decode_url(url: String) -> Option<String> {
+    urlencoding::decode(&url).ok().map(|s| s.to_string())
   }
 }
