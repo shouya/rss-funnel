@@ -68,11 +68,12 @@ impl Util {
     htmlescape::encode_minimal(&html)
   }
 
-  fn decode_base64(base64: String) -> Option<Vec<u8>> {
-    BASE64_STANDARD.decode(base64).ok()
+  fn decode_base64(base64: String) -> Option<String> {
+    let bytes = BASE64_STANDARD.decode(base64).ok()?;
+    String::from_utf8(bytes).ok()
   }
 
-  fn encode_base64(bytes: Vec<u8>) -> String {
+  fn encode_base64(bytes: String) -> String {
     BASE64_STANDARD.encode(bytes)
   }
 
