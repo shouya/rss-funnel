@@ -281,10 +281,10 @@ impl From<&FromScratch> for Feed {
         };
 
         if let Some(link) = &config.link {
-          channel.link = link.clone();
+          channel.link.clone_from(link);
         }
         if let Some(description) = &config.description {
-          channel.description = description.clone();
+          channel.description.clone_from(description);
         }
 
         Feed::Rss(channel)

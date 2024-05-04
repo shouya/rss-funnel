@@ -103,7 +103,7 @@ impl From<W<rss::Channel>> for atom_syndication::Feed {
     let mut feed = Self::default();
 
     feed.title = channel.title.into();
-    feed.id = channel.link.clone();
+    feed.id.clone_from(&channel.link);
 
     // Updated - using last_build_date if available, otherwise pub_date
     feed.updated = channel
@@ -174,14 +174,18 @@ impl From<W<atom_syndication::Feed>> for rss::Channel {
   fn from(W(feed): W<atom_syndication::Feed>) -> Self {
     let mut channel = Self::default();
 
-    channel.title = feed.title.as_str().to_owned();
+    feed.title.as_str().clone_into(&mut channel.title);
     channel.link = feed
       .links
       .into_iter()
       .next()
       .map_or_else(String::default, |l| l.href);
-    channel.description =
-      feed.subtitle.as_deref().unwrap_or_default().to_owned();
+    feed
+      .subtitle
+      .as_deref()
+      .unwrap_or_default()
+      .clone_into(&mut channel.description);
+
     if feed.updated.timestamp() != 0 {
       channel.last_build_date = Some(feed.updated.to_rfc2822());
     }
