@@ -60,7 +60,7 @@ html5ever = "0.26.0"
 htmlescape = "0.3.1"
 
 # JS runtime crates
-rquickjs = { version = "0.5.1", features = ["loader", "parallel", "macro", "futures", "exports", "either"] }
+rquickjs = { version = "0.5.1", features = ["loader", "parallel", "macro", "futures", "exports", "either", "bindgen"] }
 serde_json = "1.0.114" # for data transfer with the JS runtime
 either = "1.10.0" # used for returning sum types from the JS runtime
 

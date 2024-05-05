@@ -1,0 +1,9 @@
+FROM docker.elastic.co/beats-dev/golang-crossbuild:1.17.1-armel AS BINARY_SRC_IMG
+
+ARG CROSS_BASE_IMAGE
+FROM $CROSS_BASE_IMAGE
+
+# patch is needed by rquickjs bindgen. However, apt armhf packages are
+# for armv7, so we simply steal the binary from the an unrelated armel
+# image.
+COPY --from=BINARY_SRC_IMG /usr/bin/patch /usr/bin/patch
