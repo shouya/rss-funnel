@@ -36,6 +36,10 @@ target/aarch64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-asse
 	cargo clean
 	cross build --release --target aarch64-unknown-linux-musl
 
+target/arm-unknown-linux-gnueabihf/release/$(APP_NAME): $(SOURCES) inspector-assets
+	cargo clean
+	cross build --release --target arm-unknown-linux-gnueabihf --features bindgen
+
 $(IMAGE_NAME)\:latest-% $(IMAGE_NAME)\:nightly-%: $(IMAGE_NAME)\:$(VERSION)-%
 	podman tag $< $@
 
