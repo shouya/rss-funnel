@@ -5,6 +5,6 @@ pre-build = ["apt-get update && apt-get install -y clang"]
 pre-build = ["apt-get update && apt-get install -y clang patch"]
 
 [target.arm-unknown-linux-gnueabihf]
-# https://github.com/bellard/quickjs/issues/75
 pre-build = ["apt-get update && apt-get install -y clang patch libc6-dev"]
+# -latomic: https://github.com/bellard/quickjs/issues/75
 env.passthrough = ["RUSTFLAGS=-Clink-arg=-latomic"]
