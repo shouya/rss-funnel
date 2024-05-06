@@ -14,6 +14,10 @@ categories = ["command-line-interface", "web-programming"]
 [features]
 default = ["inspector-ui"]
 inspector-ui = ["dep:rust-embed"]
+
+# Enable this feature to build on targets unsupported by rquickjs.
+# List of supported targets:
+# https://github.com/DelSkayn/rquickjs/tree/master/sys/src/bindings
 bindgen = ["rquickjs/bindgen"]
 
 [dependencies]
