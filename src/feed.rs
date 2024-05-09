@@ -2,6 +2,8 @@ mod conversion;
 mod extension;
 mod preview;
 
+use std::hash::Hash;
+
 use chrono::DateTime;
 use paste::paste;
 use schemars::JsonSchema;
@@ -18,7 +20,7 @@ use crate::util::Result;
 use extension::ExtensionExt;
 
 use self::preview::FeedPreview;
-use self::preview::PostPreview;
+pub use self::preview::PostPreview;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]

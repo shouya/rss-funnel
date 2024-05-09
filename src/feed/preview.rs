@@ -9,7 +9,7 @@ pub struct FeedPreview {
   pub posts: Vec<PostPreview>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq, Eq, Hash)]
 pub struct PostPreview {
   pub title: String,
   pub author: Option<String>,
