@@ -57,6 +57,13 @@ pub struct ClientConfig {
 }
 
 impl ClientConfig {
+  pub fn get_cache_size(&self) -> usize {
+    self.cache_size.unwrap_or(64)
+  }
+  pub fn get_cache_ttl(&self, default_cache_ttl: Duration) -> Duration {
+    self.cache_ttl.unwrap_or(default_cache_ttl)
+  }
+
   fn to_builder(&self) -> Result<reqwest::ClientBuilder, ConfigError> {
     let mut builder = reqwest::Client::builder();
 
@@ -99,8 +106,8 @@ impl ClientConfig {
   ) -> Result<Client, ConfigError> {
     let reqwest_client = self.to_builder()?.build()?;
     let client = Client::new(
-      self.cache_size.unwrap_or(64),
-      self.cache_ttl.unwrap_or(default_cache_ttl),
+      self.get_cache_size(),
+      self.get_cache_ttl(default_cache_ttl),
       reqwest_client,
       self.assume_content_type.clone(),
     );

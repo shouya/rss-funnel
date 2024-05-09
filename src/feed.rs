@@ -2,6 +2,8 @@ mod conversion;
 mod extension;
 mod preview;
 
+use std::hash::Hash;
+
 use chrono::DateTime;
 use paste::paste;
 use schemars::JsonSchema;
@@ -344,6 +346,19 @@ impl Feed {
 pub enum Post {
   Rss(rss::Item),
   Atom(atom_syndication::Entry),
+}
+
+impl Eq for Post {}
+impl PartialEq for Post {
+  fn eq(&self, other: &Self) -> bool {
+    self.preview() == other.preview()
+  }
+}
+
+impl Hash for Post {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.preview().hash(state);
+  }
 }
 
 enum PostField {

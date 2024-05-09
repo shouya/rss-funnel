@@ -12,7 +12,7 @@ pub struct Timed<T> {
   created: Instant,
 }
 
-pub struct ResultCache<K, V> {
+pub struct ResultCache<K: Hash + Eq, V: Clone> {
   map: RwLock<LruCache<K, Timed<V>>>,
   timeout: Duration,
 }

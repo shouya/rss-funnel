@@ -7,6 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use crate::cache::ResultCache;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
@@ -14,6 +15,8 @@ use crate::util::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
+
+type PostCache = ResultCache<Post, Post>;
 
 const DEFAULT_PARALLELISM: usize = 20;
 
@@ -42,6 +45,7 @@ pub struct FullTextFilter {
   keep_element: Option<KeepElement>,
   simplify: bool,
   keep_guid: bool,
+  post_cache: PostCache,
 }
 
 #[async_trait::async_trait]
@@ -51,7 +55,8 @@ impl FeedFilterConfig for FullTextConfig {
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     // default cache ttl is 12 hours
     let default_cache_ttl = Duration::from_secs(12 * 60 * 60);
-    let client = self.client.unwrap_or_default().build(default_cache_ttl)?;
+    let conf_client = self.client.unwrap_or_default();
+    let client = conf_client.build(default_cache_ttl)?;
     let parallelism = self.parallelism.unwrap_or(DEFAULT_PARALLELISM);
     let append_mode = self.append_mode.unwrap_or(false);
     let simplify = self.simplify.unwrap_or(false);
@@ -60,6 +65,10 @@ impl FeedFilterConfig for FullTextConfig {
       None => None,
       Some(c) => Some(c.build().await?),
     };
+    let post_cache = PostCache::new(
+      conf_client.get_cache_size(),
+      conf_client.get_cache_ttl(default_cache_ttl),
+    );
 
     Ok(FullTextFilter {
       simplify,
@@ -68,6 +77,7 @@ impl FeedFilterConfig for FullTextConfig {
       append_mode,
       keep_guid,
       keep_element,
+      post_cache,
     })
   }
 }
@@ -142,7 +152,19 @@ impl FullTextFilter {
 
   async fn fetch_all_posts(&self, posts: Vec<Post>) -> Result<Vec<Post>> {
     stream::iter(posts)
-      .map(|post| self.fetch_full_post(post))
+      .map(|post| async {
+        if let Some(result_post) = self.post_cache.get_cached(&post) {
+          return Ok(result_post);
+        };
+
+        match self.fetch_full_post(post.clone()).await {
+          Ok(result_post) => {
+            self.post_cache.insert(post, result_post.clone());
+            Ok(result_post)
+          }
+          Err(e) => Err(e),
+        }
+      })
       .buffered(self.parallelism)
       .collect::<Vec<_>>()
       .await
