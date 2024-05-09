@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::cache::ResultCache;
+use crate::cache::TimedLruCache;
 
 use mime::Mime;
 use reqwest::header::HeaderMap;
@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::util::{Error, Result};
 
-pub type ResponseCache = ResultCache<Url, Response>;
+pub type ResponseCache = TimedLruCache<Url, Response>;
 
 #[derive(Clone)]
 pub struct Response {

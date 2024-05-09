@@ -12,12 +12,12 @@ pub struct Timed<T> {
   created: Instant,
 }
 
-pub struct ResultCache<K: Hash + Eq, V: Clone> {
+pub struct TimedLruCache<K: Hash + Eq, V: Clone> {
   map: RwLock<LruCache<K, Timed<V>>>,
   timeout: Duration,
 }
 
-impl<K: Hash + Eq, V: Clone> ResultCache<K, V> {
+impl<K: Hash + Eq, V: Clone> TimedLruCache<K, V> {
   pub fn new(max_entries: usize, timeout: Duration) -> Self {
     let max_entries = max_entries.try_into().unwrap_or(NonZeroUsize::MIN);
     Self {

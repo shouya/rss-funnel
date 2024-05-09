@@ -20,7 +20,7 @@ use crate::util::Result;
 use extension::ExtensionExt;
 
 use self::preview::FeedPreview;
-use self::preview::PostPreview;
+pub use self::preview::PostPreview;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
@@ -346,19 +346,6 @@ impl Feed {
 pub enum Post {
   Rss(rss::Item),
   Atom(atom_syndication::Entry),
-}
-
-impl Eq for Post {}
-impl PartialEq for Post {
-  fn eq(&self, other: &Self) -> bool {
-    self.preview() == other.preview()
-  }
-}
-
-impl Hash for Post {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.preview().hash(state);
-  }
 }
 
 enum PostField {

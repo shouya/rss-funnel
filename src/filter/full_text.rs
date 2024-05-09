@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::cache::ResultCache;
+use crate::cache::TimedLruCache;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
@@ -15,8 +15,9 @@ use crate::util::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
+use crate::feed::PostPreview;
 
-type PostCache = ResultCache<Post, Post>;
+type PostCache = TimedLruCache<PostPreview, Post>;
 
 const DEFAULT_PARALLELISM: usize = 20;
 
@@ -150,21 +151,24 @@ impl FullTextFilter {
     }
   }
 
+  async fn fetch_full_post_cached(&self, post: Post) -> Result<Post> {
+    let post_preview = post.preview();
+    if let Some(result_post) = self.post_cache.get_cached(&post_preview) {
+      return Ok(result_post);
+    };
+
+    match self.fetch_full_post(post).await {
+      Ok(result_post) => {
+        self.post_cache.insert(post_preview, result_post.clone());
+        Ok(result_post)
+      }
+      Err(e) => Err(e),
+    }
+  }
+
   async fn fetch_all_posts(&self, posts: Vec<Post>) -> Result<Vec<Post>> {
     stream::iter(posts)
-      .map(|post| async {
-        if let Some(result_post) = self.post_cache.get_cached(&post) {
-          return Ok(result_post);
-        };
-
-        match self.fetch_full_post(post.clone()).await {
-          Ok(result_post) => {
-            self.post_cache.insert(post, result_post.clone());
-            Ok(result_post)
-          }
-          Err(e) => Err(e),
-        }
-      })
+      .map(|post| self.fetch_full_post_cached(post))
       .buffered(self.parallelism)
       .collect::<Vec<_>>()
       .await
