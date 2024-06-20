@@ -313,6 +313,8 @@ pub struct Exception {
   pub file: Option<String>,
   pub line: Option<i32>,
   pub column: Option<i32>,
+  // captured but unused yet
+  #[allow(dead_code)]
   pub stack: Option<String>,
   pub source: Option<String>,
 }

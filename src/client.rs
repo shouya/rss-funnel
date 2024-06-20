@@ -30,8 +30,10 @@ pub struct ClientConfig {
   user_agent: Option<String>,
   /// The "accept" header to send with requests
   accept: Option<String>,
-  /// The "set-cookie" header to send with requests
+  /// The "cookie" header to send with requests (Deprecated, specify "cookie" field instead)
   set_cookie: Option<String>,
+  /// The "cookie" header to send with requests
+  cookie: Option<String>,
   /// The "referer" header to send with requests
   referer: Option<String>,
   /// The maximum number of cached responses
@@ -78,8 +80,10 @@ impl ClientConfig {
       header_map.append("Accept", accept.try_into()?);
     }
 
-    if let Some(set_cookie) = &self.set_cookie {
-      header_map.append("Set-Cookie", set_cookie.try_into()?);
+    if let Some(cookie) = &self.cookie {
+      header_map.append("Cookie", cookie.try_into()?);
+    } else if let Some(set_cookie) = &self.set_cookie {
+      header_map.append("Cookie", set_cookie.try_into()?);
     }
 
     if let Some(referer) = &self.referer {
