@@ -75,10 +75,8 @@ impl ClientConfig {
 
     if let Some(cookie) = &self.cookie {
       header_map.append("Cookie", cookie.try_into()?);
-    } else {
-      if let Some(set_cookie) = &self.set_cookie {
-        header_map.append("Cookie", set_cookie.try_into()?);
-      }
+    } else if let Some(set_cookie) = &self.set_cookie {
+      header_map.append("Cookie", set_cookie.try_into()?);
     }
 
     if let Some(referer) = &self.referer {
