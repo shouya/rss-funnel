@@ -38,6 +38,9 @@ pub struct ClientConfig {
   referer: Option<String>,
   /// The maximum number of cached responses
   cache_size: Option<usize>,
+  /// Ignore tls error
+  #[serde(default)]
+  accept_invalid_certs: bool,
   /// The maximum time a response is kept in the cache (Format: "4s",
   /// 10m", "1h", "1d")
   #[serde(default)]
@@ -92,6 +95,10 @@ impl ClientConfig {
 
     if !header_map.is_empty() {
       builder = builder.default_headers(header_map);
+    }
+
+    if self.accept_invalid_certs {
+      builder = builder.danger_accept_invalid_certs(true);
     }
 
     let default_timeout = Duration::from_secs(10);
@@ -190,7 +197,10 @@ impl Client {
       return Ok(resp);
     }
 
-    let resp = f(self.client.get(url.clone())).send().await?;
+    let req_builder = self.client.get(url.clone());
+    let req_builder = f(req_builder);
+
+    let resp = req_builder.send().await?;
     let resp = Response::from_reqwest_resp(resp).await?;
     let resp = self.modify_resp(resp);
     self.cache.insert(url.clone(), resp.clone());
