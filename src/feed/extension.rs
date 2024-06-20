@@ -2,12 +2,14 @@ use std::collections::BTreeMap;
 
 pub struct TagRef<'a> {
   pub name: &'a String,
+  #[allow(dead_code)]
   pub attrs: &'a BTreeMap<String, String>,
   pub value: &'a Option<String>,
 }
 
 pub struct TagRefMut<'a> {
   pub name: &'a mut String,
+  #[allow(dead_code)]
   pub attrs: &'a mut BTreeMap<String, String>,
   pub value: &'a mut Option<String>,
 }
