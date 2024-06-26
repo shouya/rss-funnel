@@ -123,10 +123,10 @@ mod test {
   #[test]
   fn test_parsing() {
     assert_parse("discard=foo", "discard: foo");
-    // assert_parse("keep_only=bar", "keep_only: bar");
-    // // numbers are parsed as expected
-    // assert_parse("limit=1", "limit: 1");
-    // assert_parse("limit=1h", "limit: '1h'");
-    // assert_parse("simplify_html", "simplify_html: {}");
+    assert_parse("keep_only=bar", "keep_only: bar");
+    // numbers are parsed as expected
+    assert_parse("limit=1", "limit: 1");
+    assert_parse("limit=1h", "limit: '1h'");
+    assert_parse("simplify_html", "simplify_html: {}");
   }
 }
