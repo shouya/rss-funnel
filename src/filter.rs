@@ -17,21 +17,25 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, util::ConfigError, util::Result};
+use crate::{
+  feed::Feed,
+  util::{ConfigError, Result},
+};
 
 #[derive(Clone)]
 pub struct FilterContext {
-  limit_filters: Option<usize>,
   /// The base URL of the application. Used to construct absolute URLs
   /// from a relative path.
   base: Option<Url>,
+  /// The maximum number of filters to run on this pipeline
+  limit_filters: Option<usize>,
 }
 
 impl FilterContext {
   pub fn new() -> Self {
     Self {
-      limit_filters: None,
       base: None,
+      limit_filters: None,
     }
   }
 
@@ -53,8 +57,8 @@ impl FilterContext {
 
   pub fn subcontext(&self) -> Self {
     Self {
-      limit_filters: None,
       base: self.base.clone(),
+      limit_filters: None,
     }
   }
 }
@@ -128,7 +132,6 @@ macro_rules! define_filters {
         Ok(dummy.config)
       }
 
-      #[cfg(test)]
       pub fn parse_yaml_value(key: &str, value: serde_yaml::Value) -> Result<Self, ConfigError> {
         #[derive(Deserialize)]
         struct Dummy {
@@ -162,6 +165,13 @@ macro_rules! define_filters {
       pub fn name(&self) -> &'static str {
         match self {
           $(FilterConfig::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*
+        }
+      }
+
+      pub fn is_valid_key(name: &str) -> bool {
+        match name {
+          $(paste::paste! {stringify!([<$variant:snake>])} => true,)*
+          _ => false,
         }
       }
 

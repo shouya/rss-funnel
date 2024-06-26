@@ -3,25 +3,91 @@ use std::str::FromStr;
 use tracing::warn;
 
 use crate::{
-  filter::FilterConfig, filter_pipeline::FilterPipeline, util::ConfigError,
+  feed::Feed,
+  filter::{FilterConfig, FilterContext},
+  filter_pipeline::{FilterPipeline, FilterPipelineConfig},
+  util::{ConfigError, Error},
 };
 
-struct FilterPipelineCache {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InlineFilterQuery {
   query: Vec<String>,
-  pipeline: Option<FilterPipeline>,
 }
 
-struct InlineFilter {
-  cache: FilterPipelineCache,
+impl InlineFilterQuery {
+  pub fn from_uri_query(uri_query: &str) -> Self {
+    let mut query = Vec::new();
+    for param in uri_query.split('&') {
+      let filter_name;
+      if let Some((key, _)) = param.split_once('=') {
+        filter_name = key;
+      } else {
+        filter_name = param;
+      }
+
+      if FilterConfig::is_valid_key(filter_name) {
+        query.push(param.to_string());
+      }
+    }
+
+    Self { query }
+  }
 }
 
-impl InlineFilter {}
+struct FilterPipelineCache {
+  query: InlineFilterQuery,
+  pipeline: FilterPipeline,
+}
 
-fn parse_config(param: &str) -> Result<FilterConfig, ConfigError> {
+#[derive(Default)]
+pub struct InlineFilter {
+  cache: Option<FilterPipelineCache>,
+}
+
+impl InlineFilter {
+  async fn update(
+    &mut self,
+    query: InlineFilterQuery,
+  ) -> Result<&FilterPipeline, ConfigError> {
+    if self.cache.as_ref().is_some_and(|c| c.query == query) {
+      return Ok(&self.cache.as_ref().unwrap().pipeline);
+    }
+
+    let pipeline_config = parse_pipeline_config(&query)?;
+    let pipeline = pipeline_config.build().await?;
+
+    self.cache = Some(FilterPipelineCache { query, pipeline });
+
+    Ok(&self.cache.as_ref().unwrap().pipeline)
+  }
+
+  pub async fn run(
+    &mut self,
+    query: InlineFilterQuery,
+    context: FilterContext,
+    feed: Feed,
+  ) -> Result<Feed, Error> {
+    let pipeline = self.update(query).await?;
+    pipeline.run(context, feed).await
+  }
+}
+
+fn parse_pipeline_config(
+  query: &InlineFilterQuery,
+) -> Result<FilterPipelineConfig, ConfigError> {
+  let configs = query
+    .query
+    .iter()
+    .map(|s| parse_single(s))
+    .collect::<Result<Vec<_>, _>>()?;
+  Ok(FilterPipelineConfig::from(configs))
+}
+
+fn parse_single(param: &str) -> Result<FilterConfig, ConfigError> {
   use serde_yaml::{Mapping, Number, Value};
   if !param.contains('=') {
     let value = Mapping::new().into();
-    return Ok(FilterConfig::parse_yaml_value(param, value)?);
+    return FilterConfig::parse_yaml_value(param, value);
   }
 
   let Some((name, value)) = param.split_once('=') else {
@@ -45,11 +111,11 @@ fn parse_config(param: &str) -> Result<FilterConfig, ConfigError> {
 
 #[cfg(test)]
 mod test {
-  use super::parse_config;
+  use super::parse_single;
   use crate::filter::FilterConfig;
 
   fn assert_parse(inline: &str, full: &str) {
-    let inline = parse_config(inline).unwrap();
+    let inline = parse_single(inline).unwrap();
     let full = FilterConfig::parse_yaml(full).unwrap();
     assert_eq!(inline, full);
   }
