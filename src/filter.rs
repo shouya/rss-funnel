@@ -107,20 +107,47 @@ macro_rules! define_filters {
     impl FilterConfig {
       // currently only used in tests
       #[cfg(test)]
-      pub fn parse_yaml(input: &str) -> Result<Box<dyn std::any::Any>> {
+      pub fn parse_yaml_variant(input: &str) -> Result<Box<dyn std::any::Any>> {
+        let config: FilterConfig = Self::parse_yaml(input)?;
+        match config {
+          $(FilterConfig::$variant(config) => {
+            Ok(Box::new(config))
+          })*
+        }
+      }
+
+      #[cfg(test)]
+      pub fn parse_yaml(input: &str) -> Result<Self, ConfigError> {
         #[derive(Deserialize)]
         struct Dummy {
           #[serde(flatten)]
           config: FilterConfig
         }
 
-        use crate::util::ConfigError;
-        let config: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
-        match config.config {
-          $(FilterConfig::$variant(config) => {
-            Ok(Box::new(config))
-          })*
+        let dummy: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
+        Ok(dummy.config)
+      }
+
+      #[cfg(test)]
+      pub fn parse_yaml_value(key: &str, value: serde_yaml::Value) -> Result<Self, ConfigError> {
+        #[derive(Deserialize)]
+        struct Dummy {
+          #[serde(flatten)]
+          config: FilterConfig
         }
+
+        use serde_yaml::{Value, Mapping, value::{Tag, TaggedValue}};
+        let tag = Tag::new(key);
+        let key = Value::String(key.to_string());
+        let mut mapping = Mapping::new();
+        mapping.insert(key, value);
+        let yaml_value = Value::Tagged(Box::new(TaggedValue {
+          tag,
+          value: Value::Mapping(mapping),
+        }));
+
+        let dummy: Dummy = serde_yaml::from_value(yaml_value).map_err(ConfigError::from)?;
+        Ok(dummy.config)
       }
 
       pub async fn build(self) -> Result<BoxedFilter, ConfigError> {

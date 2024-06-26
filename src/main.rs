@@ -6,6 +6,7 @@ mod feed;
 mod filter;
 mod filter_pipeline;
 mod html;
+mod inline_filter;
 mod js;
 mod server;
 mod source;
