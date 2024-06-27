@@ -6,8 +6,8 @@ mod feed;
 mod filter;
 mod filter_pipeline;
 mod html;
-mod inline_filter;
 mod js;
+mod otf_filter;
 mod server;
 mod source;
 #[cfg(test)]

@@ -22,7 +22,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
-use crate::inline_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
+use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
 use crate::util::{ConfigError, Error, Result};
 
