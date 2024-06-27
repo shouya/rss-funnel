@@ -10,11 +10,11 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InlineFilterQuery {
+pub struct OnTheFlyFilterQuery {
   query: Vec<String>,
 }
 
-impl InlineFilterQuery {
+impl OnTheFlyFilterQuery {
   pub fn from_uri_query(uri_query: &str) -> Self {
     let mut query = Vec::new();
     for param in uri_query.split('&') {
@@ -35,19 +35,19 @@ impl InlineFilterQuery {
 }
 
 struct FilterPipelineCache {
-  query: InlineFilterQuery,
+  query: OnTheFlyFilterQuery,
   pipeline: FilterPipeline,
 }
 
 #[derive(Default)]
-pub struct InlineFilter {
+pub struct OnTheFlyFilter {
   cache: Option<FilterPipelineCache>,
 }
 
-impl InlineFilter {
+impl OnTheFlyFilter {
   async fn update(
     &mut self,
-    query: InlineFilterQuery,
+    query: OnTheFlyFilterQuery,
   ) -> Result<&FilterPipeline, ConfigError> {
     if self.cache.as_ref().is_some_and(|c| c.query == query) {
       return Ok(&self.cache.as_ref().unwrap().pipeline);
@@ -63,7 +63,7 @@ impl InlineFilter {
 
   pub async fn run(
     &mut self,
-    query: InlineFilterQuery,
+    query: OnTheFlyFilterQuery,
     context: FilterContext,
     feed: Feed,
   ) -> Result<Feed, Error> {
@@ -73,7 +73,7 @@ impl InlineFilter {
 }
 
 fn parse_pipeline_config(
-  query: &InlineFilterQuery,
+  query: &OnTheFlyFilterQuery,
 ) -> Result<FilterPipelineConfig, ConfigError> {
   let configs = query
     .query
@@ -91,8 +91,8 @@ fn parse_single(param: &str) -> Result<FilterConfig, ConfigError> {
   }
 
   let Some((name, value)) = param.split_once('=') else {
-    warn!("invalid inline param: {}", param);
-    let message = format!("invalid inline param: {}", param);
+    warn!("invalid on-the-fly filter: {}", param);
+    let message = format!("invalid on-the-fly param: {}", param);
     return Err(ConfigError::Message(message));
   };
 
@@ -114,10 +114,10 @@ mod test {
   use super::parse_single;
   use crate::filter::FilterConfig;
 
-  fn assert_parse(inline: &str, full: &str) {
-    let inline = parse_single(inline).unwrap();
+  fn assert_parse(otf: &str, full: &str) {
+    let otf = parse_single(otf).unwrap();
     let full = FilterConfig::parse_yaml(full).unwrap();
-    assert_eq!(inline, full);
+    assert_eq!(otf, full);
   }
 
   #[test]

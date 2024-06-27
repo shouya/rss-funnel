@@ -22,7 +22,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
-use crate::inline_filter::{InlineFilter, InlineFilterQuery};
+use crate::inline_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
 use crate::util::{ConfigError, Error, Result};
 
@@ -62,7 +62,7 @@ pub struct EndpointServiceConfig {
   source: Option<SourceConfig>,
   filters: FilterPipelineConfig,
   #[serde(default)]
-  inline_filters: bool,
+  on_the_fly_filters: bool,
   #[serde(default)]
   client: Option<ClientConfig>,
 }
@@ -80,7 +80,7 @@ pub struct EndpointService {
   // used for detecting changes in the config for partial update
   config: EndpointServiceConfig,
   source: Option<Source>,
-  inline_filter: Option<Arc<Mutex<InlineFilter>>>,
+  on_the_fly_filter: Option<Arc<Mutex<OnTheFlyFilter>>>,
   filters: Arc<FilterPipeline>,
   client: Arc<Client>,
 }
@@ -210,7 +210,7 @@ impl EndpointService {
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
     let source = config.source.map(|s| s.try_into()).transpose()?;
-    let inline_filter = if config.inline_filters {
+    let on_the_fly_filter = if config.on_the_fly_filters {
       Some(Default::default())
     } else {
       None
@@ -219,7 +219,7 @@ impl EndpointService {
     Ok(Self {
       config: cloned_config,
       source,
-      inline_filter,
+      on_the_fly_filter,
       filters: Arc::new(filters),
       client: Arc::new(client),
     })
@@ -240,11 +240,11 @@ impl EndpointService {
     // TODO: change filter pipeline to operate on a borrowed context
     let mut feed = self.filters.run(context.clone(), feed).await?;
 
-    if let (Some(inline_filter), Some(query)) =
-      (self.inline_filter, param.query)
+    if let (Some(on_the_fly_filter), Some(query)) =
+      (self.on_the_fly_filter, param.query)
     {
-      let query = InlineFilterQuery::from_uri_query(&query);
-      let mut lock = inline_filter.lock().await;
+      let query = OnTheFlyFilterQuery::from_uri_query(&query);
+      let mut lock = on_the_fly_filter.lock().await;
       feed = lock.run(query, context, feed).await?;
     }
 
