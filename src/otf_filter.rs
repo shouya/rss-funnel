@@ -85,19 +85,27 @@ fn parse_pipeline_config(
 
 fn parse_single(param: &str) -> Result<FilterConfig, ConfigError> {
   use serde_yaml::{Mapping, Number, Value};
-  if !param.contains('=') {
+  if !param.contains('=') || param.ends_with('=') {
+    let param = param.strip_suffix('=').unwrap_or(param);
     let value = Mapping::new().into();
     return FilterConfig::parse_yaml_value(param, value);
   }
 
   let Some((name, value)) = param.split_once('=') else {
-    warn!("invalid on-the-fly filter: {}", param);
     let message = format!("invalid on-the-fly param: {}", param);
+    warn!("{}", message);
+    return Err(ConfigError::Message(message));
+  };
+
+  let Ok(value) = urlencoding::decode(value) else {
+    let message =
+      format!("invalid url decoding from on-the-fly param: {}", param);
+    warn!("{}", message);
     return Err(ConfigError::Message(message));
   };
 
   // try parse value as number if possible
-  if let Ok(num) = Number::from_str(value) {
+  if let Ok(num) = Number::from_str(&value) {
     let value = Value::Number(num);
     if let Ok(config) = FilterConfig::parse_yaml_value(name, value) {
       return Ok(config);
@@ -127,6 +135,9 @@ mod test {
     // numbers are parsed as expected
     assert_parse("limit=1", "limit: 1");
     assert_parse("limit=1h", "limit: '1h'");
+    assert_parse("discard=a%20b", "discard: 'a b'");
+    // empty value are supported
     assert_parse("simplify_html", "simplify_html: {}");
+    assert_parse("simplify_html=", "simplify_html: {}");
   }
 }
