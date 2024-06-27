@@ -14,6 +14,7 @@ use http::request::Parts;
 use http::StatusCode;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 use tower::Service;
 use url::Url;
 
@@ -21,6 +22,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter::FilterContext;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
+use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
 use crate::util::{ConfigError, Error, Result};
 
@@ -38,6 +40,19 @@ pub struct EndpointConfig {
 }
 
 impl EndpointConfig {
+  pub fn default_on_the_fly(path: &str) -> Self {
+    Self {
+      path: path.to_string(),
+      note: Some("Default On-the-fly filter endpoint".to_string()),
+      config: EndpointServiceConfig {
+        source: None,
+        filters: FilterPipelineConfig::default(),
+        on_the_fly_filters: true,
+        client: None,
+      },
+    }
+  }
+
   pub fn path_sans_slash(&self) -> &str {
     self.path.strip_prefix('/').unwrap_or(&self.path)
   }
@@ -60,6 +75,8 @@ pub struct EndpointServiceConfig {
   source: Option<SourceConfig>,
   filters: FilterPipelineConfig,
   #[serde(default)]
+  on_the_fly_filters: bool,
+  #[serde(default)]
   client: Option<ClientConfig>,
 }
 
@@ -76,6 +93,7 @@ pub struct EndpointService {
   // used for detecting changes in the config for partial update
   config: EndpointServiceConfig,
   source: Option<Source>,
+  on_the_fly_filter: Option<Arc<Mutex<OnTheFlyFilter>>>,
   filters: Arc<FilterPipeline>,
   client: Arc<Client>,
 }
@@ -93,6 +111,9 @@ pub struct EndpointParam {
   /// The url base of the feed, used for resolving relative urls
   #[serde(skip)]
   base: Option<Url>,
+  /// The full query string
+  #[serde(skip)]
+  query: Option<String>,
 }
 
 #[async_trait]
@@ -110,7 +131,11 @@ where
       .await
       .unwrap_or_default();
 
+    let query = parts.uri.query().map(|q| q.to_string());
+
     param.base = Self::get_base(parts);
+    param.query = query;
+
     Ok(param)
   }
 }
@@ -127,6 +152,7 @@ impl EndpointParam {
       limit_filters,
       limit_posts,
       base,
+      query: None,
     }
   }
 
@@ -197,10 +223,16 @@ impl EndpointService {
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
     let source = config.source.map(|s| s.try_into()).transpose()?;
+    let on_the_fly_filter = if config.on_the_fly_filters {
+      Some(Default::default())
+    } else {
+      None
+    };
 
     Ok(Self {
       config: cloned_config,
       source,
+      on_the_fly_filter,
       filters: Arc::new(filters),
       client: Arc::new(client),
     })
@@ -218,8 +250,16 @@ impl EndpointService {
     if let Some(base) = param.base {
       context.set_base(base);
     }
+    // TODO: change filter pipeline to operate on a borrowed context
+    let mut feed = self.filters.run(context.clone(), feed).await?;
 
-    let mut feed = self.filters.run(context, feed).await?;
+    if let (Some(on_the_fly_filter), Some(query)) =
+      (self.on_the_fly_filter, param.query)
+    {
+      let query = OnTheFlyFilterQuery::from_uri_query(&query);
+      let mut lock = on_the_fly_filter.lock().await;
+      feed = lock.run(query, context, feed).await?;
+    }
 
     if let Some(limit) = param.limit_posts {
       let mut posts = feed.take_posts();

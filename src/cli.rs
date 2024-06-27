@@ -16,7 +16,7 @@ pub struct Cli {
   subcmd: SubCommand,
 
   #[clap(long, short, env = "RSS_FUNNEL_CONFIG")]
-  config: PathBuf,
+  config: Option<PathBuf>,
 }
 
 #[derive(Parser)]
@@ -78,6 +78,14 @@ pub struct AuthConfig {
 }
 
 impl RootConfig {
+  pub fn on_the_fly(path: &str) -> Self {
+    let endpoint = EndpointConfig::default_on_the_fly(path);
+    Self {
+      auth: None,
+      endpoints: vec![endpoint],
+    }
+  }
+
   pub fn load_from_file(path: &Path) -> Result<Self, ConfigError> {
     let f = std::fs::File::open(path)?;
     let root_config: Self = serde_yaml::from_reader(f)?;
@@ -97,10 +105,13 @@ impl Cli {
   pub async fn run(self) -> Result<()> {
     match self.subcmd {
       SubCommand::Server(server_config) => {
-        server_config.run(&self.config).await
+        server_config.run(self.config.as_deref()).await
       }
       SubCommand::Test(test_config) => {
-        let feed_defn = RootConfig::load_from_file(&self.config)?;
+        let config = self
+          .config
+          .expect("config file is required for endpoint testing");
+        let feed_defn = RootConfig::load_from_file(&config)?;
         test_endpoint(feed_defn, &test_config).await;
         Ok(())
       }

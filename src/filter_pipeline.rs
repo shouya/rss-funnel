@@ -17,6 +17,12 @@ pub struct FilterPipelineConfig {
   filters: Vec<FilterConfig>,
 }
 
+impl From<Vec<FilterConfig>> for FilterPipelineConfig {
+  fn from(filters: Vec<FilterConfig>) -> Self {
+    Self { filters }
+  }
+}
+
 pub struct FilterPipeline {
   inner: Mutex<Inner>,
 }

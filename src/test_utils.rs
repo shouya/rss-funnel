@@ -17,7 +17,7 @@ where
   T: FeedFilterConfig + Serialize + 'static,
 {
   let parsed: Box<dyn Any> =
-    FilterConfig::parse_yaml(config).expect("failed to parse config");
+    FilterConfig::parse_yaml_variant(config).expect("failed to parse config");
 
   let actual: Box<T> = parsed
     .downcast()

@@ -48,7 +48,24 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-  pub async fn run(self, config_path: &Path) -> Result<()> {
+  pub async fn run(self, config_path: Option<&Path>) -> Result<()> {
+    if let Some(config_path) = config_path {
+      info!("loading config from {:?}", config_path);
+      self.run_with_config(config_path).await
+    } else {
+      info!("running without config file");
+      self.run_without_config().await
+    }
+  }
+
+  pub async fn run_without_config(self) -> Result<()> {
+    let config = RootConfig::on_the_fly("/otf");
+    let feed_service = FeedService::try_from(config).await?;
+    info!("serving on-the-fly endpoint on /otf");
+    self.serve(feed_service).await
+  }
+
+  pub async fn run_with_config(self, config_path: &Path) -> Result<()> {
     if self.watch {
       info!("watching config file for changes");
       self.run_with_fs_watcher(config_path).await

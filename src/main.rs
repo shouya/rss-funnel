@@ -7,6 +7,7 @@ mod filter;
 mod filter_pipeline;
 mod html;
 mod js;
+mod otf_filter;
 mod server;
 mod source;
 #[cfg(test)]

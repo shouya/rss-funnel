@@ -17,21 +17,25 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, util::ConfigError, util::Result};
+use crate::{
+  feed::Feed,
+  util::{ConfigError, Result},
+};
 
 #[derive(Clone)]
 pub struct FilterContext {
-  limit_filters: Option<usize>,
   /// The base URL of the application. Used to construct absolute URLs
   /// from a relative path.
   base: Option<Url>,
+  /// The maximum number of filters to run on this pipeline
+  limit_filters: Option<usize>,
 }
 
 impl FilterContext {
   pub fn new() -> Self {
     Self {
-      limit_filters: None,
       base: None,
+      limit_filters: None,
     }
   }
 
@@ -53,8 +57,8 @@ impl FilterContext {
 
   pub fn subcontext(&self) -> Self {
     Self {
-      limit_filters: None,
       base: self.base.clone(),
+      limit_filters: None,
     }
   }
 }
@@ -107,20 +111,46 @@ macro_rules! define_filters {
     impl FilterConfig {
       // currently only used in tests
       #[cfg(test)]
-      pub fn parse_yaml(input: &str) -> Result<Box<dyn std::any::Any>> {
+      pub fn parse_yaml_variant(input: &str) -> Result<Box<dyn std::any::Any>> {
+        let config: FilterConfig = Self::parse_yaml(input)?;
+        match config {
+          $(FilterConfig::$variant(config) => {
+            Ok(Box::new(config))
+          })*
+        }
+      }
+
+      #[cfg(test)]
+      pub fn parse_yaml(input: &str) -> Result<Self, ConfigError> {
         #[derive(Deserialize)]
         struct Dummy {
           #[serde(flatten)]
           config: FilterConfig
         }
 
-        use crate::util::ConfigError;
-        let config: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
-        match config.config {
-          $(FilterConfig::$variant(config) => {
-            Ok(Box::new(config))
-          })*
+        let dummy: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
+        Ok(dummy.config)
+      }
+
+      pub fn parse_yaml_value(key: &str, value: serde_yaml::Value) -> Result<Self, ConfigError> {
+        #[derive(Deserialize)]
+        struct Dummy {
+          #[serde(flatten)]
+          config: FilterConfig
         }
+
+        use serde_yaml::{Value, Mapping, value::{Tag, TaggedValue}};
+        let tag = Tag::new(key);
+        let key = Value::String(key.to_string());
+        let mut mapping = Mapping::new();
+        mapping.insert(key, value);
+        let yaml_value = Value::Tagged(Box::new(TaggedValue {
+          tag,
+          value: Value::Mapping(mapping),
+        }));
+
+        let dummy: Dummy = serde_yaml::from_value(yaml_value).map_err(ConfigError::from)?;
+        Ok(dummy.config)
       }
 
       pub async fn build(self) -> Result<BoxedFilter, ConfigError> {
@@ -135,6 +165,13 @@ macro_rules! define_filters {
       pub fn name(&self) -> &'static str {
         match self {
           $(FilterConfig::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*
+        }
+      }
+
+      pub fn is_valid_key(name: &str) -> bool {
+        match name {
+          $(paste::paste! {stringify!([<$variant:snake>])} => true,)*
+          _ => false,
         }
       }
 
