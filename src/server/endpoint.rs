@@ -40,6 +40,19 @@ pub struct EndpointConfig {
 }
 
 impl EndpointConfig {
+  pub fn default_on_the_fly(path: &str) -> Self {
+    Self {
+      path: path.to_string(),
+      note: Some("Default On-the-fly filter endpoint".to_string()),
+      config: EndpointServiceConfig {
+        source: None,
+        filters: FilterPipelineConfig::default(),
+        on_the_fly_filters: true,
+        client: None,
+      },
+    }
+  }
+
   pub fn path_sans_slash(&self) -> &str {
     self.path.strip_prefix('/').unwrap_or(&self.path)
   }
