@@ -1,4 +1,5 @@
 mod convert;
+mod find_magnet;
 mod full_text;
 mod highlight;
 mod html;
