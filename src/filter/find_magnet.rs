@@ -2,6 +2,7 @@ use regex::Regex;
 use rss::Enclosure;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 use crate::{
   feed::{Feed, Post},
@@ -66,11 +67,12 @@ impl FeedFilter for FindMagnet {
 
 lazy_static::lazy_static! {
   static ref MAGNET_LINK_REGEX: Regex = Regex::new(
-    r"(?i)\b(?P<full>magnet:\?xt=urn:btih:[a-fA-F0-9]{40}(&\w+=[^\s]+)*)\b"
+    // btih: bt info hash v1; btmh: bt info hash v2
+    r"\b(?<full>magnet:\?xt=urn:bt(ih:[a-fA-F0-9]{40}|mh:[a-fA-F0-9]{68})(&[\w.]+=[^\s]+)*)\b"
   )
     .unwrap();
   static ref INFO_HASH_REGEX: Regex =
-    Regex::new(r"\b(?i)(?P<info_hash>[a-fA-F0-9]{40})\b").unwrap();
+    Regex::new(r"\b(?<info_hash>[a-fA-F0-9]{40}|[a-fA-F0-9]{68})\b").unwrap();
 }
 
 fn existing_magnet_link(post: &Post) -> Option<&str> {
@@ -128,13 +130,62 @@ fn find_magnet_links(text: &str, config: &FindMagnetConfig) -> Vec<String> {
     .into_iter()
     .map(|m| {
       if config.info_hash {
-        format!(
-          "magnet:?xt=urn:btih:{}",
-          m.name("info_hash").unwrap().as_str()
-        )
+        let info_hash = m.name("info_hash").unwrap().as_str();
+        if info_hash.len() == 40 {
+          format!("magnet:?xt=urn:btih:{}", info_hash)
+        } else if info_hash.len() == 68 {
+          format!("magnet:?xt=urn:btmh:{}", info_hash)
+        } else {
+          warn!("Bad length for info hash: {}", info_hash);
+          format!("magnet:?xt=urn:btih:{}", info_hash)
+        }
       } else {
         m.name("full").unwrap().as_str().to_string()
       }
     })
     .collect()
+}
+
+#[cfg(test)]
+mod test {
+  #[test]
+  fn test_find_magnet_links() {
+    let text = "HELLO magnet:?xt=urn:btih:1234567890ABCDEF1234567890ABCDEF12345678&dn=hello+world WORLD";
+    let links = super::find_magnet_links(
+      text,
+      &super::FindMagnetConfig {
+        info_hash: false,
+        override_existing: false,
+      },
+    );
+    assert_eq!(
+      links,
+      vec![
+        "magnet:?xt=urn:btih:1234567890ABCDEF1234567890ABCDEF12345678&dn=hello+world"
+      ]
+    );
+
+    let text = "HELLO 1234567890ABCDEF1234567890ABCDEF12345678 WORLD";
+    let links = super::find_magnet_links(
+      text,
+      &super::FindMagnetConfig {
+        info_hash: true,
+        override_existing: false,
+      },
+    );
+    assert_eq!(
+      links,
+      vec!["magnet:?xt=urn:btih:1234567890ABCDEF1234567890ABCDEF12345678"]
+    );
+
+    let text = "HELLO 1234567890ABCDEF1234567890ABCDEF12345678 WORLD";
+    let links = super::find_magnet_links(
+      text,
+      &super::FindMagnetConfig {
+        info_hash: false,
+        override_existing: false,
+      },
+    );
+    assert!(links.is_empty());
+  }
 }
