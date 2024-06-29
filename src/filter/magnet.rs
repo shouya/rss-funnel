@@ -17,7 +17,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 /// Find magnet link discovered in the body of entries and save it in
 /// the enclosure (RSS)/link (Atom). The resulting feed can be used in
 /// a torrent client.
-pub struct FindMagnetConfig {
+pub struct MagnetConfig {
   /// Match any `[a-fA-F0-9]{40}` as the info hash.
   #[serde(default)]
   info_hash: bool,
@@ -26,21 +26,21 @@ pub struct FindMagnetConfig {
   override_existing: bool,
 }
 
-pub struct FindMagnet {
-  config: FindMagnetConfig,
+pub struct Magnet {
+  config: MagnetConfig,
 }
 
 #[async_trait::async_trait]
-impl FeedFilterConfig for FindMagnetConfig {
-  type Filter = FindMagnet;
+impl FeedFilterConfig for MagnetConfig {
+  type Filter = Magnet;
 
   async fn build(self) -> Result<Self::Filter, ConfigError> {
-    Ok(FindMagnet { config: self })
+    Ok(Magnet { config: self })
   }
 }
 
 #[async_trait::async_trait]
-impl FeedFilter for FindMagnet {
+impl FeedFilter for Magnet {
   async fn run(
     &self,
     _ctx: &mut FilterContext,
@@ -117,7 +117,7 @@ fn set_magnet_link(post: &mut Post, link: String, override_: bool) {
   }
 }
 
-fn find_magnet_links(text: &str, config: &FindMagnetConfig) -> Vec<String> {
+fn find_magnet_links(text: &str, config: &MagnetConfig) -> Vec<String> {
   let regex = if config.info_hash {
     &*INFO_HASH_REGEX
   } else {
@@ -153,7 +153,7 @@ mod test {
     let text = "HELLO magnet:?xt=urn:btih:1234567890ABCDEF1234567890ABCDEF12345678&dn=hello+world WORLD";
     let links = super::find_magnet_links(
       text,
-      &super::FindMagnetConfig {
+      &super::MagnetConfig {
         info_hash: false,
         override_existing: false,
       },
@@ -168,7 +168,7 @@ mod test {
     let text = "HELLO 1234567890ABCDEF1234567890ABCDEF12345678 WORLD";
     let links = super::find_magnet_links(
       text,
-      &super::FindMagnetConfig {
+      &super::MagnetConfig {
         info_hash: true,
         override_existing: false,
       },
@@ -181,7 +181,7 @@ mod test {
     let text = "HELLO 1234567890ABCDEF1234567890ABCDEF12345678 WORLD";
     let links = super::find_magnet_links(
       text,
-      &super::FindMagnetConfig {
+      &super::MagnetConfig {
         info_hash: false,
         override_existing: false,
       },
