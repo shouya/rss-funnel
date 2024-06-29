@@ -4,6 +4,7 @@ mod highlight;
 mod html;
 mod js;
 mod limit;
+mod magnet;
 mod merge;
 mod note;
 mod sanitize;
@@ -227,4 +228,5 @@ define_filters!(
   Note => note::NoteFilterConfig, "Add non-functional comment";
   ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
   Limit => limit::LimitConfig, "Limit the number of posts";
+  Magnet => magnet::MagnetConfig, "Find magnet links in posts";
 );
