@@ -1,6 +1,7 @@
 mod auth;
 mod endpoint;
 mod feed_service;
+mod image_proxy;
 #[cfg(feature = "inspector-ui")]
 mod inspector;
 mod watcher;
@@ -130,6 +131,7 @@ impl ServerConfig {
 
     app = app
       .route("/health", get(|| async { "ok" }))
+      .get("/_image", get(image_proxy::handler))
       .route("/:endpoint", get(FeedService::handler))
       .layer(Extension(feed_service))
       .fallback(get(|| async {
