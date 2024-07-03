@@ -5,6 +5,15 @@ use url::Url;
 pub const USER_AGENT: &str =
   concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
+pub fn is_env_set(name: &str) -> bool {
+  let Ok(mut val) = std::env::var(name) else {
+    return false;
+  };
+
+  val.make_ascii_lowercase();
+  matches!(val.as_str(), "1" | "t" | "true" | "y" | "yes")
+}
+
 // pub type DateTime = time::OffsetDateTime;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

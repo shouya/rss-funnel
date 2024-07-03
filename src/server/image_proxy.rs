@@ -14,6 +14,10 @@ use url::Url;
 use crate::util;
 
 pub fn router() -> Router {
+  if !util::is_env_set("RSS_FUNNEL_IMAGE_PROXY") {
+    return Router::new();
+  }
+
   use tower_http::cors::AllowOrigin;
   let cors = CorsLayer::new()
     .allow_origin(AllowOrigin::any())
