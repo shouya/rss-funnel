@@ -1,10 +1,81 @@
-use axum::{body::Body, extract::Query, response::IntoResponse};
+use std::sync::Arc;
+
+use axum::{
+  body::Body, extract::Query, response::IntoResponse, Extension, Router,
+};
 use http::HeaderValue;
 use serde::Deserialize;
 use thiserror::Error;
+use tokio::sync::RwLock;
 use url::Url;
 
 use crate::util;
+
+pub fn router() -> Router {
+  Router::new()
+    .route("/_proxy", axum::routing::get(handler))
+    .layer(Extension(CachedClient::default()))
+}
+
+#[derive(Default, Clone)]
+struct CachedClient {
+  inner: Arc<RwLock<ClientInner>>,
+}
+
+impl CachedClient {
+  async fn get(&self, config: &Config) -> reqwest::Client {
+    if let Some(client) = self.inner.read().await.try_get(config).cloned() {
+      return client;
+    }
+
+    let mut inner = self.inner.write().await;
+    inner.update_and_get(config).clone()
+  }
+}
+
+struct ClientInner {
+  proxy: Option<String>,
+  client: reqwest::Client,
+}
+
+impl Default for ClientInner {
+  fn default() -> Self {
+    Self {
+      proxy: None,
+      client: reqwest::Client::new(),
+    }
+  }
+}
+
+impl ClientInner {
+  fn from_config(config: &Config) -> Self {
+    let mut client = reqwest::Client::builder();
+    if let Some(proxy) = &config.proxy {
+      client = client.proxy(reqwest::Proxy::all(proxy).unwrap());
+    }
+    Self {
+      proxy: config.proxy.clone(),
+      client: client.build().unwrap(),
+    }
+  }
+
+  fn try_get(&self, config: &Config) -> Option<&reqwest::Client> {
+    if config.proxy == self.proxy {
+      return Some(&self.client);
+    }
+
+    None
+  }
+
+  fn update_and_get(&mut self, config: &Config) -> &reqwest::Client {
+    if config.proxy == self.proxy {
+      return &self.client;
+    }
+
+    *self = Self::from_config(config);
+    &self.client
+  }
+}
 
 #[derive(Default, Debug, Deserialize, PartialEq, Eq)]
 struct ProxyQuery {
@@ -20,8 +91,10 @@ enum Error {
   InvalidRefererDomain(Url),
   #[error("HTTP error: {0}")]
   Reqwest(#[from] reqwest::Error),
-  #[error("Header contains invalid bytes: {header}: {value:?}")]
-  HeaderContainsInvalidBytes { header: String, value: HeaderValue },
+  #[error("Referer header contains invalid bytes: {value:?}")]
+  RefererContainsInvalidBytes { value: HeaderValue },
+  #[error("User-Agent header contains invalid bytes: {value:?}")]
+  UserAgentContainsInvalidBytes { value: HeaderValue },
   #[error("URL parse error: {0}")]
   UrlParse(#[from] url::ParseError),
 }
@@ -38,11 +111,14 @@ impl IntoResponse for Error {
 type Result<T> = std::result::Result<T, Error>;
 
 pub async fn handler(
+  Extension(client): Extension<CachedClient>,
   Query(ProxyQuery { image_url, config }): Query<ProxyQuery>,
   client_req: http::Request<Body>,
 ) -> Result<impl IntoResponse> {
+  let client = client.get(&config);
   let mut client = reqwest::Client::builder();
-  if let Some(proxy) = q.config.proxy {
+  // TODO: potential security issue
+  if let Some(proxy) = config.proxy {
     client = client.proxy(reqwest::Proxy::all(proxy).unwrap());
   }
   let client = client.build()?;
@@ -50,7 +126,7 @@ pub async fn handler(
   let mut proxy_req = client.get(&image_url);
 
   let user_agent = config.user_agent.unwrap_or_default();
-  let user_agent = user_agent.calc_value(&client)?;
+  let user_agent = user_agent.calc_value(&client_req)?;
   if let Some(user_agent) = user_agent {
     proxy_req.header("user-agent", user_agent);
   }
@@ -66,6 +142,8 @@ pub async fn handler(
     .header("content-type", res.headers().get("content-type").unwrap())
     .body(res.bytes().await?)
     .unwrap();
+
+  res
 }
 
 #[derive(Default, Debug, Deserialize, PartialEq, Eq)]
@@ -147,7 +225,7 @@ impl UserAgent {
 #[derive(Default, Debug, Deserialize, PartialEq, Eq)]
 struct Config {
   referer: Option<Referer>,
-  user_agent: Option<String>,
+  user_agent: Option<UserAgent>,
   proxy: Option<String>,
 }
 
