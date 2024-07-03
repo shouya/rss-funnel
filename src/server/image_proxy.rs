@@ -1,6 +1,8 @@
 use axum::{body::Body, extract::Query, response::IntoResponse};
+use http::HeaderValue;
 use serde::Deserialize;
 use thiserror::Error;
+use url::Url;
 
 use crate::util;
 
@@ -14,8 +16,14 @@ struct ProxyQuery {
 
 #[derive(Error, Debug)]
 enum Error {
+  #[error("Invalid referer domain: {0}")]
+  InvalidRefererDomain(Url),
   #[error("HTTP error: {0}")]
   Reqwest(#[from] reqwest::Error),
+  #[error("Header contains invalid bytes: {header}: {value:?}")]
+  HeaderContainsInvalidBytes { header: String, value: HeaderValue },
+  #[error("URL parse error: {0}")]
+  UrlParse(#[from] url::ParseError),
 }
 
 impl IntoResponse for Error {
@@ -84,7 +92,9 @@ impl Referer {
       Self::ImageUrl => Ok(Some(url.to_string())),
       Self::ImageUrlDomain => {
         let url = url::Url::parse(url)?;
-        let domain = url.domain()?;
+        let domain = url
+          .domain()
+          .ok_or_else(|| Error::InvalidRefererDomain(url))?;
         Ok(Some(format!("{}://{}", url.scheme(), domain)))
       }
       Self::Transparent => {
@@ -94,7 +104,10 @@ impl Referer {
         Ok(Some(referer.to_str()?.to_string()))
       }
       Self::TransparentDomain => {
-        let referer = req.headers().get("referer")?.to_str()?;
+        let Some(referer) = req.headers().get("referer") else {
+          return Ok(None);
+        };
+        let referer = referer.to_str()?;
         let url = url::Url::parse(referer)?;
         let domain = url.domain()?;
         Ok(Some(format!("{}://{}", url.scheme(), domain)))
