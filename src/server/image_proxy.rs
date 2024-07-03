@@ -7,13 +7,21 @@ use http::HeaderValue;
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::RwLock;
+use tower_http::cors::CorsLayer;
+use tracing::warn;
 use url::Url;
 
 use crate::util;
 
 pub fn router() -> Router {
+  use tower_http::cors::AllowOrigin;
+  let cors = CorsLayer::new()
+    .allow_origin(AllowOrigin::any())
+    .allow_methods(vec![http::Method::GET]);
+
   Router::new()
-    .route("/_proxy", axum::routing::get(handler))
+    .route("/", axum::routing::get(handler))
+    .layer(cors)
     .layer(Extension(CachedClient::default()))
 }
 
@@ -86,21 +94,22 @@ struct ProxyQuery {
 }
 
 #[derive(Error, Debug)]
-enum Error {
+pub enum Error {
   #[error("Invalid referer domain: {0}")]
   InvalidRefererDomain(Url),
   #[error("HTTP error: {0}")]
   Reqwest(#[from] reqwest::Error),
-  #[error("Referer header contains invalid bytes: {value:?}")]
-  RefererContainsInvalidBytes { value: HeaderValue },
-  #[error("User-Agent header contains invalid bytes: {value:?}")]
-  UserAgentContainsInvalidBytes { value: HeaderValue },
+  #[error("Referer header contains invalid bytes: {0:?}")]
+  RefererContainsInvalidBytes(HeaderValue),
+  #[error("User-Agent header contains invalid bytes: {0:?}")]
+  UserAgentContainsInvalidBytes(HeaderValue),
   #[error("URL parse error: {0}")]
   UrlParse(#[from] url::ParseError),
 }
 
 impl IntoResponse for Error {
   fn into_response(self) -> http::Response<Body> {
+    warn!("{:?}", &self);
     http::Response::builder()
       .status(http::StatusCode::INTERNAL_SERVER_ERROR)
       .body(Body::from(self.to_string()))
@@ -110,40 +119,38 @@ impl IntoResponse for Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-pub async fn handler(
+async fn handler(
   Extension(client): Extension<CachedClient>,
   Query(ProxyQuery { image_url, config }): Query<ProxyQuery>,
   client_req: http::Request<Body>,
 ) -> Result<impl IntoResponse> {
-  let client = client.get(&config);
-  let mut client = reqwest::Client::builder();
-  // TODO: potential security issue
-  if let Some(proxy) = config.proxy {
-    client = client.proxy(reqwest::Proxy::all(proxy).unwrap());
-  }
-  let client = client.build()?;
-
+  let client = client.get(&config).await;
   let mut proxy_req = client.get(&image_url);
 
   let user_agent = config.user_agent.unwrap_or_default();
   let user_agent = user_agent.calc_value(&client_req)?;
   if let Some(user_agent) = user_agent {
-    proxy_req.header("user-agent", user_agent);
+    proxy_req = proxy_req.header("user-agent", user_agent);
   }
   let referer = config.referer.unwrap_or_default();
   let referer = referer.calc_value(&image_url, &client_req)?;
   if let Some(referer) = referer {
-    proxy_req.header("referer", referer);
+    proxy_req = proxy_req.header("referer", referer);
   }
 
   let res = proxy_req.send().await?;
-  let mut res = http::Response::builder()
-    .status(res.status())
-    .header("content-type", res.headers().get("content-type").unwrap())
-    .body(res.bytes().await?)
-    .unwrap();
+  let res: http::Response<_> = res.into();
+  let (mut parts, mut body) = res.into_parts();
 
-  res
+  if !parts.status.is_success() {
+    // in case body is a http page that may attempt to load external resources.
+    body = reqwest::Body::from("");
+    parts.headers.insert("content-length", "0".parse().unwrap());
+  }
+
+  let res = http::Response::from_parts(parts, body);
+
+  Ok(res)
 }
 
 #[derive(Default, Debug, Deserialize, PartialEq, Eq)]
@@ -172,22 +179,30 @@ impl Referer {
         let url = url::Url::parse(url)?;
         let domain = url
           .domain()
-          .ok_or_else(|| Error::InvalidRefererDomain(url))?;
+          .ok_or_else(|| Error::InvalidRefererDomain(url.clone()))?;
         Ok(Some(format!("{}://{}", url.scheme(), domain)))
       }
       Self::Transparent => {
         let Some(referer) = req.headers().get("referer") else {
           return Ok(None);
         };
-        Ok(Some(referer.to_str()?.to_string()))
+        let referer = referer
+          .to_str()
+          .map_err(|_| Error::RefererContainsInvalidBytes(referer.clone()))?;
+
+        Ok(Some(referer.to_string()))
       }
       Self::TransparentDomain => {
         let Some(referer) = req.headers().get("referer") else {
           return Ok(None);
         };
-        let referer = referer.to_str()?;
+        let referer = referer
+          .to_str()
+          .map_err(|_| Error::RefererContainsInvalidBytes(referer.clone()))?;
         let url = url::Url::parse(referer)?;
-        let domain = url.domain()?;
+        let domain = url
+          .domain()
+          .ok_or_else(|| Error::InvalidRefererDomain(url.clone()))?;
         Ok(Some(format!("{}://{}", url.scheme(), domain)))
       }
       Self::Fixed(s) => Ok(Some(s.clone())),
@@ -214,7 +229,10 @@ impl UserAgent {
         let Some(user_agent) = req.headers().get("user-agent") else {
           return Ok(None);
         };
-        Ok(Some(user_agent.to_str()?.to_string()))
+        let user_agent = user_agent.to_str().map_err(|_| {
+          Error::UserAgentContainsInvalidBytes(user_agent.clone())
+        })?;
+        Ok(Some(user_agent.to_string()))
       }
       Self::RssFunnel => Ok(Some(util::USER_AGENT.to_string())),
       Self::Fixed(s) => Ok(Some(s.clone())),

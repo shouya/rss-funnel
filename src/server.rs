@@ -131,7 +131,7 @@ impl ServerConfig {
 
     app = app
       .route("/health", get(|| async { "ok" }))
-      .get("/_image", get(image_proxy::handler))
+      .nest("/_image", image_proxy::router())
       .route("/:endpoint", get(FeedService::handler))
       .layer(Extension(feed_service))
       .fallback(get(|| async {
