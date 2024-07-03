@@ -2,6 +2,7 @@ mod convert;
 mod full_text;
 mod highlight;
 mod html;
+mod image_proxy;
 mod js;
 mod limit;
 mod magnet;

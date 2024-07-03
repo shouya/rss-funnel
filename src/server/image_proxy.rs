@@ -4,7 +4,7 @@ use axum::{
   body::Body, extract::Query, response::IntoResponse, Extension, Router,
 };
 use http::HeaderValue;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
@@ -157,11 +157,11 @@ async fn handler(
   Ok(res)
 }
 
-#[derive(Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum Referer {
-  #[default]
   None,
+  #[default]
   ImageUrl,
   ImageUrlDomain,
   Transparent,
@@ -214,7 +214,7 @@ impl Referer {
   }
 }
 
-#[derive(Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum UserAgent {
   None,
@@ -245,10 +245,44 @@ impl UserAgent {
 }
 
 #[derive(Default, Debug, Deserialize, PartialEq, Eq)]
-struct Config {
+pub struct Config {
   referer: Option<Referer>,
   user_agent: Option<UserAgent>,
   proxy: Option<String>,
+}
+
+impl Config {
+  fn to_query(self, image_url: &str) -> String {
+    let mut params = vec![];
+    if let Some(referer) = self.referer {
+      let referer = match &referer {
+        Referer::None => "none",
+        Referer::ImageUrl => "image_url",
+        Referer::ImageUrlDomain => "image_url_domain",
+        Referer::Transparent => "transparent",
+        Referer::TransparentDomain => "transparent_domain",
+        Referer::Fixed(s) => &s,
+      };
+      params.push(format!("referer={referer}"));
+    }
+
+    if let Some(user_agent) = self.user_agent {
+      let user_agent = match &user_agent {
+        UserAgent::None => "none",
+        UserAgent::Transparent => "transparent",
+        UserAgent::RssFunnel => "rss_funnel",
+        UserAgent::Fixed(s) => &s,
+      };
+      params.push(format!("user_agent={user_agent}"));
+    }
+
+    if let Some(proxy) = self.proxy {
+      params.push(format!("proxy={proxy}"));
+    }
+
+    params.push(format!("url={image_url}"));
+    params.join("&")
+  }
 }
 
 #[cfg(test)]

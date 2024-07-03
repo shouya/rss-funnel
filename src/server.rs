@@ -1,7 +1,7 @@
 mod auth;
 mod endpoint;
 mod feed_service;
-mod image_proxy;
+pub mod image_proxy;
 #[cfg(feature = "inspector-ui")]
 mod inspector;
 mod watcher;
