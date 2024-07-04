@@ -252,31 +252,31 @@ pub struct Config {
 }
 
 impl Config {
-  fn to_query(self, image_url: &str) -> String {
+  pub fn to_query(&self, image_url: &str) -> String {
     let mut params = vec![];
-    if let Some(referer) = self.referer {
-      let referer = match &referer {
+    if let Some(referer) = &self.referer {
+      let referer = match referer {
         Referer::None => "none",
         Referer::ImageUrl => "image_url",
         Referer::ImageUrlDomain => "image_url_domain",
         Referer::Transparent => "transparent",
         Referer::TransparentDomain => "transparent_domain",
-        Referer::Fixed(s) => &s,
+        Referer::Fixed(s) => s,
       };
       params.push(format!("referer={referer}"));
     }
 
-    if let Some(user_agent) = self.user_agent {
-      let user_agent = match &user_agent {
+    if let Some(user_agent) = &self.user_agent {
+      let user_agent = match user_agent {
         UserAgent::None => "none",
         UserAgent::Transparent => "transparent",
         UserAgent::RssFunnel => "rss_funnel",
-        UserAgent::Fixed(s) => &s,
+        UserAgent::Fixed(s) => s,
       };
       params.push(format!("user_agent={user_agent}"));
     }
 
-    if let Some(proxy) = self.proxy {
+    if let Some(proxy) = &self.proxy {
       params.push(format!("proxy={proxy}"));
     }
 
