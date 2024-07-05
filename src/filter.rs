@@ -244,4 +244,5 @@ define_filters!(
   ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
   Limit => limit::LimitConfig, "Limit the number of posts";
   Magnet => magnet::MagnetConfig, "Find magnet links in posts";
+  ImageProxy => image_proxy::Config, "Find magnet links in posts";
 );

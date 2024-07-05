@@ -4,11 +4,12 @@ use axum::{
   body::Body, extract::Query, response::IntoResponse, Extension, Router,
 };
 use http::HeaderValue;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
-use tracing::warn;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::util;
@@ -18,13 +19,15 @@ pub fn router() -> Router {
     return Router::new();
   }
 
+  info!("loaded image proxy: /_image");
+
   use tower_http::cors::AllowOrigin;
   let cors = CorsLayer::new()
     .allow_origin(AllowOrigin::any())
     .allow_methods(vec![http::Method::GET]);
 
   Router::new()
-    .route("/", axum::routing::get(handler))
+    .route("/_image", axum::routing::get(handler))
     .layer(cors)
     .layer(Extension(CachedClient::default()))
 }
@@ -157,7 +160,9 @@ async fn handler(
   Ok(res)
 }
 
-#[derive(Default, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(
+  Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 enum Referer {
   None,
@@ -168,6 +173,67 @@ enum Referer {
   TransparentDomain,
   #[serde(untagged)]
   Fixed(String),
+}
+
+// Variant level #[serde(untagged)] is not supported by schemars, see
+// https://github.com/GREsau/schemars/issues/222.
+impl JsonSchema for Referer {
+  fn schema_name() -> String {
+    "referer".to_string()
+  }
+
+  fn is_referenceable() -> bool {
+    false
+  }
+
+  fn json_schema(
+    _gen: &mut schemars::gen::SchemaGenerator,
+  ) -> schemars::schema::Schema {
+    use schemars::schema::{
+      InstanceType, Metadata, SchemaObject, SingleOrVec, SubschemaValidation,
+    };
+
+    let metadata = Metadata {
+      title: Some("referer".to_string()),
+      description: Some("Indicate what goes in the referer header when requesting the image url".to_string()),
+      default: Some("image_url".into()),
+      ..Default::default()
+    };
+
+    let subschemas = SubschemaValidation {
+      any_of: Some(vec![
+        SchemaObject {
+          instance_type: Some(SingleOrVec::Single(Box::new(
+            InstanceType::String,
+          ))),
+          enum_values: Some(vec![
+            "none".into(),
+            "image_url".into(),
+            "image_url_domain".into(),
+            "transparent".into(),
+            "transparent_domain".into(),
+          ]),
+          ..Default::default()
+        }
+        .into(),
+        SchemaObject {
+          instance_type: Some(SingleOrVec::Single(Box::new(
+            InstanceType::String,
+          ))),
+          ..Default::default()
+        }
+        .into(),
+      ]),
+      ..Default::default()
+    };
+
+    SchemaObject {
+      metadata: Some(Box::new(metadata)),
+      subschemas: Some(Box::new(subschemas)),
+      ..Default::default()
+    }
+    .into()
+  }
 }
 
 impl Referer {
@@ -214,7 +280,9 @@ impl Referer {
   }
 }
 
-#[derive(Default, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(
+  Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 enum UserAgent {
   None,
@@ -244,7 +312,66 @@ impl UserAgent {
   }
 }
 
-#[derive(Default, Debug, Deserialize, PartialEq, Eq)]
+impl JsonSchema for UserAgent {
+  fn schema_name() -> String {
+    "user_agent".to_string()
+  }
+
+  fn is_referenceable() -> bool {
+    false
+  }
+
+  fn json_schema(
+    _gen: &mut schemars::gen::SchemaGenerator,
+  ) -> schemars::schema::Schema {
+    use schemars::schema::{
+      InstanceType, Metadata, SchemaObject, SingleOrVec, SubschemaValidation,
+    };
+
+    let metadata = Metadata {
+      title: Some("user_agent".to_string()),
+      description: Some("Indicate what goes in the user-agent header when requesting the image url".to_string()),
+      default: Some("transparent".into()),
+      ..Default::default()
+    };
+
+    let subschemas = SubschemaValidation {
+      any_of: Some(vec![
+        SchemaObject {
+          instance_type: Some(SingleOrVec::Single(Box::new(
+            InstanceType::String,
+          ))),
+          enum_values: Some(vec![
+            "none".into(),
+            "transparent".into(),
+            "rss_funnel".into(),
+          ]),
+          ..Default::default()
+        }
+        .into(),
+        SchemaObject {
+          instance_type: Some(SingleOrVec::Single(Box::new(
+            InstanceType::String,
+          ))),
+          ..Default::default()
+        }
+        .into(),
+      ]),
+      ..Default::default()
+    };
+
+    SchemaObject {
+      metadata: Some(Box::new(metadata)),
+      subschemas: Some(Box::new(subschemas)),
+      ..Default::default()
+    }
+    .into()
+  }
+}
+
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default,
+)]
 pub struct Config {
   referer: Option<Referer>,
   user_agent: Option<UserAgent>,
