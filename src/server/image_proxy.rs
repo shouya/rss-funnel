@@ -388,7 +388,7 @@ impl Config {
         Referer::ImageUrlDomain => "image_url_domain",
         Referer::Transparent => "transparent",
         Referer::TransparentDomain => "transparent_domain",
-        Referer::Fixed(s) => s,
+        Referer::Fixed(s) => &urlencoding::encode(s),
       };
       params.push(format!("referer={referer}"));
     }
@@ -398,15 +398,17 @@ impl Config {
         UserAgent::None => "none",
         UserAgent::Transparent => "transparent",
         UserAgent::RssFunnel => "rss_funnel",
-        UserAgent::Fixed(s) => s,
+        UserAgent::Fixed(s) => &urlencoding::encode(s),
       };
       params.push(format!("user_agent={user_agent}"));
     }
 
     if let Some(proxy) = &self.proxy {
+      let proxy = &urlencoding::encode(proxy);
       params.push(format!("proxy={proxy}"));
     }
 
+    let image_url = &urlencoding::encode(image_url);
     params.push(format!("url={image_url}"));
     params.join("&")
   }
