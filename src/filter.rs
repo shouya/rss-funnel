@@ -57,7 +57,7 @@ impl FilterContext {
 
     warn!(
       "Base URL not inferred, please refer to
-  https://github.com/shouya/rss-funnel/wiki/App-Base-Inference. Using demo instance as fallback."
+  https://github.com/shouya/rss-funnel/wiki/App-base. Using demo instance as fallback."
     );
 
     &crate::util::DEMO_INSTANCE
