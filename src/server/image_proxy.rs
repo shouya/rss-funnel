@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 use axum::{
   body::Body, extract::Query, response::IntoResponse, Extension, Router,
@@ -13,6 +13,10 @@ use tracing::{info, warn};
 use url::Url;
 
 use crate::util;
+
+lazy_static::lazy_static! {
+  static ref SIGN_KEY: Box<[u8]> = init_sign_key();
+}
 
 pub fn router() -> Router {
   if !util::is_env_set("RSS_FUNNEL_IMAGE_PROXY") {
@@ -100,6 +104,12 @@ struct ProxyQuery {
   config: Config,
 }
 
+#[derive(Deserialize, PartialEq, Eq)]
+struct SignatureQuery {
+  #[serde(default)]
+  sig: Option<String>,
+}
+
 #[derive(Error, Debug)]
 pub enum Error {
   #[error("Invalid referer domain: {0}")]
@@ -112,6 +122,10 @@ pub enum Error {
   UserAgentContainsInvalidBytes(HeaderValue),
   #[error("URL parse error: {0}")]
   UrlParse(#[from] url::ParseError),
+  #[error("Missing signature")]
+  MissingSignature,
+  #[error("Bad signature")]
+  BadSignature,
 }
 
 impl IntoResponse for Error {
@@ -129,8 +143,15 @@ type Result<T> = std::result::Result<T, Error>;
 async fn handler(
   Extension(client): Extension<CachedClient>,
   Query(ProxyQuery { image_url, config }): Query<ProxyQuery>,
+  Query(SignatureQuery { sig }): Query<SignatureQuery>,
   client_req: http::Request<Body>,
 ) -> Result<impl IntoResponse> {
+  let sig = sig.ok_or(Error::MissingSignature)?;
+  let expected_sig = signature(&config, &image_url, &SIGN_KEY);
+  if sig != expected_sig {
+    return Err(Error::BadSignature);
+  }
+
   let client = client.get(&config).await;
   let mut proxy_req = client.get(&image_url);
 
@@ -410,8 +431,34 @@ impl Config {
 
     let image_url = &urlencoding::encode(image_url);
     params.push(format!("url={image_url}"));
+
+    let sig = signature(self, image_url, &SIGN_KEY);
+    params.push(format!("sig={sig}"));
+
     params.join("&")
   }
+}
+
+fn init_sign_key() -> Box<[u8]> {
+  if let Ok(key) = std::env::var("RSS_FUNNEL_IMAGE_PROXY_SIGN_KEY") {
+    return key.into_bytes().into_boxed_slice();
+  }
+
+  Box::new(rand::random::<[u8; 32]>())
+}
+
+fn signature(config: &Config, url: &str, key: &[u8]) -> String {
+  let mut hasher = blake3::Hasher::new();
+  hasher.update(b"=key=");
+  hasher.update(key);
+  hasher.update(b"=config=");
+  let config_bytes =
+    serde_json::to_vec(config).expect("failed to serialize config");
+  hasher.update(&config_bytes);
+  hasher.update(b"=url=");
+  hasher.update(url.as_bytes());
+  let hash = hasher.finalize();
+  hash.to_hex().as_str()[..16].to_string()
 }
 
 #[cfg(test)]
