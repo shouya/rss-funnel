@@ -145,16 +145,6 @@ impl FeedFilterConfig for Config {
   type Filter = ImageProxy;
 
   async fn build(self) -> Result<Self::Filter, ConfigError> {
-    if !crate::util::is_env_set("RSS_FUNNEL_IMAGE_PROXY")
-      && self.settings.is_internal()
-    {
-      return Err(ConfigError::FeatureNotSupported {
-        feature: "image_proxy",
-        reason:
-          "RSS_FUNNEL_IMAGE_PROXY is not set, internal image proxy is disabled.",
-      });
-    }
-
     Ok(ImageProxy { config: self })
   }
 }

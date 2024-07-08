@@ -19,10 +19,6 @@ lazy_static::lazy_static! {
 }
 
 pub fn router() -> Router {
-  if !util::is_env_set("RSS_FUNNEL_IMAGE_PROXY") {
-    return Router::new();
-  }
-
   info!("loaded image proxy: /_image");
 
   use tower_http::cors::AllowOrigin;
