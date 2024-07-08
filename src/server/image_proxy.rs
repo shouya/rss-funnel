@@ -116,8 +116,6 @@ pub enum Error {
   InvalidRefererDomain(Url),
   #[error("HTTP error: {0}")]
   Reqwest(#[from] reqwest::Error),
-  #[error("Referer header contains invalid bytes: {0:?}")]
-  RefererContainsInvalidBytes(HeaderValue),
   #[error("User-Agent header contains invalid bytes: {0:?}")]
   UserAgentContainsInvalidBytes(HeaderValue),
   #[error("URL parse error: {0}")]
@@ -169,7 +167,7 @@ async fn handler(
     proxy_req = proxy_req.header("user-agent", user_agent);
   }
   let referer = config.referer.unwrap_or_default();
-  let referer = referer.calc_value(&image_url, &client_req)?;
+  let referer = referer.calc_value(&image_url)?;
   if let Some(referer) = referer {
     proxy_req = proxy_req.header("referer", referer);
   }
@@ -198,8 +196,6 @@ enum Referer {
   #[default]
   ImageUrl,
   ImageUrlDomain,
-  Transparent,
-  TransparentDomain,
   #[serde(untagged)]
   Fixed(String),
 }
@@ -239,8 +235,8 @@ impl JsonSchema for Referer {
             "none".into(),
             "image_url".into(),
             "image_url_domain".into(),
-            "transparent".into(),
-            "transparent_domain".into(),
+            "post_url".into(),
+            "post_url_domain".into(),
           ]),
           ..Default::default()
         }
@@ -266,39 +262,12 @@ impl JsonSchema for Referer {
 }
 
 impl Referer {
-  fn calc_value<B>(
-    &self,
-    url: &str,
-    req: &http::Request<B>,
-  ) -> Result<Option<String>> {
+  fn calc_value(&self, url: &str) -> Result<Option<String>> {
     match self {
       Self::None => Ok(None),
       Self::ImageUrl => Ok(Some(url.to_string())),
       Self::ImageUrlDomain => {
         let url = url::Url::parse(url)?;
-        let domain = url
-          .domain()
-          .ok_or_else(|| Error::InvalidRefererDomain(url.clone()))?;
-        Ok(Some(format!("{}://{}", url.scheme(), domain)))
-      }
-      Self::Transparent => {
-        let Some(referer) = req.headers().get("referer") else {
-          return Ok(None);
-        };
-        let referer = referer
-          .to_str()
-          .map_err(|_| Error::RefererContainsInvalidBytes(referer.clone()))?;
-
-        Ok(Some(referer.to_string()))
-      }
-      Self::TransparentDomain => {
-        let Some(referer) = req.headers().get("referer") else {
-          return Ok(None);
-        };
-        let referer = referer
-          .to_str()
-          .map_err(|_| Error::RefererContainsInvalidBytes(referer.clone()))?;
-        let url = url::Url::parse(referer)?;
         let domain = url
           .domain()
           .ok_or_else(|| Error::InvalidRefererDomain(url.clone()))?;
@@ -417,8 +386,6 @@ impl Config {
         Referer::None => "none",
         Referer::ImageUrl => "image_url",
         Referer::ImageUrlDomain => "image_url_domain",
-        Referer::Transparent => "transparent",
-        Referer::TransparentDomain => "transparent_domain",
         Referer::Fixed(s) => &urlencoding::encode(s),
       };
       params.push(format!("referer={referer}"));
@@ -491,11 +458,11 @@ mod test {
     assert_eq!(parsed, expected);
 
     let parsed: Config = serde_json::from_value(json!({
-      "referer": "transparent"
+      "referer": "image_url_domain"
     }))
     .unwrap();
     let expected = Config {
-      referer: Some(Referer::Transparent),
+      referer: Some(Referer::ImageUrlDomain),
       ..Default::default()
     };
     assert_eq!(parsed, expected);
