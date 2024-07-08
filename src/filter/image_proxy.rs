@@ -40,10 +40,6 @@ enum ProxySettings {
 }
 
 impl ProxySettings {
-  fn is_internal(&self) -> bool {
-    matches!(self, ProxySettings::Internal(_))
-  }
-
   fn rewrite_image_url(&self, ctx: &FilterContext, image_url: Url) -> String {
     match self {
       ProxySettings::External(settings) => {

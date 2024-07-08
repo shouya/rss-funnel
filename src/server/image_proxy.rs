@@ -12,8 +12,6 @@ use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 use url::Url;
 
-use crate::util;
-
 lazy_static::lazy_static! {
   static ref SIGN_KEY: Box<[u8]> = init_sign_key();
 }
@@ -282,7 +280,6 @@ enum UserAgent {
   None,
   #[default]
   Transparent,
-  RssFunnel,
   #[serde(untagged)]
   Fixed(String),
 }
@@ -300,7 +297,6 @@ impl UserAgent {
         })?;
         Ok(Some(user_agent.to_string()))
       }
-      Self::RssFunnel => Ok(Some(util::USER_AGENT.to_string())),
       Self::Fixed(s) => Ok(Some(s.clone())),
     }
   }
@@ -391,7 +387,6 @@ impl Config {
       let user_agent = match user_agent {
         UserAgent::None => "none",
         UserAgent::Transparent => "transparent",
-        UserAgent::RssFunnel => "rss_funnel",
         UserAgent::Fixed(s) => &urlencoding::encode(s),
       };
       params.push(format!("user_agent={user_agent}"));

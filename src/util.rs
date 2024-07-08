@@ -10,6 +10,7 @@ lazy_static::lazy_static! {
     Url::parse("https://rss-funnel-demo.fly.dev/").unwrap();
 }
 
+#[allow(unused)]
 pub fn is_env_set(name: &str) -> bool {
   let Ok(mut val) = std::env::var(name) else {
     return false;
@@ -62,12 +63,6 @@ pub enum ConfigError {
 
   #[error("Duplicate endpoint: {0}")]
   DuplicateEndpoint(String),
-
-  #[error("Feature {feature} not supported: {reason}")]
-  FeatureNotSupported {
-    feature: &'static str,
-    reason: &'static str,
-  },
 
   #[error("{0}")]
   Message(String),
