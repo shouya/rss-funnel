@@ -130,11 +130,19 @@ pub enum Error {
 
 impl IntoResponse for Error {
   fn into_response(self) -> http::Response<Body> {
+    use Error::*;
     warn!("{:?}", &self);
-    http::Response::builder()
-      .status(http::StatusCode::INTERNAL_SERVER_ERROR)
-      .body(Body::from(self.to_string()))
-      .unwrap()
+
+    match &self {
+      MissingSignature => {
+        (http::StatusCode::UNAUTHORIZED, self.to_string()).into_response()
+      }
+      BadSignature => {
+        (http::StatusCode::FORBIDDEN, self.to_string()).into_response()
+      }
+      _ => (http::StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+        .into_response(),
+    }
   }
 }
 
@@ -401,6 +409,8 @@ pub struct Config {
 
 impl Config {
   pub fn to_query(&self, image_url: &str) -> String {
+    let sig = signature(self, image_url, &SIGN_KEY);
+
     let mut params = vec![];
     if let Some(referer) = &self.referer {
       let referer = match referer {
@@ -431,8 +441,6 @@ impl Config {
 
     let image_url = &urlencoding::encode(image_url);
     params.push(format!("url={image_url}"));
-
-    let sig = signature(self, image_url, &SIGN_KEY);
     params.push(format!("sig={sig}"));
 
     params.join("&")
