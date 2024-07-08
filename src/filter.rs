@@ -2,6 +2,7 @@ mod convert;
 mod full_text;
 mod highlight;
 mod html;
+mod image_proxy;
 mod js;
 mod limit;
 mod magnet;
@@ -16,6 +17,7 @@ use std::sync::Arc;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 use url::Url;
 
 use crate::{
@@ -44,8 +46,21 @@ impl FilterContext {
     self.limit_filters
   }
 
-  pub fn base(&self) -> Option<&Url> {
+  pub fn base_opt(&self) -> Option<&Url> {
     self.base.as_ref()
+  }
+
+  pub fn base(&self) -> &Url {
+    if let Some(base) = &self.base {
+      return base;
+    }
+
+    warn!(
+      "Base URL not inferred, please refer to
+  https://github.com/shouya/rss-funnel/wiki/App-base. Using demo instance as fallback."
+    );
+
+    &crate::util::DEMO_INSTANCE
   }
 
   pub fn set_limit_filters(&mut self, limit: usize) {
@@ -229,4 +244,5 @@ define_filters!(
   ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
   Limit => limit::LimitConfig, "Limit the number of posts";
   Magnet => magnet::MagnetConfig, "Find magnet links in posts";
+  ImageProxy => image_proxy::Config, "Find magnet links in posts";
 );

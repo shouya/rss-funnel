@@ -1,6 +1,7 @@
 mod auth;
 mod endpoint;
 mod feed_service;
+pub mod image_proxy;
 #[cfg(feature = "inspector-ui")]
 mod inspector;
 mod watcher;
@@ -128,14 +129,18 @@ impl ServerConfig {
       app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
 
-    app = app
-      .route("/health", get(|| async { "ok" }))
+    let feed_service_router = Router::new()
       .route("/:endpoint", get(FeedService::handler))
-      .layer(Extension(feed_service))
       .fallback(get(|| async {
         (StatusCode::NOT_FOUND, "Endpoint not found")
       }))
       .layer(CompressionLayer::new().gzip(true));
+
+    app = app
+      .route("/health", get(|| async { "ok" }))
+      .merge(image_proxy::router())
+      .merge(feed_service_router)
+      .layer(Extension(feed_service));
 
     info!("starting server");
     let server = axum::serve(listener, app);
