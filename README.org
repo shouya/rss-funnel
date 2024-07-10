@@ -2,18 +2,18 @@
 
 /This project is in the early stage of development. Please expect bugs and frequent breaking changes./
 
-RSS Funnel is a modular RSS processing pipeline system. It can manipulate RSS/Atom sources in various ways, such as:
+RSS Funnel is a modular RSS processing pipeline system. It can manipulate RSS/Atom sources in various ways.
 
-- Fetching full content
-- Generating an RSS feed from an HTML page
-- Removing unwanted elements and text
-- Redacting or replacing text with regular expressions
-- Keeping or removing articles matching keywords or patterns
-- Highlighting keywords
-- Splitting a single RSS article into multiple articles
-- Merging multiple feeds into a single feed
-- Running JavaScript code to transform the feed or articles
-- Converting between feed formats
+- Fetch full-text content
+- Generate an RSS feed from an HTML page
+- Remove unwanted elements or texts
+- Filter articles matching keywords
+- Highlight keywords
+- Split aggregation (e.g. top 10 links of day) into individual articles
+- Combine multiple feeds into one
+- Convert between feed formats
+- Run arbitrary JavaScript transformation
+- Apply image proxy
 - [[https://github.com/shouya/rss-funnel/wiki/Filter-config][And more!]]
 
 The tool comes with a web UI for inspecting the feed and the result of each filter, all within a single statically-built binary with no external dependencies.
