@@ -53,16 +53,16 @@ impl ProxySettings {
         };
         let base = settings.base.as_str();
 
-        format!("{}{}", base, image_url)
+        format!("{base}{image_url}")
       }
       ProxySettings::Internal(proxy) => {
         let query = proxy.to_query(image_url.as_str());
         let app_base = ctx.base();
 
-        match app_base.join(&format!("{}?{}", IMAGE_PROXY_ROUTE, query)) {
+        match app_base.join(&format!("{IMAGE_PROXY_ROUTE}?{query}")) {
           Ok(url) => url.to_string(),
           Err(e) => {
-            warn!("Failed to rewrite image url: {}", e);
+            warn!("Failed to rewrite image url: {e}");
             image_url.to_string()
           }
         }
@@ -185,18 +185,7 @@ fn rewrite_html(
   };
 
   let rewrite = element!(selector, |el| {
-    let new_src = el
-      .get_attribute("src")
-      .iter()
-      .filter_map(|src| Url::parse(src).ok())
-      .filter(matches_domain)
-      .map(|url| config.settings.rewrite_image_url(ctx, url))
-      .next();
-
-    if let Some(new_src) = new_src {
-      el.set_attribute("src", &new_src)?;
-    }
-
+    rewrite_img_elem(ctx, config, &matches_domain, el);
     Ok(())
   });
 
@@ -208,4 +197,143 @@ fn rewrite_html(
     },
   )
   .ok()
+}
+
+fn rewrite_img_elem(
+  ctx: &FilterContext,
+  config: &Config,
+  matches_domain: &impl Fn(&Url) -> bool,
+  el: &mut lol_html::html_content::Element<'_, '_>,
+) {
+  lazy_static::lazy_static! {
+    static ref URL_REGEX: regex::Regex =
+      regex::Regex::new(r#"https?://[^\s]+\b"#).unwrap();
+  }
+
+  let new_src = el
+    .get_attribute("src")
+    .iter()
+    .filter_map(|src| Url::parse(src).ok())
+    .filter(matches_domain)
+    .map(|url| config.settings.rewrite_image_url(ctx, url))
+    .next();
+
+  if let Some(new_src) = new_src {
+    // safe to unwrap because we know the attribute name is valid
+    el.set_attribute("src", &new_src).unwrap();
+  }
+
+  let new_srcset = el.get_attribute("srcset").map(|srcset| {
+    let sources: Vec<&str> =
+      srcset.trim().split(',').map(|s| s.trim()).collect();
+    let mut new_sources: Vec<String> = Vec::new();
+    for source in sources {
+      let source = source.trim();
+      let split = source.split_once(' ');
+      let url = split.map(|(a, _b)| a).unwrap_or(source);
+      let url = Url::parse(url).ok().filter(matches_domain);
+      let remaining = split.map(|(_a, b)| b);
+
+      let new_url = url
+        .map(|url| config.settings.rewrite_image_url(ctx, url))
+        .map(|url| {
+          if let Some(remaining) = remaining {
+            format!("{url} {remaining}")
+          } else {
+            url
+          }
+        })
+        .unwrap_or_else(|| source.to_string());
+
+      new_sources.push(new_url);
+    }
+
+    new_sources.join(", ")
+  });
+
+  if let Some(new_srcset) = new_srcset {
+    // safe to unwrap because we know the attribute name is valid
+    el.set_attribute("srcset", &new_srcset).unwrap();
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_src_rewrite() {
+    let ctx = filter_context_fixture();
+    let config = config_fixture();
+
+    let html = r#"
+      <p><img src="http://a1.com/a.jpg"></p>
+      <img class="proxy" src="http://a2.com/a.jpg">
+      <img class="proxy" src="http://a3.com/a.jpg">
+    "#;
+
+    let expected = r#"
+      <p><img src="http://a1.com/a.jpg"></p>
+      <img class="proxy" src="http://app.com/_image?url=http%3A%2F%2Fa2.com%2Fa.jpg">
+      <img class="proxy" src="http://a3.com/a.jpg">
+    "#;
+
+    let actual = rewrite_html(&ctx, &config, html).unwrap();
+    assert_eq!(actual, expected);
+  }
+
+  #[test]
+  fn test_srcset_rewrite() {
+    let ctx = filter_context_fixture();
+    let config = config_fixture();
+
+    let html = r#"
+      <img class="proxy"
+           src="http://a1.com/a.jpg"
+           srcset="http://a1.com/a.jpg 1x,
+                   http://a2.com/a.jpg 2x,
+                   http://a3.com/a.jpg 3x">
+      <img class="proxy"
+           src="http://a1.com/a.jpg"
+           srcset="http://a1.com/a.jpg,
+                   http://a2.com/a.jpg,
+                   http://a3.com/a.jpg">
+    "#;
+    let expected = r#"
+      <img class="proxy"
+           src="http://app.com/_image?url=http%3A%2F%2Fa1.com%2Fa.jpg"
+           srcset="http://app.com/_image?url=http%3A%2F%2Fa1.com%2Fa.jpg 1x,
+                   http://app.com/_image?url=http%3A%2F%2Fa2.com%2Fa.jpg 2x,
+                   http://a3.com/a.jpg 3x">
+      <img class="proxy"
+           src="http://app.com/_image?url=http%3A%2F%2Fa1.com%2Fa.jpg"
+           srcset="http://app.com/_image?url=http%3A%2F%2Fa1.com%2Fa.jpg,
+                   http://app.com/_image?url=http%3A%2F%2Fa2.com%2Fa.jpg,
+                   http://a3.com/a.jpg">
+    "#;
+
+    let actual = rewrite_html(&ctx, &config, html).unwrap();
+    assert_eq!(squeeze_spaces(&actual), squeeze_spaces(expected));
+  }
+
+  fn filter_context_fixture() -> FilterContext {
+    let mut ctx = FilterContext::new();
+    ctx.set_base(Url::parse("http://app.com").unwrap());
+    ctx
+  }
+
+  fn config_fixture() -> Config {
+    let proxy_conf =
+      crate::server::image_proxy::Config::default().without_signature();
+
+    Config {
+      domains: Some(vec!["a1.com".to_string(), "a2.com".to_string()]),
+      selector: Some("img.proxy".to_string()),
+      settings: ProxySettings::Internal(proxy_conf),
+    }
+  }
+
+  fn squeeze_spaces(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<&str>>().join(" ")
+  }
 }

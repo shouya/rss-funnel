@@ -366,6 +366,10 @@ pub struct Config {
   referer: Option<Referer>,
   user_agent: Option<UserAgent>,
   proxy: Option<String>,
+
+  #[cfg(test)]
+  #[serde(skip, default)]
+  no_signature: bool,
 }
 
 impl Config {
@@ -399,9 +403,22 @@ impl Config {
 
     let image_url = &urlencoding::encode(image_url);
     params.push(format!("url={image_url}"));
+
+    #[cfg(test)]
+    if !self.no_signature {
+      params.push(format!("sig={sig}"));
+    }
+
+    #[cfg(not(test))]
     params.push(format!("sig={sig}"));
 
     params.join("&")
+  }
+
+  #[cfg(test)]
+  pub(crate) fn without_signature(mut self) -> Self {
+    self.no_signature = true;
+    self
   }
 }
 
