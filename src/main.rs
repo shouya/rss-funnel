@@ -15,6 +15,7 @@ mod test_utils;
 mod util;
 
 use clap::Parser;
+use tracing::info;
 
 use crate::util::Result;
 
@@ -38,10 +39,10 @@ async fn signal_handler() -> Result<()> {
 
   tokio::select! {
     _ = sigint.recv() => {
-      eprintln!("Received SIGINT");
+      info!("Received SIGINT, shutting down...");
     }
     _ = sigterm.recv() => {
-      eprintln!("Received SIGTERM");
+      info!("Received SIGTERM, shutting down...");
     }
   };
 
