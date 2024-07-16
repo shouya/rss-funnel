@@ -18,12 +18,16 @@ SOURCES := $(wildcard **/*.rs) Cargo.toml Cargo.lock
 	$(IMAGE_NAME)\:nightly \
 	push-manifest-$(VERSION) \
 	push-manifest-latest \
-	push-manifest-nightly
+	push-manifest-nightly \
+	print-version
 
 # The following rules are skipped because "The implicit rule search (see Implicit Rules) is skipped for .PHONY targets."
 # $(foreach target,$(TARGETS),$(IMAGE_NAME)\:$(VERSION)-$(target)) \
 # $(foreach target,$(TARGETS),$(IMAGE_NAME)\:latest-$(target)) \
 # $(foreach target,$(TARGETS),push-docker-$(VERSION)-$(target)) \
+
+print-version:
+	@echo $(IMAGE_NAME):$(VERSION)
 
 inspector-assets:
 	cd inspector && pnpm install && pnpm build

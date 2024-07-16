@@ -15,6 +15,7 @@ mod test_utils;
 mod util;
 
 use clap::Parser;
+use tracing::info;
 
 use crate::util::Result;
 
@@ -22,6 +23,28 @@ use crate::util::Result;
 async fn main() -> Result<()> {
   tracing_subscriber::fmt::init();
 
+  tokio::spawn(async {
+    signal_handler().await.expect("Signal handler failed");
+  });
+
   let cli = cli::Cli::parse();
   cli.run().await
+}
+
+async fn signal_handler() -> Result<()> {
+  use tokio::signal::unix::{signal, SignalKind};
+
+  let mut sigint = signal(SignalKind::interrupt())?;
+  let mut sigterm = signal(SignalKind::terminate())?;
+
+  tokio::select! {
+    _ = sigint.recv() => {
+      info!("Received SIGINT, shutting down...");
+    }
+    _ = sigterm.recv() => {
+      info!("Received SIGTERM, shutting down...");
+    }
+  };
+
+  std::process::exit(0)
 }
