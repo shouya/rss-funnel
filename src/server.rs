@@ -137,7 +137,9 @@ impl ServerConfig {
       .layer(CompressionLayer::new().gzip(true));
 
     app = app
+      // deprecated, will be removed on 0.2
       .route("/health", get(|| async { "ok" }))
+      .route("/_health", get(|| async { "ok" }))
       .merge(image_proxy::router())
       .merge(feed_service_router)
       .layer(Extension(feed_service));

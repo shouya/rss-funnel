@@ -48,8 +48,11 @@ $(IMAGE_NAME)\:latest-% $(IMAGE_NAME)\:nightly-%: $(IMAGE_NAME)\:$(VERSION)-%
 	podman tag $< $@
 
 $(IMAGE_NAME)\:$(VERSION)-%: target/%/release/$(APP_NAME)
-	echo "FROM scratch\nCOPY $< /$(APP_NAME)\nENTRYPOINT [\"/$(APP_NAME)\"]\nCMD [\"server\"]\n" | \
-		podman build -f - . --platform $(PLATFORM_$*) -t $@
+	cat Dockerfile | \
+		sed -e "s|%RELEASE_BINARY%|$<|g" | \
+		podman build -f - . \
+			--format docker \
+			--platform $(PLATFORM_$*) -t $@
 
 # building multiarch manifest requires the image to be pushed to the
 # registry first.
