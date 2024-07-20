@@ -23,9 +23,22 @@ pub struct Cli {
 enum SubCommand {
   /// Start the server
   Server(ServerConfig),
+  HealthCheck(HealthCheckConfig),
   /// Test an endpoint
   // boxed because of the clippy::large_enum_variant warning
   Test(Box<TestConfig>),
+}
+
+#[derive(Parser)]
+struct HealthCheckConfig {
+  /// The endpoint to test
+  #[clap(
+    long,
+    short,
+    default_value = "127.0.0.1:4080",
+    env = "RSS_FUNNEL_BIND"
+  )]
+  server: String,
 }
 
 #[derive(Parser)]
@@ -115,6 +128,9 @@ impl Cli {
         test_endpoint(feed_defn, &test_config).await;
         Ok(())
       }
+      SubCommand::HealthCheck(health_check_config) => {
+        health_check(health_check_config).await
+      }
     }
   }
 }
@@ -142,5 +158,29 @@ async fn test_endpoint(feed_defn: RootConfig, test_config: &TestConfig) {
 
   if !test_config.quiet {
     println!("{}", feed.serialize(true).expect("failed serializing feed"));
+  }
+}
+
+async fn health_check(health_check_config: HealthCheckConfig) -> Result<()> {
+  let mut server = health_check_config.server;
+  if !server.starts_with("http://") && !server.starts_with("https://") {
+    server = format!("http://{server}");
+  }
+
+  let url = Url::parse(&server)?.join("/_health")?;
+  match reqwest::get(url.clone()).await {
+    Ok(res) if res.status().is_success() => {
+      eprintln!("{server} is healthy");
+      Ok(())
+    }
+    Err(e) => {
+      eprintln!("failed to check health: {e}");
+      std::process::exit(1);
+    }
+    Ok(res) => {
+      let status = res.status();
+      eprintln!("{url} returned {status}");
+      std::process::exit(1);
+    }
   }
 }
