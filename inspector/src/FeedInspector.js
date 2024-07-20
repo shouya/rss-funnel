@@ -474,7 +474,7 @@ export class FeedInspector {
 
     const params = [];
     if (!this.current_endpoint.source && source)
-      params.push(`source=${source}`);
+      params.push(`source=${encodeURIComponent(source)}`);
     if (limit_posts) params.push(`limit_posts=${limit_posts}`);
     if (limit_filters) params.push(`limit_filters=${limit_filters}`);
 
