@@ -36,7 +36,7 @@ struct HealthCheckConfig {
     long,
     short,
     default_value = "127.0.0.1:4080",
-    env = "RSS_FUNNEL_BIND"
+    env = "RSS_FUNNEL_HEALTH_CHECK_SERVER"
   )]
   server: String,
 }
