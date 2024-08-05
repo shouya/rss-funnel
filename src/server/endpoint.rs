@@ -11,7 +11,6 @@ use axum::response::IntoResponse;
 use axum::RequestExt;
 use http::header::HOST;
 use http::request::Parts;
-use http::StatusCode;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
