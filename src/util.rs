@@ -129,12 +129,15 @@ pub enum Error {
 impl Error {
   pub fn as_response(self) -> (StatusCode, String) {
     match self {
+      Error::FetchSource(e) => {
+        let (status, body) = e.as_response();
+        (status, format!("Fetch source error: {body}"))
+      }
       Error::HttpStatus(status, url) => {
-        let body = format!("{}: {}", status, url);
+        let body = format!("Error fetching {url}");
         (status, body)
       }
-      Error::Message(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
-      Error::FeedParse(msg) => (StatusCode::BAD_REQUEST, msg.to_string()),
+      _ => (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")),
     }
   }
 }
