@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Bug Fixes
+
+- Detect endpoint path collision (#103)
+- Fix broken cookie in requests (#116)
+- Graceful shutdown (#132)
+- Unescaped dynamic source url (#135)
+- Improve source error message (#138)
+- Fix a typo in an error message
+
+
+### Features
+
+- Limit the number of posts (#98)
+- Handle different body fields (#100)
+- Proxy support (#105)
+- Improve post body rendering on Web UI (#106)
+- Add more utility functions (#108)
+- Cache feed results after full_text filter (#112)
+- Support http/2 requests (#117)
+- On-the-fly filters (#120)
+- Detect magnet links from feed entries (#122)
+- Image proxy endpoint and filter (#123)
+- Implement srcset rewrite (#130)
+- Health check command (#134)
+- Placeholders in source (#139)
+
 ## [0.1.2] - 2024-03-16
 
 ### Bug Fixes
