@@ -207,9 +207,10 @@ impl EndpointService {
   async fn handle(self, mut req: Request) -> Result<Response, Response> {
     // infallible
     let param: EndpointParam = req.extract_parts().await.unwrap();
-    let feed = self.run(param).await.map_err(|e| {
-      (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-    })?;
+    let feed = self
+      .run(param)
+      .await
+      .map_err(|e| e.as_response().into_response())?;
     let resp = feed.into_response();
     Ok(resp)
   }
@@ -242,7 +243,8 @@ impl EndpointService {
     let source = self.find_source(&param.source)?;
     let feed = source
       .fetch_feed(Some(&self.client), param.base.as_ref())
-      .await?;
+      .await
+      .map_err(|e| Error::FetchSource(Box::new(e)))?;
     let mut context = FilterContext::new();
     if let Some(limit_filters) = param.limit_filters {
       context.set_limit_filters(limit_filters);

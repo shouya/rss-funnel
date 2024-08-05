@@ -1,3 +1,4 @@
+use http::StatusCode;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -118,8 +119,24 @@ pub enum Error {
   #[error("Unsupported feed format: {0}")]
   UnsupportedFeedFormat(String),
 
+  #[error("Failed fetching source: {0}")]
+  FetchSource(Box<Error>),
+
   #[error("{0}")]
   Message(String),
+}
+
+impl Error {
+  pub fn as_response(self) -> (StatusCode, String) {
+    match self {
+      Error::HttpStatus(status, url) => {
+        let body = format!("{}: {}", status, url);
+        (status, body)
+      }
+      Error::Message(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+      Error::FeedParse(msg) => (StatusCode::BAD_REQUEST, msg.to_string()),
+    }
+  }
 }
 
 #[derive(
