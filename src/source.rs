@@ -249,7 +249,8 @@ description: "A test feed"
 
     let config: SourceConfig = serde_yaml::from_str(YAML_CONFIG).unwrap();
     let source = Source::try_from(config).unwrap();
-    let feed: Feed = source.fetch_feed(None, None).await.unwrap();
+    let ctx = FilterContext::new();
+    let feed: Feed = source.fetch_feed(&ctx, None).await.unwrap();
     assert_eq!(feed.title(), "Test Feed");
     assert_eq!(feed.format(), FeedFormat::Rss);
   }
@@ -265,7 +266,8 @@ description: "A test feed"
 
     let config: SourceConfig = serde_yaml::from_str(YAML_CONFIG).unwrap();
     let source = Source::try_from(config).unwrap();
-    let feed: Feed = source.fetch_feed(None, None).await.unwrap();
+    let ctx = FilterContext::new();
+    let feed: Feed = source.fetch_feed(&ctx, None).await.unwrap();
     assert_eq!(feed.title(), "Test Feed");
     assert_eq!(feed.format(), FeedFormat::Atom);
   }
