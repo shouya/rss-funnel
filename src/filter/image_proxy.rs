@@ -40,7 +40,11 @@ enum ProxySettings {
 }
 
 impl ProxySettings {
-  fn rewrite_image_url(&self, ctx: &FilterContext, image_url: Url) -> String {
+  fn rewrite_image_url(
+    &self,
+    ctx: &FilterContext,
+    image_url: Url,
+  ) -> Result<String> {
     match self {
       ProxySettings::External(settings) => {
         let urlencode = settings
@@ -53,17 +57,16 @@ impl ProxySettings {
         };
         let base = settings.base.as_str();
 
-        format!("{base}{image_url}")
+        Ok(format!("{base}{image_url}"))
       }
       ProxySettings::Internal(proxy) => {
         let query = proxy.to_query(image_url.as_str());
-        let app_base = ctx.base();
-
+        let app_base = ctx.base_expected()?;
         match app_base.join(&format!("{IMAGE_PROXY_ROUTE}?{query}")) {
-          Ok(url) => url.to_string(),
+          Ok(url) => Ok(url.to_string()),
           Err(e) => {
-            warn!("Failed to rewrite image url: {e}");
-            image_url.to_string()
+            warn!("Failed to rewrite html for image proxy: {e}");
+            Ok(image_url.to_string())
           }
         }
       }
@@ -185,18 +188,25 @@ fn rewrite_html(
   };
 
   let rewrite = element!(selector, |el| {
-    rewrite_img_elem(ctx, config, &matches_domain, el);
+    rewrite_img_elem(ctx, config, &matches_domain, el)?;
     Ok(())
   });
 
-  lol_html::rewrite_str(
+  let res = lol_html::rewrite_str(
     html,
     RewriteStrSettings {
       element_content_handlers: vec![rewrite],
       ..RewriteStrSettings::default()
     },
-  )
-  .ok()
+  );
+
+  match res {
+    Ok(html) => Some(html),
+    Err(e) => {
+      warn!("Failed to rewrite html: {e}");
+      None
+    }
+  }
 }
 
 fn rewrite_img_elem(
@@ -204,7 +214,7 @@ fn rewrite_img_elem(
   config: &Config,
   matches_domain: &impl Fn(&Url) -> bool,
   el: &mut lol_html::html_content::Element<'_, '_>,
-) {
+) -> Result<()> {
   lazy_static::lazy_static! {
     static ref URL_REGEX: regex::Regex =
       regex::Regex::new(r#"https?://[^\s]+\b"#).unwrap();
@@ -216,45 +226,52 @@ fn rewrite_img_elem(
     .filter_map(|src| Url::parse(src).ok())
     .filter(matches_domain)
     .map(|url| config.settings.rewrite_image_url(ctx, url))
-    .next();
+    .next()
+    .transpose()?;
 
   if let Some(new_src) = new_src {
     // safe to unwrap because we know the attribute name is valid
     el.set_attribute("src", &new_src).unwrap();
   }
 
-  let new_srcset = el.get_attribute("srcset").map(|srcset| {
-    let sources: Vec<&str> =
-      srcset.trim().split(',').map(|s| s.trim()).collect();
-    let mut new_sources: Vec<String> = Vec::new();
-    for source in sources {
-      let source = source.trim();
-      let split = source.split_once(' ');
-      let url = split.map(|(a, _b)| a).unwrap_or(source);
-      let url = Url::parse(url).ok().filter(matches_domain);
-      let remaining = split.map(|(_a, b)| b);
+  let new_srcset = el
+    .get_attribute("srcset")
+    .map(|srcset| {
+      let sources: Vec<&str> =
+        srcset.trim().split(',').map(|s| s.trim()).collect();
+      let mut new_sources: Vec<String> = Vec::new();
+      for source in sources {
+        let source = source.trim();
+        let split = source.split_once(' ');
+        let url = split.map(|(a, _b)| a).unwrap_or(source);
+        let url = Url::parse(url).ok().filter(matches_domain);
+        let remaining = split.map(|(_a, b)| b);
 
-      let new_url = url
-        .map(|url| config.settings.rewrite_image_url(ctx, url))
-        .map(|url| {
-          if let Some(remaining) = remaining {
-            format!("{url} {remaining}")
-          } else {
-            url
-          }
-        })
-        .unwrap_or_else(|| source.to_string());
+        let new_url = url
+          .map(|url| config.settings.rewrite_image_url(ctx, url))
+          .transpose()?
+          .map(|url| {
+            if let Some(remaining) = remaining {
+              format!("{url} {remaining}")
+            } else {
+              url
+            }
+          })
+          .unwrap_or_else(|| source.to_string());
 
-      new_sources.push(new_url);
-    }
+        new_sources.push(new_url);
+      }
 
-    new_sources.join(", ")
-  });
+      Ok::<_, crate::util::Error>(new_sources.join(", "))
+    })
+    .transpose()?;
 
   if let Some(new_srcset) = new_srcset {
     // safe to unwrap because we know the attribute name is valid
     el.set_attribute("srcset", &new_srcset).unwrap();
   }
+
+  Ok(())
 }
 
 #[cfg(test)]

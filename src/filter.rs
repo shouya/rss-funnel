@@ -17,12 +17,11 @@ use std::sync::Arc;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tracing::warn;
 use url::Url;
 
 use crate::{
   feed::Feed,
-  util::{ConfigError, Result},
+  util::{ConfigError, Error, Result},
 };
 
 #[derive(Clone)]
@@ -30,15 +29,21 @@ pub struct FilterContext {
   /// The base URL of the application. Used to construct absolute URLs
   /// from a relative path.
   base: Option<Url>,
+
   /// The maximum number of filters to run on this pipeline
   limit_filters: Option<usize>,
+
+  /// The extra query parameters passed to the endpoint
+  extra_queries: HashMap<String, String>,
 }
 
 impl FilterContext {
+  #[cfg(test)]
   pub fn new() -> Self {
     Self {
       base: None,
       limit_filters: None,
+      extra_queries: HashMap::new(),
     }
   }
 
@@ -46,21 +51,16 @@ impl FilterContext {
     self.limit_filters
   }
 
-  pub fn base_opt(&self) -> Option<&Url> {
+  pub fn base(&self) -> Option<&Url> {
     self.base.as_ref()
   }
 
-  pub fn base(&self) -> &Url {
-    if let Some(base) = &self.base {
-      return base;
-    }
+  pub fn base_expected(&self) -> Result<&Url> {
+    self.base().ok_or_else(|| Error::BaseUrlNotInferred)
+  }
 
-    warn!(
-      "Base URL not inferred, please refer to
-  https://github.com/shouya/rss-funnel/wiki/App-base. Using demo instance as fallback."
-    );
-
-    &crate::util::DEMO_INSTANCE
+  pub fn extra_queries(&self) -> &HashMap<String, String> {
+    &self.extra_queries
   }
 
   pub fn set_limit_filters(&mut self, limit: usize) {
@@ -75,6 +75,15 @@ impl FilterContext {
     Self {
       base: self.base.clone(),
       limit_filters: None,
+      extra_queries: self.extra_queries.clone(),
+    }
+  }
+
+  pub fn from_param(param: &crate::server::EndpointParam) -> Self {
+    Self {
+      base: param.base().cloned(),
+      limit_filters: param.limit_filters(),
+      extra_queries: param.extra_queries().clone(),
     }
   }
 }

@@ -125,6 +125,19 @@ pub enum Error {
   #[error("Failed fetching source: {0}")]
   FetchSource(Box<Error>),
 
+  #[error("Source parameter {placeholder} failed to match validation: {validation} (input: {input})")]
+  SourceTemplateValidation {
+    placeholder: String,
+    validation: String,
+    input: String,
+  },
+
+  #[error("Source template placeholder unspecified: {0}")]
+  MissingSourceTemplatePlaceholder(String),
+
+  #[error("Based URL not inferred, please refer to https://github.com/shouya/rss-funnel/wiki/App-base")]
+  BaseUrlNotInferred,
+
   #[error("{0}")]
   Message(String),
 }
@@ -139,6 +152,10 @@ impl Error {
       Error::HttpStatus(status, url) => {
         let body = format!("Error requesting {url}: {status}");
         (StatusCode::BAD_GATEWAY, body)
+      }
+      Error::SourceTemplateValidation { .. }
+      | Error::MissingSourceTemplatePlaceholder(_) => {
+        (StatusCode::BAD_REQUEST, format!("{self}"))
       }
       _ => (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")),
     }
