@@ -127,10 +127,10 @@ pub enum Error {
 }
 
 impl Error {
-  pub fn as_response(self) -> (StatusCode, String) {
+  pub fn into_http(self) -> (StatusCode, String) {
     match self {
       Error::FetchSource(e) => {
-        let (status, body) = e.as_response();
+        let (status, body) = e.into_http();
         (status, format!("Error fetching source: {body}"))
       }
       Error::HttpStatus(status, url) => {

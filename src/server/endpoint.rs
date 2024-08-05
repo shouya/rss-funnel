@@ -209,7 +209,7 @@ impl EndpointService {
     let feed = self
       .run(param)
       .await
-      .map_err(|e| e.as_response().into_response())?;
+      .map_err(|e| e.into_http().into_response())?;
     let resp = feed.into_response();
     Ok(resp)
   }
