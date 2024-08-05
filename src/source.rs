@@ -160,7 +160,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
   for name in config.placeholders.keys() {
     if !config.template.contains(&format!("${{{name}}}")) {
       return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder %{{{name}}}% is not present in template",
+        "placeholder ${{{name}}} is not present in template",
       )));
     }
   }
