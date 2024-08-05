@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
@@ -113,6 +114,27 @@ pub struct EndpointParam {
   /// The full query string
   #[serde(skip)]
   query: Option<String>,
+  /// Extra query parameters
+  #[serde(flatten)]
+  extra_queries: HashMap<String, String>,
+}
+
+impl EndpointParam {
+  pub const fn all_fields() -> &'static [&'static str] {
+    &["source", "limit_filters", "limit_posts"]
+  }
+
+  pub(crate) fn base(&self) -> Option<&Url> {
+    self.base.as_ref()
+  }
+
+  pub(crate) fn limit_filters(&self) -> Option<usize> {
+    self.limit_filters
+  }
+
+  pub(crate) fn extra_queries(&self) -> &HashMap<String, String> {
+    &self.extra_queries
+  }
 }
 
 #[async_trait]
@@ -152,6 +174,7 @@ impl EndpointParam {
       limit_posts,
       base,
       query: None,
+      extra_queries: HashMap::new(),
     }
   }
 
@@ -240,11 +263,11 @@ impl EndpointService {
 
   pub async fn run(self, param: EndpointParam) -> Result<Feed> {
     let source = self.find_source(&param.source)?;
+    let mut context = FilterContext::from_param(&param);
     let feed = source
-      .fetch_feed(Some(&self.client), param.base.as_ref())
+      .fetch_feed(&context, Some(&self.client))
       .await
       .map_err(|e| Error::FetchSource(Box::new(e)))?;
-    let mut context = FilterContext::new();
     if let Some(limit_filters) = param.limit_filters {
       context.set_limit_filters(limit_filters);
     }

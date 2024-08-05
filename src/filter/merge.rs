@@ -3,7 +3,6 @@ use std::time::Duration;
 use futures::{stream, StreamExt};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
@@ -108,12 +107,12 @@ pub struct Merge {
 }
 
 impl Merge {
-  async fn fetch_sources(&self, base: Option<&Url>) -> Result<Vec<Feed>> {
+  async fn fetch_sources(&self, ctx: &FilterContext) -> Result<Vec<Feed>> {
     stream::iter(self.sources.clone())
       .map(|source: Source| {
         let client = &self.client;
         async move {
-          let feed = source.fetch_feed(Some(client), base).await?;
+          let feed = source.fetch_feed(ctx, Some(client)).await?;
           Ok(feed)
         }
       })
@@ -128,8 +127,7 @@ impl Merge {
 #[async_trait::async_trait]
 impl FeedFilter for Merge {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
-    let base = ctx.base_opt();
-    for new_feed in self.fetch_sources(base).await? {
+    for new_feed in self.fetch_sources(ctx).await? {
       let ctx = ctx.subcontext();
       let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
       feed.merge(filtered_new_feed)?;
