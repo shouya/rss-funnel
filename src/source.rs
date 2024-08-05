@@ -87,7 +87,8 @@ impl Templated {
         }
       }
 
-      url = url.replace(&format!("%{name}%"), &value);
+      let encoded_value = urlencoding::encode(&value);
+      url = url.replace(&format!("%{name}%"), &encoded_value);
     }
 
     SourceConfig::Simple(url)
