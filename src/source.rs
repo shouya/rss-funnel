@@ -88,7 +88,7 @@ impl Templated {
       }
 
       let encoded_value = urlencoding::encode(&value);
-      url = url.replace(&format!("%{name}%"), &encoded_value);
+      url = url.replace(&format!("${{{name}}}"), &encoded_value);
     }
 
     SourceConfig::Simple(url)
@@ -158,9 +158,9 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
 
   // Validation: all placeholders must present in template
   for name in config.placeholders.keys() {
-    if !config.template.contains(&format!("%{name}%")) {
+    if !config.template.contains(&format!("${{{name}}}")) {
       return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder %{name}% is not present in template",
+        "placeholder %{{{name}}}% is not present in template",
       )));
     }
   }
@@ -168,13 +168,13 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
   // Validation: all placeholder patterns in template must be
   // defined in placeholders
   lazy_static::lazy_static! {
-    static ref RE: Regex = Regex::new(r"%(?<name>\w+)%").unwrap();
+    static ref RE: Regex = Regex::new(r"$\{(?<name>\w+)\}").unwrap();
   }
   for cap in RE.captures_iter(&config.template) {
     let name = &cap["name"];
     if !config.placeholders.contains_key(name) {
       return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder %{name}% is not defined",
+        "placeholder ${{{name}}} is not defined",
       )));
     }
   }
@@ -184,7 +184,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
   for name in config.placeholders.keys() {
     if RESERVED_PARAMS.contains(&name.as_str()) {
       return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder %{name}% is a reserved word",
+        "placeholder `{name}` is a reserved word",
       )));
     }
   }
@@ -194,7 +194,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
     if let Some(validation) = &placeholder.validation {
       Regex::new(validation).map_err(|e| {
         ConfigError::BadSourceTemplate(format!(
-          "invalid regex for placeholder %{name}%: {e}",
+          "invalid regex for placeholder ${{{name}}}: {e}",
         ))
       })?;
     }
