@@ -65,6 +65,9 @@ pub enum ConfigError {
   #[error("Duplicate endpoint: {0}")]
   DuplicateEndpoint(String),
 
+  #[error("Bad source template: {0}")]
+  BadSourceTemplate(String),
+
   #[error("{0}")]
   Message(String),
 }

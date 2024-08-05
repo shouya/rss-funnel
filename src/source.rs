@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+
+use regex::Regex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -5,6 +8,7 @@ use url::Url;
 use crate::{
   client::Client,
   feed::{Feed, FeedFormat},
+  server::EndpointParam,
   util::{ConfigError, Error, Result},
 };
 
@@ -23,12 +27,46 @@ pub enum SourceConfig {
   ///
   /// A source that is created from scratch
   FromScratch(FromScratch),
+  /// # Templated source
+  ///
+  /// A source url that has placeholders that need to be filled in
+  /// with values from the request.
+  Templated(Templated),
 }
 
-#[derive(Clone, Debug)]
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
+pub struct Templated {
+  /// The url of the source
+  pub template: String,
+  /// The placeholders. The key is the placeholder name and the value
+  /// defines the value of the placeholder.
+  // using BTreeMap instead of HashMap only because it implements Hash
+  pub placeholders: BTreeMap<String, Placeholder>,
+}
+
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
+struct Placeholder {
+  /// The default value of the placeholder. If not set, the placeholder
+  /// is required.
+  default_value: Option<String>,
+
+  /// The regular expression that the placeholder must match. If not
+  /// set, the placeholder can be any value. The validation is checked
+  /// against the url-decoded value.
+  validation: Option<String>,
+}
+
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub enum Source {
   AbsoluteUrl(Url),
   RelativeUrl(String),
+  Templated(Templated),
   FromScratch(FromScratch),
 }
 
@@ -65,8 +103,56 @@ impl TryFrom<SourceConfig> for Source {
         Ok(Source::AbsoluteUrl(url))
       }
       SourceConfig::FromScratch(config) => Ok(Source::FromScratch(config)),
+      SourceConfig::Templated(config) => {
+        validate_placeholders(&config)?;
+        Ok(Source::Templated(config))
+      }
     }
   }
+}
+
+fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
+  // Validation 0: placeholders must not be empty
+  if config.placeholders.is_empty() {
+    return Err(ConfigError::BadSourceTemplate(
+      "placeholders must not be empty for templated source".into(),
+    ));
+  }
+
+  // Validation 1: all placeholders must present in template
+  for name in config.placeholders.keys() {
+    if !config.template.contains(&format!("%{name}%")) {
+      return Err(ConfigError::BadSourceTemplate(format!(
+        "placeholder %{name}% is not present in template",
+      )));
+    }
+  }
+
+  // Validation 2: all placeholder patterns in template must be
+  // defined in placeholders
+  lazy_static::lazy_static! {
+    static ref RE: Regex = Regex::new(r"%(?<name>\w+)%").unwrap();
+  }
+  for cap in RE.captures_iter(&config.template) {
+    let name = &cap["name"];
+    if !config.placeholders.contains_key(name) {
+      return Err(ConfigError::BadSourceTemplate(format!(
+        "placeholder %{name}% is not defined",
+      )));
+    }
+  }
+
+  // Validation 3: all placeholder names must not be reserved words.
+  const RESERVED_PARAMS: &[&str] = EndpointParam::all_fields();
+  for name in config.placeholders.keys() {
+    if RESERVED_PARAMS.contains(&name.as_str()) {
+      return Err(ConfigError::BadSourceTemplate(format!(
+        "placeholder %{name}% is a reserved word",
+      )));
+    }
+  }
+
+  Ok(())
 }
 
 impl Source {

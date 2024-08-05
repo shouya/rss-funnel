@@ -115,6 +115,12 @@ pub struct EndpointParam {
   query: Option<String>,
 }
 
+impl EndpointParam {
+  pub const fn all_fields() -> &'static [&'static str] {
+    &["source", "limit_filters", "limit_posts"]
+  }
+}
+
 #[async_trait]
 impl<S> FromRequestParts<S> for EndpointParam
 where
