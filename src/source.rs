@@ -53,7 +53,7 @@ pub struct Templated {
 struct Placeholder {
   /// The default value of the placeholder. If not set, the placeholder
   /// is required.
-  default_value: Option<String>,
+  default: Option<String>,
 
   /// The regular expression that the placeholder must match. If not
   /// set, the placeholder can be any value. The validation is checked
@@ -71,7 +71,7 @@ impl Templated {
     for (name, placeholder) in &self.placeholders {
       let value = params
         .get(name)
-        .or(placeholder.default_value.as_ref())
+        .or(placeholder.default.as_ref())
         .ok_or(Error::MissingSourceTemplatePlaceholder(name.clone()))?
         .clone();
 
