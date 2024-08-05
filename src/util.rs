@@ -131,11 +131,11 @@ impl Error {
     match self {
       Error::FetchSource(e) => {
         let (status, body) = e.as_response();
-        (status, format!("Fetch source error: {body}"))
+        (status, format!("Error fetching source: {body}"))
       }
       Error::HttpStatus(status, url) => {
-        let body = format!("Error fetching {url}");
-        (status, body)
+        let body = format!("Error requesting {url}: {status}");
+        (StatusCode::BAD_GATEWAY, body)
       }
       _ => (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")),
     }
