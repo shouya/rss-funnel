@@ -12,9 +12,13 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 version=$1
+
+sed -i '0,/version/ { s/^version = ".*"/version = "'$version'"/ }' Cargo.toml
+cargo check
+
+git tag -a "$version" -m "Release $version"
 git cliff -o CHANGELOG.md
 git commit -am "chore: update changelog"
-git tag -a "$version" -m "Release $version"
 
 git push origin HEAD && git push origin "$version"
 
