@@ -23,14 +23,17 @@ use crate::util::Result;
 async fn main() -> Result<()> {
   tracing_subscriber::fmt::init();
 
-  tokio::spawn(async {
-    signal_handler().await.expect("Signal handler failed");
-  });
+  if cfg!(unix) {
+    tokio::spawn(async {
+      signal_handler().await.expect("Signal handler failed");
+    });
+  }
 
   let cli = cli::Cli::parse();
   cli.run().await
 }
 
+#[cfg(unix)]
 async fn signal_handler() -> Result<()> {
   use tokio::signal::unix::{signal, SignalKind};
 
