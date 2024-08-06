@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.1.4] - 2024-08-06
+
+### Bug Fixes
+
+- Build on Windows (#142)
+
+## [0.1.3] - 2024-08-06
 
 ### Bug Fixes
 
