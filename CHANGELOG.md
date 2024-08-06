@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Improve source error message (#138)
 - Fix a typo in an error message
 
+- Allow unspecified filters key (#141)
 
 ### Features
 
