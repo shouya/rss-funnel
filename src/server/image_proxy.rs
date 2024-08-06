@@ -17,7 +17,7 @@ lazy_static::lazy_static! {
 }
 
 pub fn router() -> Router {
-  info!("loaded image proxy: /_image");
+  info!("handling image proxy: /_image");
 
   use tower_http::cors::AllowOrigin;
   let cors = CorsLayer::new()

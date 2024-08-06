@@ -73,6 +73,7 @@ impl EndpointConfig {
 pub struct EndpointServiceConfig {
   #[serde(default)]
   source: Option<SourceConfig>,
+  #[serde(default)]
   filters: FilterPipelineConfig,
   #[serde(default)]
   on_the_fly_filters: bool,
