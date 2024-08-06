@@ -15,7 +15,6 @@ mod test_utils;
 mod util;
 
 use clap::Parser;
-use tracing::info;
 
 use crate::util::Result;
 
@@ -23,16 +22,21 @@ use crate::util::Result;
 async fn main() -> Result<()> {
   tracing_subscriber::fmt::init();
 
-  tokio::spawn(async {
-    signal_handler().await.expect("Signal handler failed");
-  });
+  #[cfg(unix)]
+  {
+    tokio::spawn(async {
+      signal_handler().await.expect("Signal handler failed");
+    });
+  }
 
   let cli = cli::Cli::parse();
   cli.run().await
 }
 
+#[cfg(unix)]
 async fn signal_handler() -> Result<()> {
   use tokio::signal::unix::{signal, SignalKind};
+  use tracing::info;
 
   let mut sigint = signal(SignalKind::interrupt())?;
   let mut sigterm = signal(SignalKind::terminate())?;
