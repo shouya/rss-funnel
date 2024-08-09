@@ -65,6 +65,10 @@ impl EndpointConfig {
   pub async fn build(self) -> Result<EndpointService, ConfigError> {
     EndpointService::from_config(self.config).await
   }
+
+  pub(crate) fn source(&self) -> Option<&SourceConfig> {
+    self.config.source.as_ref()
+  }
 }
 
 #[derive(

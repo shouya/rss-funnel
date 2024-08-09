@@ -13,6 +13,10 @@ use crate::{
   util::{ConfigError, Error, Result},
 };
 
+lazy_static::lazy_static! {
+  static ref VAR_RE: Regex = Regex::new(r"$\{(?<name>\w+)\}").unwrap();
+}
+
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
@@ -95,6 +99,19 @@ impl Templated {
       .try_into()
       .map_err(|e: ConfigError| e.into())
   }
+
+  // https://foo.bar/${name}/baz -> https://foo.bar
+  pub fn base(&self) -> Option<String> {
+    let mut url = Url::parse(&self.template).ok()?;
+    let host = url.host_str()?;
+    if VAR_RE.is_match(host) {
+      return None;
+    }
+    url.set_fragment(None);
+    url.set_query(None);
+    url.set_path("");
+    Some(url.to_string())
+  }
 }
 
 #[derive(
@@ -167,10 +184,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
 
   // Validation: all placeholder patterns in template must be
   // defined in placeholders
-  lazy_static::lazy_static! {
-    static ref RE: Regex = Regex::new(r"$\{(?<name>\w+)\}").unwrap();
-  }
-  for cap in RE.captures_iter(&config.template) {
+  for cap in VAR_RE.captures_iter(&config.template) {
     let name = &cap["name"];
     if !config.placeholders.contains_key(name) {
       return Err(ConfigError::BadSourceTemplate(format!(
