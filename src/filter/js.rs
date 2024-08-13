@@ -17,7 +17,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 /// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
 
 pub struct JsConfig {
-  code: String,
+  pub code: String,
 }
 
 #[derive(
@@ -30,7 +30,7 @@ pub struct JsConfig {
 /// <br><br>
 /// Example: <code>modify_post: post.title += " (modified)";</code>
 pub struct ModifyPostConfig {
-  code: String,
+  pub code: String,
 }
 
 #[derive(
@@ -43,7 +43,7 @@ pub struct ModifyPostConfig {
 /// <br><br>
 /// Example: <code>modify_feed: feed.title.value = "Modified Feed";</code>
 pub struct ModifyFeedConfig {
-  code: String,
+  pub code: String,
 }
 
 pub struct JsFilter {

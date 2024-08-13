@@ -1,3 +1,5 @@
+mod filters;
+
 use axum::{
   extract::Path,
   response::{IntoResponse, Response},
@@ -11,6 +13,8 @@ use serde::Deserialize;
 
 use crate::{
   client::ClientConfig,
+  filter::FilterConfig,
+  filter_pipeline::{FilterPipeline, FilterPipelineConfig},
   source::{FromScratch, Source, SourceConfig},
 };
 
@@ -63,7 +67,8 @@ async fn handle_endpoint(
   let config = render_config_fragment(&endpoint);
 
   // render config
-  let filters = "TODO: render filters";
+  let filters =
+    render_topmost_filter_pipeline_fragment(&endpoint.config().filters);
 
   // render feed preview
   let feed = "TODO: render feed";
@@ -80,12 +85,11 @@ async fn handle_endpoint(
       main {
         h2 { (path) }
         section .config-section {
-          h3 { "Config" }
           (config)
         }
 
-        aside .filters-section {
-          h3 { "Filters" }
+        section .filters-section {
+          h3 { "Filter pipeline" }
           (filters)
         }
 
@@ -100,14 +104,16 @@ async fn handle_endpoint(
   Ok(markup)
 }
 
-fn source_control_fragment(source: &Option<Source>) -> Markup {
+fn source_control_fragment(source: &Option<Source>) -> Option<Markup> {
   match source {
-    None => html! {
+    None => Some(html! {
       input type="text" placeholder="Source URL" {}
-    },
-    Some(Source::Templated(templated)) => source_template_fragment(templated),
-    Some(Source::FromScratch(scratch)) => from_scratch_fragment(scratch),
-    _ => html! {},
+    }),
+    Some(Source::Templated(templated)) => {
+      Some(source_template_fragment(templated))
+    }
+    Some(Source::FromScratch(scratch)) => Some(from_scratch_fragment(scratch)),
+    _ => None,
   }
 }
 
@@ -183,19 +189,21 @@ fn render_config_fragment(endpoint: &EndpointService) -> Markup {
       tr {
         th { "Source" }
         td {
-          section title="summary" {
+          @if let Some(fragment) = source_control_fragment(source) {
+            details {
+              summary { (source_summary_fragment(config.source.as_ref())) }
+              section title="control" { (fragment) }
+            }
+          } @else {
             (source_summary_fragment(config.source.as_ref()))
-          }
-          section title="control" {
-            (source_control_fragment(source))
           }
         }
       }
 
-      tr {
-        th { "Client" }
-        td {
-          (client_fragment(&config.client))
+      @if let Some(client) = &config.client {
+        tr {
+          th { "Client" }
+          td { (client_fragment(client)) }
         }
       }
     }
@@ -209,8 +217,9 @@ fn header_libs_fragment() -> Markup {
       referrerpolicy="no-referrer" {}
     link
       rel="stylesheet"
-      href="https://unpkg.com/bamboo.css"
+      href="https://matcha.mizu.sh/matcha.css"
       referrerpolicy="no-referrer" {}
+    style { (maud::PreEscaped(extra_styles())) }
   }
 }
 
@@ -218,13 +227,13 @@ fn source_summary_fragment(source: Option<&SourceConfig>) -> Markup {
   html! {
     @match source {
       None => {
-        p { "Dynamic source" }
+        "Dynamic source"
       },
       Some(SourceConfig::Simple(url)) => {
         a .source href=(url) { (url) }
       },
       Some(SourceConfig::FromScratch(_)) => {
-        p { "From scratch" }
+        "From scratch"
       },
       Some(SourceConfig::Templated(source)) => {
         span { "Templated source" }
@@ -239,17 +248,17 @@ fn source_summary_fragment(source: Option<&SourceConfig>) -> Markup {
 fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
   html! {
     section {
-      @if let Some(note) = &endpoint.note {
-        aside { (note) }
-      }
-
       h2 {
         a href={"/_/endpoint/" (endpoint.path.trim_start_matches('/'))} {
           (endpoint.path)
         }
       }
 
-      article {
+      @if let Some(note) = &endpoint.note {
+        section { (note) }
+      }
+
+      section {
         @let source = endpoint.source();
         (source_summary_fragment(source))
       }
@@ -257,11 +266,7 @@ fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
   }
 }
 
-fn client_fragment(client: &Option<ClientConfig>) -> Markup {
-  let Some(client) = client.as_ref() else {
-    return html! { "Default client config" };
-  };
-
+fn client_fragment(client: &ClientConfig) -> Markup {
   html! {
     table {
       @if let Some(user_agent) = &client.user_agent {
@@ -335,4 +340,72 @@ fn client_fragment(client: &Option<ClientConfig>) -> Markup {
       }
     }
   }
+}
+
+fn render_topmost_filter_pipeline_fragment(
+  filters: &FilterPipelineConfig,
+) -> Markup {
+  render_filter_pipeline_fragment(filters, true, true)
+}
+
+fn render_nested_filter_pipeline_fragment(
+  filters: &FilterPipelineConfig,
+) -> Markup {
+  render_filter_pipeline_fragment(filters, false, false)
+}
+
+fn render_filter_pipeline_fragment(
+  filters: &FilterPipelineConfig,
+  render_index: bool,
+  render_header: bool,
+) -> Markup {
+  html! {
+    table {
+      @if render_header {
+        thead {
+          tr {
+            @if render_index { th { "#" } }
+            th { "Type" }
+            th { "Config" }
+          }
+        }
+      }
+      @for (i, filter) in filters.filters.iter().enumerate() {
+        nav {
+          @if render_index { th { (i+1) } }
+          td { (filter.name()) }
+          td {
+            @match filter {
+              FilterConfig::Js(conf) => (conf),
+              FilterConfig::ModifyPost(conf) => (conf),
+              FilterConfig::ModifyFeed(conf) => (conf),
+              FilterConfig::FullText(_conf) => ("TODO: render filter"),
+              FilterConfig::SimplifyHtml(_conf) => ("TODO: render filter"),
+              FilterConfig::RemoveElement(_conf) => ("TODO: render filter"),
+              FilterConfig::KeepElement(_conf) => ("TODO: render filter"),
+              FilterConfig::Split(_conf) => ("TODO: render filter"),
+              FilterConfig::Sanitize(_conf) => ("TODO: render filter"),
+              FilterConfig::KeepOnly(_conf) => ("TODO: render filter"),
+              FilterConfig::Discard(_conf) => ("TODO: render filter"),
+              FilterConfig::Highlight(_conf) => ("TODO: render filter"),
+              FilterConfig::Merge(conf) => (conf),
+              FilterConfig::Note(_conf) => ("TODO: render filter"),
+              FilterConfig::ConvertTo(_conf) => ("TODO: render filter"),
+              FilterConfig::Limit(_conf) => ("TODO: render filter"),
+              FilterConfig::Magnet(_conf) => ("TODO: render filter"),
+              FilterConfig::ImageProxy(_conf) => ("TODO: render filter"),
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+fn extra_styles() -> &'static str {
+  r#"
+  details, ul, ol {
+    margin: 0;
+  }
+"#
 }

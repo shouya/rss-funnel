@@ -43,6 +43,11 @@ pub enum SourceConfig {
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
+pub struct SimpleSourceConfig(pub String);
+
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
 pub struct Templated {
   /// The url of the source
   template: String,
@@ -158,6 +163,14 @@ pub struct FromScratch {
 impl From<Url> for Source {
   fn from(url: Url) -> Self {
     Source::AbsoluteUrl(url)
+  }
+}
+
+impl TryFrom<SimpleSourceConfig> for Source {
+  type Error = ConfigError;
+
+  fn try_from(config: SimpleSourceConfig) -> Result<Self, Self::Error> {
+    SourceConfig::Simple(config.0).try_into()
   }
 }
 
