@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
+use either::Either;
 use regex::Regex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,7 @@ use crate::{
 };
 
 lazy_static::lazy_static! {
-  static ref VAR_RE: Regex = Regex::new(r"$\{(?<name>\w+)\}").unwrap();
+  static ref VAR_RE: Regex = Regex::new(r"\$\{(?<name>\w+)\}").unwrap();
 }
 
 #[derive(
@@ -54,15 +55,15 @@ pub struct Templated {
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
-struct Placeholder {
+pub struct Placeholder {
   /// The default value of the placeholder. If not set, the placeholder
   /// is required.
-  default: Option<String>,
+  pub default: Option<String>,
 
   /// The regular expression that the placeholder must match. If not
   /// set, the placeholder can be any value. The validation is checked
   /// against the url-decoded value.
-  validation: Option<String>,
+  pub validation: Option<String>,
 }
 
 impl Templated {
@@ -111,6 +112,22 @@ impl Templated {
     url.set_query(None);
     url.set_path("");
     Some(url.to_string())
+  }
+
+  // used for rendering control
+  pub fn fragments(
+    &self,
+  ) -> impl Iterator<Item = Either<&str, (&str, Option<&Placeholder>)>> + '_ {
+    split_with_delimiter(&self.template, &VAR_RE).map(|e| match e {
+      Either::Left(s) => Either::Left(s),
+      Either::Right(cap) => {
+        // SAFETY: name is guaranteed to be Some because the regex is
+        // static.
+        let name = &cap.name("name").unwrap();
+        let placeholder = self.placeholders.get(name.as_str());
+        Either::Right((&self.template[name.range()], placeholder))
+      }
+    })
   }
 }
 
@@ -248,6 +265,31 @@ impl Source {
   }
 }
 
+fn split_with_delimiter<'a>(
+  s: &'a str,
+  re: &Regex,
+) -> impl Iterator<Item = Either<&'a str, regex::Captures<'a>>> {
+  let mut list = Vec::new();
+  let mut last = 0;
+
+  for cap in re.captures_iter(s) {
+    // SAFETY: get(0) is guaranteed to be Some
+    let full = cap.get(0).unwrap();
+    let seg = &s[last..full.start()];
+    if !seg.is_empty() {
+      list.push(Either::Left(seg));
+    }
+    list.push(Either::Right(cap));
+    last = full.end();
+  }
+
+  let tail = &s[last..];
+  if !tail.is_empty() {
+    list.push(Either::Left(tail));
+  }
+  list.into_iter()
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
@@ -284,5 +326,44 @@ description: "A test feed"
     let feed: Feed = source.fetch_feed(&ctx, None).await.unwrap();
     assert_eq!(feed.title(), "Test Feed");
     assert_eq!(feed.format(), FeedFormat::Atom);
+  }
+
+  #[test]
+  fn test_template_source_segmentation() {
+    const YAML_CONFIG: &str = r#"
+template: "https://example.com/${name1}/${name2}/feed.xml"
+placeholders:
+  name1:
+    default: "default1"
+  name2:
+    default: "default2"
+"#;
+
+    let config: Templated = serde_yaml::from_str(YAML_CONFIG).unwrap();
+    let fragments: Vec<_> = config.fragments().collect();
+    assert_eq!(fragments.len(), 5);
+    assert_eq!(fragments[0], Either::Left("https://example.com/"));
+    assert_eq!(
+      fragments[1],
+      Either::Right((
+        "name1",
+        Some(&Placeholder {
+          default: Some("default1".into()),
+          validation: None,
+        })
+      ))
+    );
+    assert_eq!(fragments[2], Either::Left("/"));
+    assert_eq!(
+      fragments[3],
+      Either::Right((
+        "name2",
+        Some(&Placeholder {
+          default: Some("default2".into()),
+          validation: None,
+        })
+      ))
+    );
+    assert_eq!(fragments[4], Either::Left("/feed.xml"));
   }
 }

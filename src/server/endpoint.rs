@@ -231,6 +231,10 @@ impl EndpointService {
     self
   }
 
+  pub fn source(&self) -> &Option<Source> {
+    &self.source
+  }
+
   async fn handle(self, mut req: Request) -> Result<Response, Response> {
     // infallible
     let param: EndpointParam = req.extract_parts().await.unwrap();
