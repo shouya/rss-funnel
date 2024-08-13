@@ -76,13 +76,13 @@ impl EndpointConfig {
 )]
 pub struct EndpointServiceConfig {
   #[serde(default)]
-  source: Option<SourceConfig>,
+  pub source: Option<SourceConfig>,
   #[serde(default)]
-  filters: FilterPipelineConfig,
+  pub filters: FilterPipelineConfig,
   #[serde(default)]
-  on_the_fly_filters: bool,
+  pub on_the_fly_filters: bool,
   #[serde(default)]
-  client: Option<ClientConfig>,
+  pub client: Option<ClientConfig>,
 }
 
 // Ideally I would implement this endpoint service to include a
@@ -233,6 +233,10 @@ impl EndpointService {
 
   pub fn source(&self) -> &Option<Source> {
     &self.source
+  }
+
+  pub fn config(&self) -> &EndpointServiceConfig {
+    &self.config
   }
 
   async fn handle(self, mut req: Request) -> Result<Response, Response> {

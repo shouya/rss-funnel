@@ -3,14 +3,20 @@ use axum::{
   response::{IntoResponse, Response},
   routing, Extension, Router,
 };
+use duration_str::HumanFormat;
 use either::Either;
 use http::StatusCode;
-use maud::{html, Markup, PreEscaped, DOCTYPE};
+use maud::{html, Markup, DOCTYPE};
 use serde::Deserialize;
 
-use crate::source::{FromScratch, Source, SourceConfig};
+use crate::{
+  client::ClientConfig,
+  source::{FromScratch, Source, SourceConfig},
+};
 
-use super::{feed_service::FeedService, EndpointConfig};
+use super::{
+  endpoint::EndpointService, feed_service::FeedService, EndpointConfig,
+};
 
 pub fn router() -> Router {
   Router::new()
@@ -53,11 +59,8 @@ async fn handle_endpoint(
       .into_response()
   })?;
 
-  // render source control
-  let source = source_control_fragment(endpoint.source());
-
   // render config
-  let config = "TODO: render config";
+  let config = render_config_fragment(&endpoint);
 
   // render config
   let filters = "TODO: render filters";
@@ -76,10 +79,6 @@ async fn handle_endpoint(
       h1 { "RSS Funnel" }
       main {
         h2 { (path) }
-        section .source-section {
-          h3 { "Source" }
-          (source)
-        }
         section .config-section {
           h3 { "Config" }
           (config)
@@ -106,14 +105,9 @@ fn source_control_fragment(source: &Option<Source>) -> Markup {
     None => html! {
       input type="text" placeholder="Source URL" {}
     },
-    Some(Source::AbsoluteUrl(url)) => html! {
-      a .source href=(url) { (url) }
-    },
-    Some(Source::RelativeUrl(url)) => html! {
-      a .source href=(url) { (url) }
-    },
     Some(Source::Templated(templated)) => source_template_fragment(templated),
     Some(Source::FromScratch(scratch)) => from_scratch_fragment(scratch),
+    _ => html! {},
   }
 }
 
@@ -170,6 +164,44 @@ fn source_template_fragment(templated: &crate::source::Templated) -> Markup {
   }
 }
 
+fn render_config_fragment(endpoint: &EndpointService) -> Markup {
+  let config = endpoint.config();
+  let source = endpoint.source();
+
+  html! {
+    table {
+      tr {
+        th { "OTF filters" }
+        td {
+          @if config.on_the_fly_filters {
+            "Enabled"
+          } @else {
+            "Disabled"
+          }
+        }
+      }
+      tr {
+        th { "Source" }
+        td {
+          section title="summary" {
+            (source_summary_fragment(config.source.as_ref()))
+          }
+          section title="control" {
+            (source_control_fragment(source))
+          }
+        }
+      }
+
+      tr {
+        th { "Client" }
+        td {
+          (client_fragment(&config.client))
+        }
+      }
+    }
+  }
+}
+
 fn header_libs_fragment() -> Markup {
   html! {
     script
@@ -182,20 +214,22 @@ fn header_libs_fragment() -> Markup {
   }
 }
 
-fn source_summary_fragment(source: &SourceConfig) -> Markup {
+fn source_summary_fragment(source: Option<&SourceConfig>) -> Markup {
   html! {
     @match source {
-      SourceConfig::Simple(url) => {
+      None => {
+        p { "Dynamic source" }
+      },
+      Some(SourceConfig::Simple(url)) => {
         a .source href=(url) { (url) }
       },
-      SourceConfig::FromScratch(_) => {
+      Some(SourceConfig::FromScratch(_)) => {
         p { "From scratch" }
       },
-      SourceConfig::Templated(source) => {
+      Some(SourceConfig::Templated(source)) => {
+        span { "Templated source" }
         @if let Some(base) = source.base() {
-          a .source.templated-source href=(base) { (base) }
-        } else {
-          p { "Templated source" }
+          span style="margin-left: 10px" { a .source.templated-source href=(base) { (base) } }
         }
       },
     }
@@ -216,8 +250,87 @@ fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
       }
 
       article {
-        @if let Some(source) = &endpoint.source() {
-          (source_summary_fragment(source))
+        @let source = endpoint.source();
+        (source_summary_fragment(source))
+      }
+    }
+  }
+}
+
+fn client_fragment(client: &Option<ClientConfig>) -> Markup {
+  let Some(client) = client.as_ref() else {
+    return html! { "Default client config" };
+  };
+
+  html! {
+    table {
+      @if let Some(user_agent) = &client.user_agent {
+        tr {
+          th { "User-Agent" }
+          td { (user_agent) }
+        }
+      }
+
+      @if let Some(accept) = &client.accept {
+        tr {
+          th { "Accept" }
+          td { (accept) }
+        }
+      }
+
+      @if let Some(cookie) = (client.cookie.as_ref()).or(client.set_cookie.as_ref()) {
+        tr {
+          th { "Cookie" }
+          td { (cookie) }
+        }
+      }
+
+      @if let Some(referer) = &client.referer {
+        tr {
+          th { "Referer" }
+          td { (referer) }
+        }
+      }
+
+      @if client.accept_invalid_certs {
+        tr {
+          th { "Accept invalid certs" }
+          td { "Yes" }
+        }
+      }
+
+      @if let Some(proxy) = &client.proxy {
+        tr {
+          th { "Proxy" }
+          td { (proxy) }
+        }
+      }
+
+      @if let Some(timeout) = &client.timeout {
+        tr {
+          th { "Timeout" }
+          td { (timeout.human_format()) }
+        }
+      }
+
+      @if let Some(cache_size) = &client.cache_size {
+        tr {
+          th { "Cache size" }
+          td { (cache_size) }
+        }
+      }
+
+      @if let Some(cache_ttl) = &client.cache_ttl {
+        tr {
+          th { "Cache TTL" }
+          td { (cache_ttl.human_format()) }
+        }
+      }
+
+      @if let Some(assume_content_type) = &client.assume_content_type {
+        tr {
+          th { "Assume content type" }
+          td { (assume_content_type) }
         }
       }
     }

@@ -14,7 +14,7 @@ use crate::{
 )]
 #[serde(transparent)]
 pub struct FilterPipelineConfig {
-  filters: Vec<FilterConfig>,
+  pub filters: Vec<FilterConfig>,
 }
 
 impl From<Vec<FilterConfig>> for FilterPipelineConfig {

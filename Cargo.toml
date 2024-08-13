@@ -35,7 +35,7 @@ blake3 = "1.5.1"
 clap = { version = "4.5.1", features = ["derive", "env"] }
 serde = { version = "1.0.197", features = ["derive", "rc"] }
 serde_yaml = "0.9.32"
-duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }
+duration-str = { version = "0.11.2", default-features = false, features = ["serde"] }
 
 # webserver
 axum-macros = "0.4.1"

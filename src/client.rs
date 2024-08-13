@@ -27,38 +27,38 @@ struct HttpFixture {
 )]
 pub struct ClientConfig {
   /// The "user-agent" header to send with requests
-  user_agent: Option<String>,
+  pub user_agent: Option<String>,
   /// The "accept" header to send with requests
-  accept: Option<String>,
+  pub accept: Option<String>,
   /// The "cookie" header to send with requests (Deprecated, specify "cookie" field instead)
-  set_cookie: Option<String>,
+  pub set_cookie: Option<String>,
   /// The "cookie" header to send with requests
-  cookie: Option<String>,
+  pub cookie: Option<String>,
   /// The "referer" header to send with requests
-  referer: Option<String>,
-  /// The maximum number of cached responses
-  cache_size: Option<usize>,
+  pub referer: Option<String>,
   /// Ignore tls error
   #[serde(default)]
-  accept_invalid_certs: bool,
+  pub accept_invalid_certs: bool,
+  /// The maximum number of cached responses
+  pub cache_size: Option<usize>,
   /// The maximum time a response is kept in the cache (Format: "4s",
   /// 10m", "1h", "1d")
   #[serde(default)]
   #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
   #[schemars(with = "String")]
-  cache_ttl: Option<Duration>,
+  pub cache_ttl: Option<Duration>,
   /// Request timeout (Format: "4s", "10m", "1h", "1d")
   #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
   #[schemars(with = "String")]
-  timeout: Option<Duration>,
+  pub timeout: Option<Duration>,
   /// Sometimes the feed doesn't report a correct content type, so we
   /// need to override it.
   #[serde(default)]
-  assume_content_type: Option<String>,
+  pub assume_content_type: Option<String>,
   /// The proxy to use for requests
   /// (Format: "http://user:pass@host:port", "socks5://user:pass@host:port")
   #[serde(default)]
-  proxy: Option<String>,
+  pub proxy: Option<String>,
 }
 
 impl ClientConfig {
