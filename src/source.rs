@@ -50,7 +50,7 @@ pub struct SimpleSourceConfig(pub String);
 )]
 pub struct Templated {
   /// The url of the source
-  template: String,
+  pub template: String,
   /// The placeholders. The key is the placeholder name and the value
   /// defines the value of the placeholder.
   // using BTreeMap instead of HashMap only because it implements Hash

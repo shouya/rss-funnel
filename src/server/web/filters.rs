@@ -42,14 +42,16 @@ impl Render for filter::merge::MergeConfig {
             @if let Some(client) = &full.client {
               tr {
                 th { "Client" }
-                td { (collapsed("Client config", super::client_fragment(client))) }
+                // td { (collapsed("Client config", super::client_fragment(client))) }
+                td { "CLIENT CONFIG PLACEHOLDER" }
               }
             }
             @if let Some(filters) = &full.filters {
               tr {
                 th { "Filters" }
-                @let filters = super::render_nested_filter_pipeline_fragment(filters);
-                td { (collapsed("Filter pipeline", filters)) }
+                // @let filters = super::render_nested_filter_pipeline_fragment(filters);
+                // td { (collapsed("Filter pipeline", filters)) }
+                td { "FILTER PIPELINE PLACEHOLDER" }
               }
             }
           }
