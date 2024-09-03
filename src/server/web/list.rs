@@ -14,8 +14,10 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
     body {
       h1 { "RSS Funnel" }
       main {
-        @for endpoint in &root_config.endpoints {
-          (endpoint_list_entry_fragment(endpoint))
+        ul {
+          @for endpoint in &root_config.endpoints {
+            (endpoint_list_entry_fragment(endpoint))
+          }
         }
       }
     }
@@ -24,44 +26,23 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
 
 fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
   html! {
-    hgroup {
+    li ."my-.5" {
       a href={"/_/endpoint/" (endpoint.path.trim_start_matches('/'))} {
         (endpoint.path)
       }
 
-      @let source = endpoint.source();
-      sub { q { (source_summary_fragment(source)) } }
+      // badges
+      small .ml-1 {
+        @if endpoint.config.on_the_fly_filters {
+          var .bg-variant .bd-variant .variant title="On-the-fly filters" { "OTF" }
+        }
+
+        @let source = endpoint.source();
+        (short_source_repr(source))
+      }
 
       @if let Some(note) = &endpoint.note {
-        section { (note) }
-      }
-    }
-  }
-}
-
-fn source_summary_fragment(source: Option<&SourceConfig>) -> Markup {
-  html! {
-    @match source {
-      None => {
-        "dynamic"
-      },
-      Some(SourceConfig::Simple(url)) => {
-        @if let Some(host) = url_host(url.as_str()) {
-          a .source href=(url) { (host) }
-        } @else {
-          a .source href=(url) { "..." }
-        }
-      },
-      Some(SourceConfig::FromScratch(_)) => {
-        "scratch"
-      },
-      Some(SourceConfig::Templated(source)) => {
-        @if let Some(host) = url_host(source.template.as_str()) {
-          (host)
-
-        } else {
-          "templated"
-        }
+        p { (note) }
       }
     }
   }
@@ -83,20 +64,43 @@ fn url_path(url: impl TryInto<Url>) -> Option<String> {
   Some(url.path().to_owned())
 }
 
-fn short_source_repr(
-  source: Option<&SourceConfig>,
-) -> (String, Option<String>) {
+fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
   match source {
-    None => ("dynamic".to_owned(), None),
+    None => html! {
+      var .attention.bg-attention.bd-attention { "dynamic" }
+    },
     Some(SourceConfig::Simple(url)) if url.starts_with("/") => {
       let path = url_path(url.as_str());
-      ("local".to_owned(), path.map(|p| format!("/_/{p}")))
+      let path = path.map(|p| format!("/_/{p}"));
+      html! {
+        @if let Some(path) = path {
+          var .accent.bg-accent.bd-accent {
+            a href=(path) { "local" }
+          }
+        } @else {
+          var .accent.bg-accent.bd-accent title=(url) {
+            "local"
+          }
+        }
+      }
     }
     Some(SourceConfig::Simple(url)) => {
       let host = url_host(url.as_str()).unwrap_or_else(|| "...".into());
-      (host, Some(url.clone()))
+      html! {
+        var .accent.bg-accent.bd-accent {
+          a href=(url) { (host) }
+        }
+      }
     }
-    Some(SourceConfig::FromScratch(_)) => ("scratch".to_owned(), None),
-    Some(SourceConfig::Templated(source)) => ("templated".to_owned(), None),
+    Some(SourceConfig::FromScratch(_)) => {
+      html! {
+        var title="Made from scratch" .attention.bg-attention.bd-attention { "scratch" }
+      }
+    }
+    Some(SourceConfig::Templated(_source)) => {
+      html! {
+        var title="Templated source" .attention.bg-attention.bd-attention { "templated" }
+      }
+    }
   }
 }
