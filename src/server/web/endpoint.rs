@@ -1,4 +1,3 @@
-use axum::extract::Path;
 use duration_str::HumanFormat as _;
 use either::Either;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
@@ -15,8 +14,10 @@ use crate::{
 pub async fn render_endpoint_page(
   endpoint: EndpointService,
   path: String,
+  param: EndpointParam,
 ) -> Markup {
-  let path = path.trim_start_matches("/_").to_owned();
+  // render source control
+  let source = source_control_fragment(&path, endpoint.source(), &param);
 
   // render config
   let config = render_config_fragment(&endpoint);
@@ -26,7 +27,7 @@ pub async fn render_endpoint_page(
     render_topmost_filter_pipeline_fragment(&endpoint.config().filters);
 
   // render feed preview
-  let feed = fetch_and_render_feed(endpoint, EndpointParam::default()).await;
+  let feed = fetch_and_render_feed(endpoint, param).await;
 
   html! {
     (DOCTYPE)
@@ -42,6 +43,10 @@ pub async fn render_endpoint_page(
         h2 { (path) }
 
         div {
+          @if let Some(source) = source {
+            (source)
+          }
+
           details open="" {
             summary { "Configuration" }
             section .config-section {
@@ -63,16 +68,33 @@ pub async fn render_endpoint_page(
   }
 }
 
-fn source_control_fragment(source: &Option<Source>) -> Option<Markup> {
+fn source_control_fragment(
+  path: &str,
+  source: &Option<Source>,
+  param: &EndpointParam,
+) -> Option<Markup> {
   match source {
     None => Some(html! {
-      input type="text" placeholder="Source URL" {}
+      input type="text"
+        name="source"
+        placeholder="Source URL"
+        value=[param.source().map(|url| url.as_str())]
+        hx-get=(format!("/_/endpoint/{path}"))
+        hx-trigger="keyup changed delay:500ms"
+        hx-push-url="true"
+        hx-target="body"
+      {}
+    }),
+    Some(Source::AbsoluteUrl(url)) => Some(html! {
+      div { (url) }
+    }),
+    Some(Source::RelativeUrl(url)) => Some(html! {
+      div { (url) }
     }),
     Some(Source::Templated(templated)) => {
       Some(source_template_fragment(templated))
     }
     Some(Source::FromScratch(scratch)) => Some(from_scratch_fragment(scratch)),
-    _ => None,
   }
 }
 
@@ -131,7 +153,6 @@ fn source_template_fragment(templated: &crate::source::Templated) -> Markup {
 
 fn render_config_fragment(endpoint: &EndpointService) -> Markup {
   let config = endpoint.config();
-  let source = endpoint.source();
 
   html! {
     table {
@@ -142,19 +163,6 @@ fn render_config_fragment(endpoint: &EndpointService) -> Markup {
             "Enabled"
           } @else {
             "Disabled"
-          }
-        }
-      }
-      tr {
-        th { "Source" }
-        td {
-          @if let Some(fragment) = source_control_fragment(source) {
-            details {
-              summary { "source summary placeholder" }
-              section title="control" { (fragment) }
-            }
-          } @else {
-            "source summary placeholder 2"
           }
         }
       }
@@ -259,13 +267,13 @@ fn render_nested_filter_pipeline_fragment(
 
 fn render_filter_pipeline_fragment(
   filters: &FilterPipelineConfig,
-  render_index: bool,
-  render_header: bool,
+  _render_index: bool,
+  _render_header: bool,
 ) -> Markup {
   html! {
     nav {
       ul {
-        @for (i, filter) in filters.filters.iter().enumerate() {
+        @for filter in &filters.filters {
           var { (filter.name()) }
           li {
             @match filter {
@@ -316,12 +324,12 @@ fn render_feed(feed: &Feed) -> Markup {
   let preview = feed.preview();
 
   html! {
+    aside style="padding:0 1rem" { a href=(preview.link) { "Site link" } }
     h3 { (preview.title) }
-    p { a href=(preview.link) { "External link" } }
     @if let Some(description) = &preview.description {
       p { (description) }
     }
-    p .clearfix { (format!("Entries ({}):", preview.posts.len())) }
+    p style="clear:both" { (format!("Entries ({}):", preview.posts.len())) }
 
     @for post in preview.posts {
       @let id = format!("post-{}", rand_id());

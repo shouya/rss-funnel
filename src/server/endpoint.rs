@@ -125,6 +125,10 @@ pub struct EndpointParam {
 }
 
 impl EndpointParam {
+  pub fn source(&self) -> Option<&Url> {
+    self.source.as_ref()
+  }
+
   pub const fn all_fields() -> &'static [&'static str] {
     &["source", "limit_filters", "limit_posts"]
   }

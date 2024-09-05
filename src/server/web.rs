@@ -3,14 +3,14 @@ mod filters;
 mod list;
 
 use axum::{
-  extract::Path,
+  extract::{Path, Query},
   response::{IntoResponse, Response},
   routing, Extension, Router,
 };
 use http::StatusCode;
 use maud::{html, Markup};
 
-use super::feed_service::FeedService;
+use super::{feed_service::FeedService, EndpointParam};
 
 pub fn router() -> Router {
   Router::new()
@@ -26,13 +26,14 @@ async fn handle_home(Extension(service): Extension<FeedService>) -> Markup {
 async fn handle_endpoint(
   Path(path): Path<String>,
   Extension(service): Extension<FeedService>,
+  Query(param): Query<EndpointParam>,
 ) -> Result<Markup, Response> {
   let endpoint = service.get_endpoint(&path).await.ok_or_else(|| {
     (StatusCode::NOT_FOUND, format!("Endpoint {path} not found"))
       .into_response()
   })?;
 
-  Ok(endpoint::render_endpoint_page(endpoint, path).await)
+  Ok(endpoint::render_endpoint_page(endpoint, path, param).await)
 }
 
 fn header_libs_fragment() -> Markup {
