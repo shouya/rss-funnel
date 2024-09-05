@@ -7,7 +7,7 @@ use crate::{
   feed::Feed,
   filter::FilterConfig,
   filter_pipeline::FilterPipelineConfig,
-  server::{endpoint::EndpointService, EndpointParam},
+  server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
 };
 
@@ -324,8 +324,10 @@ fn render_feed(feed: &Feed) -> Markup {
   let preview = feed.preview();
 
   html! {
-    aside style="padding:0 1rem" { a href=(preview.link) { "Site link" } }
-    h3 { (preview.title) }
+    h3 style="display:flex" {
+      (preview.title);
+      (external_link(&preview.link))
+    }
     @if let Some(description) = &preview.description {
       p { (description) }
     }
@@ -335,10 +337,14 @@ fn render_feed(feed: &Feed) -> Markup {
       @let id = format!("post-{}", rand_id());
       article id=(id) data-display-mode="rendered" data-folded="true" .post-entry {
         header .flex {
-          iconbutton .fold onclick="toggleFold(this)" title="Show/hide" { }
-          iconbutton .display-mode onclick="toggleDisplayMode(this)" title="Toggle raw"  { }
+          span .icon-container.fold-icon onclick="toggleFold(this)" title="Toggle fold" {
+            (sprite("caret-right"))
+          }
+          span .icon-container.raw-icon  onclick="toggleRaw(this)" title="Toggle HTML" {
+            (sprite("source-code"))
+          }
 
-          div .row.grow { a href=(post.link) { (post.title) } }
+          div .row.flex.grow style="margin-left: .5rem" { (post.title); (external_link(&preview.link)) }
         }
         @if let Some(body) = &post.body {
           section {
@@ -378,19 +384,25 @@ fn rand_id() -> String {
 
 fn inline_styles() -> &'static str {
   r#"
+  .icon {
+    transition: all 0.2s;
+  }
+
   .post-entry {
     margin-left: 0 !important;
     margin-right: 0 !important;
 
+    .icon-container {
+      display: inline-flex;
+      align-self: center;
+    }
+
     &[data-folded="false"] {
-      iconbutton.fold::before {
-        content: "▲";
+      .fold-icon > .icon {
+        transform: rotate(90deg);
       }
     }
     &[data-folded="true"] {
-      iconbutton.fold::before {
-        content: "▼";
-      }
       header {
         border: 0 !important;
         margin-bottom: 0 !important;
@@ -402,37 +414,22 @@ fn inline_styles() -> &'static str {
       }
     }
 
-
     .entry-content {
       display: none;
     }
-
     &[data-display-mode="rendered"] {
-      iconbutton.display-mode::before {
-        content: "📝";
-      }
       .entry-content.rendered {
         display: block;
       }
     }
     &[data-display-mode="raw"] {
-      iconbutton.display-mode::before {
-        content: "📄";
+      .raw-icon > .icon {
+        color: var(--active);
       }
       .entry-content.raw {
         display: block;
       }
     }
-  }
-
-  iconbutton {
-    cursor: pointer;
-    display: inline-block;
-    font-size: 1.5rem;
-    line-height: 1.5rem;
-    text-align: center;
-    vertical-align: middle;
-    margin-right: 0.5rem;
   }
   "#
 }
@@ -444,10 +441,20 @@ fn inline_script() -> &'static str {
     article.dataset.folded = article.dataset.folded === "false";
   }
 
-  function toggleDisplayMode(element) {
+  function toggleRaw(element) {
     const article = element.closest("article");
     article.dataset.displayMode =
       article.dataset.displayMode === "rendered" ? "raw" : "rendered";
   }
   "#
+}
+
+// requires the container to have a `display: flex` style
+fn external_link(url: &str) -> Markup {
+  html! {
+    a style="margin-left: 0.25rem;display:inline-flex;align-self:center"
+      href=(url) {
+      (sprite("external-link"))
+    }
+  }
 }

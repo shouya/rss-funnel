@@ -16,6 +16,12 @@ pub fn router() -> Router {
   Router::new()
     .route("/", routing::get(handle_home))
     .route("/endpoint/:path", routing::get(handle_endpoint))
+    .route("/sprite.svg", routing::get(handle_sprite))
+}
+
+async fn handle_sprite() -> impl IntoResponse {
+  let svg = include_str!("../../static/sprite.svg");
+  (StatusCode::OK, [("Content-Type", "image/svg+xml")], svg)
 }
 
 async fn handle_home(Extension(service): Extension<FeedService>) -> Markup {
@@ -51,4 +57,12 @@ fn header_libs_fragment() -> Markup {
 
 fn extra_styles() -> &'static str {
   r#""#
+}
+
+pub fn sprite(icon: &str) -> Markup {
+  html! {
+    svg class="icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" {
+      use xlink:href=(format!("/_/sprite.svg#{icon}"));
+    }
+  }
 }
