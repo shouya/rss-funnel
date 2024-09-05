@@ -32,7 +32,7 @@ async fn handle_endpoint(
       .into_response()
   })?;
 
-  Ok(endpoint::render_endpoint_page(&endpoint))
+  Ok(endpoint::render_endpoint_page(endpoint, path).await)
 }
 
 fn header_libs_fragment() -> Markup {
@@ -43,15 +43,11 @@ fn header_libs_fragment() -> Markup {
     link
       rel="stylesheet"
       href="https://matcha.mizu.sh/matcha.css"
-      referrerpolicy="no-referrer" {}
+      referrerpolicy="no-referrer";
     style { (maud::PreEscaped(extra_styles())) }
   }
 }
 
 fn extra_styles() -> &'static str {
-  r#"
-  details, ul, ol {
-    margin: 0;
-  }
-"#
+  r#""#
 }

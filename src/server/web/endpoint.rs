@@ -1,17 +1,22 @@
+use axum::extract::Path;
 use duration_str::HumanFormat as _;
 use either::Either;
-use maud::{html, Markup, DOCTYPE};
+use maud::{html, Markup, PreEscaped, DOCTYPE};
 
 use crate::{
   client::ClientConfig,
+  feed::Feed,
   filter::FilterConfig,
   filter_pipeline::FilterPipelineConfig,
-  server::endpoint::EndpointService,
+  server::{endpoint::EndpointService, EndpointParam},
   source::{FromScratch, Source},
 };
 
-pub fn render_endpoint_page(endpoint: &EndpointService) -> Markup {
-  let path = "TODO: render path";
+pub async fn render_endpoint_page(
+  endpoint: EndpointService,
+  path: String,
+) -> Markup {
+  let path = path.trim_start_matches("/_").to_owned();
 
   // render config
   let config = render_config_fragment(&endpoint);
@@ -21,30 +26,36 @@ pub fn render_endpoint_page(endpoint: &EndpointService) -> Markup {
     render_topmost_filter_pipeline_fragment(&endpoint.config().filters);
 
   // render feed preview
-  let feed = "TODO: render feed";
+  let feed = fetch_and_render_feed(endpoint, EndpointParam::default()).await;
 
   html! {
     (DOCTYPE)
     head {
       title { "RSS Funnel" }
       meta charset="utf-8";
-      (super::header_libs_fragment())
+      (super::header_libs_fragment());
+      script { (PreEscaped(inline_script())) }
+      style { (PreEscaped(inline_styles())) }
     }
     body {
-      h1 { "RSS Funnel" }
       main {
         h2 { (path) }
-        section .config-section {
-          (config)
-        }
 
-        section .filters-section {
-          h3 { "Filter pipeline" }
-          (filters)
+        div {
+          details open="" {
+            summary { "Configuration" }
+            section .config-section {
+              (config)
+            }
+          }
+
+          details .filters-section {
+            summary { "Filters" }
+            (filters)
+          }
         }
 
         section .feed-section {
-          h3 { "Feed" }
           (feed)
         }
       }
@@ -282,4 +293,153 @@ fn render_filter_pipeline_fragment(
       }
     }
   }
+}
+
+async fn fetch_and_render_feed(
+  endpoint: EndpointService,
+  params: EndpointParam,
+) -> Markup {
+  let feed = match endpoint.run(params).await {
+    Ok(feed) => feed,
+    Err(e) => {
+      return html! {
+        p { "Failed to fetch feed:" }
+        p { (e.to_string()) }
+      };
+    }
+  };
+
+  render_feed(&feed)
+}
+
+fn render_feed(feed: &Feed) -> Markup {
+  let preview = feed.preview();
+
+  html! {
+    h3 { (preview.title) }
+    p { a href=(preview.link) { "External link" } }
+    @if let Some(description) = &preview.description {
+      p { (description) }
+    }
+    p .clearfix { (format!("Entries ({}):", preview.posts.len())) }
+
+    @for post in preview.posts {
+      @let id = format!("post-{}", rand_id());
+      article id=(id) data-display-mode="rendered" data-folded="true" .post-entry {
+        header .flex {
+          iconbutton .fold onclick="toggleFold(this)" title="Show/hide" { }
+          iconbutton .display-mode onclick="toggleDisplayMode(this)" title="Toggle raw"  { }
+
+          div .row.grow { a href=(post.link) { (post.title) } }
+        }
+        @if let Some(body) = &post.body {
+          section {
+            div .entry-content.rendered {
+              template shadowrootmode="open" {
+                (PreEscaped(body))
+              }
+            }
+            div .entry-content.raw {
+              pre { (body) }
+            }
+          }
+
+        } @else {
+          section { "No body" }
+        }
+        footer {
+          @if let Some(date) = post.date {
+            time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
+          }
+          @if let Some(author) = &post.author {
+            span .ml-1 {
+              ("By");
+              address .inline rel="author" { (author) }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+fn rand_id() -> String {
+  // quick and dirty random id generator
+  rand::random::<u64>().to_string()
+}
+
+fn inline_styles() -> &'static str {
+  r#"
+  .post-entry {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    &[data-folded="false"] {
+      iconbutton.fold::before {
+        content: "▲";
+      }
+    }
+    &[data-folded="true"] {
+      iconbutton.fold::before {
+        content: "▼";
+      }
+      header {
+        border: 0 !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      section, footer {
+        display: none;
+      }
+    }
+
+
+    .entry-content {
+      display: none;
+    }
+
+    &[data-display-mode="rendered"] {
+      iconbutton.display-mode::before {
+        content: "📝";
+      }
+      .entry-content.rendered {
+        display: block;
+      }
+    }
+    &[data-display-mode="raw"] {
+      iconbutton.display-mode::before {
+        content: "📄";
+      }
+      .entry-content.raw {
+        display: block;
+      }
+    }
+  }
+
+  iconbutton {
+    cursor: pointer;
+    display: inline-block;
+    font-size: 1.5rem;
+    line-height: 1.5rem;
+    text-align: center;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+  }
+  "#
+}
+
+fn inline_script() -> &'static str {
+  r#"
+  function toggleFold(element) {
+    const article = element.closest("article");
+    article.dataset.folded = article.dataset.folded === "false";
+  }
+
+  function toggleDisplayMode(element) {
+    const article = element.closest("article");
+    article.dataset.displayMode =
+      article.dataset.displayMode === "rendered" ? "raw" : "rendered";
+  }
+  "#
 }
