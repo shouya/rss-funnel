@@ -77,15 +77,21 @@ fn source_control_fragment(
 ) -> Option<Markup> {
   match source {
     None => Some(html! {
-      input type="text"
-        name="source"
-        placeholder="Source URL"
-        value=[param.source().map(|url| url.as_str())]
-        hx-get=(format!("/_/endpoint/{path}"))
-        hx-trigger="keyup changed delay:500ms"
-        hx-push-url="true"
-        hx-target="body"
-      {}
+      div style="display: flex; position: relative;" {
+        input
+          style="flex-grow: 1;"
+          type="text"
+          name="source"
+          placeholder="Source URL"
+          value=[param.source().map(|url| url.as_str())]
+          hx-get=(format!("/_/endpoint/{path}"))
+          hx-trigger="keyup changed delay:500ms"
+          hx-push-url="true"
+          hx-indicator=".loading"
+          hx-target="body"
+        {}
+        div.loading { (sprite("loader")) }
+      }
     }),
     Some(Source::AbsoluteUrl(url)) => Some(html! {
       div .source.absolute { (url) }
@@ -309,17 +315,15 @@ async fn fetch_and_render_feed(
   endpoint: EndpointService,
   params: EndpointParam,
 ) -> Markup {
-  let feed = match endpoint.run(params).await {
-    Ok(feed) => feed,
-    Err(e) => {
-      return html! {
+  html! {
+    @match endpoint.run(params).await {
+      Ok(feed) => (render_feed(&feed)),
+      Err(e) => {
         p { "Failed to fetch feed:" }
         p { (e.to_string()) }
-      };
+      }
     }
-  };
-
-  render_feed(&feed)
+  }
 }
 
 fn render_post(post: PostPreview) -> Markup {
@@ -438,6 +442,24 @@ fn inline_styles() -> &'static str {
 
   .source {
     font-family: monospace;
+  }
+
+  @keyframes rotation {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .loading {
+    display: none;
+    position: absolute;
+    right: 0.5rem;
+    align-items: center;
+    height: 100%;
+
+    &.htmx-request {
+      display: flex;
+      animation: rotation 2s infinite linear;
+    }
   }
   "#
 }
