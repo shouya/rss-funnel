@@ -40,6 +40,7 @@ pub async fn render_endpoint_page(
     }
     body {
       main {
+        span style="float:left; margin-right: 2rem;" { a href="/_/" { "Back" } }
         h2 { (path) }
 
         div {
@@ -86,10 +87,10 @@ fn source_control_fragment(
       {}
     }),
     Some(Source::AbsoluteUrl(url)) => Some(html! {
-      div { (url) }
+      div .source.absolute { (url) }
     }),
     Some(Source::RelativeUrl(url)) => Some(html! {
-      div { (url) }
+      div .source.relative { (url) }
     }),
     Some(Source::Templated(templated)) => {
       Some(source_template_fragment(templated))
@@ -430,6 +431,10 @@ fn inline_styles() -> &'static str {
         display: block;
       }
     }
+  }
+
+  .source {
+    font-family: monospace;
   }
   "#
 }
