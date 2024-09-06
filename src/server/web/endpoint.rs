@@ -1,10 +1,11 @@
 use duration_str::HumanFormat as _;
 use either::Either;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
+use url::Url;
 
 use crate::{
   client::ClientConfig,
-  feed::Feed,
+  feed::{Feed, PostPreview},
   filter::FilterConfig,
   filter_pipeline::FilterPipelineConfig,
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
@@ -321,6 +322,51 @@ async fn fetch_and_render_feed(
   render_feed(&feed)
 }
 
+fn render_post(post: PostPreview) -> Markup {
+  let link_url = Url::parse(&post.link).ok();
+
+  html! {
+    article data-display-mode="rendered" data-folded="true" .post-entry {
+      header .flex {
+        span .icon-container.fold-icon onclick="toggleFold(this)" title="Toggle fold" {
+          (sprite("caret-right"))
+        }
+        span .icon-container.raw-icon  onclick="toggleRaw(this)" title="Toggle HTML" {
+          (sprite("source-code"))
+        }
+
+        div .row.flex.grow style="margin-left: .5rem" { (post.title); (external_link(&post.link)) }
+      }
+      @if let Some(body) = &post.body {
+        section {
+          div .entry-content.rendered {
+            template shadowrootmode="open" {
+              (PreEscaped(santize_html(body, link_url)))
+            }
+          }
+          div .entry-content.raw {
+            pre { (body) }
+          }
+        }
+
+      } @else {
+        section { "No body" }
+      }
+      footer {
+        @if let Some(date) = post.date {
+          time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
+        }
+        @if let Some(author) = &post.author {
+          span .ml-1 {
+            ("By");
+            address .inline rel="author" { (author) }
+          }
+        }
+      }
+    }
+  }
+}
+
 fn render_feed(feed: &Feed) -> Markup {
   let preview = feed.preview();
 
@@ -335,52 +381,9 @@ fn render_feed(feed: &Feed) -> Markup {
     p style="clear:both" { (format!("Entries ({}):", preview.posts.len())) }
 
     @for post in preview.posts {
-      @let id = format!("post-{}", rand_id());
-      article id=(id) data-display-mode="rendered" data-folded="true" .post-entry {
-        header .flex {
-          span .icon-container.fold-icon onclick="toggleFold(this)" title="Toggle fold" {
-            (sprite("caret-right"))
-          }
-          span .icon-container.raw-icon  onclick="toggleRaw(this)" title="Toggle HTML" {
-            (sprite("source-code"))
-          }
-
-          div .row.flex.grow style="margin-left: .5rem" { (post.title); (external_link(&preview.link)) }
-        }
-        @if let Some(body) = &post.body {
-          section {
-            div .entry-content.rendered {
-              template shadowrootmode="open" {
-                (PreEscaped(body))
-              }
-            }
-            div .entry-content.raw {
-              pre { (body) }
-            }
-          }
-
-        } @else {
-          section { "No body" }
-        }
-        footer {
-          @if let Some(date) = post.date {
-            time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
-          }
-          @if let Some(author) = &post.author {
-            span .ml-1 {
-              ("By");
-              address .inline rel="author" { (author) }
-            }
-          }
-        }
-      }
+      (render_post(post))
     }
   }
-}
-
-fn rand_id() -> String {
-  // quick and dirty random id generator
-  rand::random::<u64>().to_string()
 }
 
 fn inline_styles() -> &'static str {
@@ -462,4 +465,13 @@ fn external_link(url: &str) -> Markup {
       (sprite("external-link"))
     }
   }
+}
+
+fn santize_html(html: &str, base: Option<Url>) -> String {
+  use ammonia::UrlRelative;
+  let mut builder = ammonia::Builder::new();
+  if let Some(base) = base {
+    builder.url_relative(UrlRelative::RewriteWithBase(base));
+  }
+  builder.clean(html).to_string()
 }
