@@ -15,7 +15,7 @@ use crate::{
 pub async fn render_endpoint_page(
   endpoint: EndpointService,
   path: String,
-  param: EndpointParam,
+  param: Result<EndpointParam, String>,
 ) -> Markup {
   // render source control
   let source = source_control_fragment(&path, endpoint.source(), &param);
@@ -28,7 +28,15 @@ pub async fn render_endpoint_page(
     render_topmost_filter_pipeline_fragment(&endpoint.config().filters);
 
   // render feed preview
-  let feed = fetch_and_render_feed(endpoint, param).await;
+  let feed = match param {
+    Ok(param) => fetch_and_render_feed(endpoint, param).await,
+    Err(e) => html! {
+      div .flash.danger {
+        header { b { "Invalid request params" } }
+        p { (e) }
+      }
+    },
+  };
 
   html! {
     (DOCTYPE)
@@ -40,31 +48,29 @@ pub async fn render_endpoint_page(
       style { (PreEscaped(inline_styles())) }
     }
     body {
-      main {
-        span style="float:left; margin-right: 2rem;" { a href="/_/" { "Back" } }
-        h2 { (path) }
+      span style="float:left; margin-right: 2rem;" { a href="/_/" { "Back" } }
+      h2 { (path) }
 
-        div {
-          @if let Some(source) = source {
-            (source)
-          }
+      div {
+        @if let Some(source) = source {
+          (source)
+        }
 
-          details open="" {
-            summary { "Configuration" }
-            section .config-section {
-              (config)
-            }
-          }
-
-          details .filters-section {
-            summary { "Filters" }
-            (filters)
+        details open="" {
+          summary { "Configuration" }
+          section .config-section {
+            (config)
           }
         }
 
-        section .feed-section {
-          (feed)
+        details .filters-section {
+          summary { "Filters" }
+          (filters)
         }
+      }
+
+      main .feed-section {
+        (feed)
       }
     }
   }
@@ -73,7 +79,7 @@ pub async fn render_endpoint_page(
 fn source_control_fragment(
   path: &str,
   source: &Option<Source>,
-  param: &EndpointParam,
+  param: &Result<EndpointParam, String>,
 ) -> Option<Markup> {
   match source {
     None => Some(html! {
@@ -83,7 +89,7 @@ fn source_control_fragment(
           type="text"
           name="source"
           placeholder="Source URL"
-          value=[param.source().map(|url| url.as_str())]
+          value=[param.as_ref().ok().and_then(|p| p.source()).map(|url| url.as_str())]
           hx-get=(format!("/_/endpoint/{path}"))
           hx-trigger="keyup changed delay:500ms"
           hx-push-url="true"
@@ -319,8 +325,10 @@ async fn fetch_and_render_feed(
     @match endpoint.run(params).await {
       Ok(feed) => (render_feed(&feed)),
       Err(e) => {
-        p { "Failed to fetch feed:" }
-        p { (e.to_string()) }
+        div .flash.danger {
+          header { b { "Failed to fetch feed" } }
+          p { (e.to_string()) }
+        }
       }
     }
   }

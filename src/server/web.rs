@@ -3,7 +3,7 @@ mod filters;
 mod list;
 
 use axum::{
-  extract::{Path, Query},
+  extract::{rejection::QueryRejection, Path, Query},
   response::{IntoResponse, Response},
   routing, Extension, Router,
 };
@@ -32,13 +32,14 @@ async fn handle_home(Extension(service): Extension<FeedService>) -> Markup {
 async fn handle_endpoint(
   Path(path): Path<String>,
   Extension(service): Extension<FeedService>,
-  Query(param): Query<EndpointParam>,
+  param: Result<Query<EndpointParam>, QueryRejection>,
 ) -> Result<Markup, Response> {
   let endpoint = service.get_endpoint(&path).await.ok_or_else(|| {
     (StatusCode::NOT_FOUND, format!("Endpoint {path} not found"))
       .into_response()
   })?;
 
+  let param = param.map(|q| q.0).map_err(|e| e.body_text());
   Ok(endpoint::render_endpoint_page(endpoint, path, param).await)
 }
 
