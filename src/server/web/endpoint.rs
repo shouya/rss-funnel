@@ -260,8 +260,11 @@ fn render_post(post: PostPreview) -> Markup {
       }
       @if let Some(body) = &post.body {
         section {
-          div .entry-content.rendered {
+          div .entry-content.rendered style="overflow-x: scroll" {
             template shadowrootmode="open" {
+              style {
+                (PreEscaped("* { max-width: 100%; }"))
+              }
               (PreEscaped(santize_html(body, link_url)))
             }
           }
@@ -279,7 +282,7 @@ fn render_post(post: PostPreview) -> Markup {
         }
         @if let Some(author) = &post.author {
           span .ml-1 {
-            ("By");
+            (PreEscaped("By&nbsp;"));
             address .inline rel="author" { (author) }
           }
         }
