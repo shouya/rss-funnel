@@ -107,6 +107,7 @@ impl Templated {
   }
 
   // https://foo.bar/${name}/baz -> https://foo.bar
+  #[expect(unused)]
   pub fn base(&self) -> Option<String> {
     let mut url = Url::parse(&self.template).ok()?;
     let host = url.host_str()?;

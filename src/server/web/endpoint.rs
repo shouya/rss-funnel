@@ -6,7 +6,6 @@ use url::Url;
 use crate::{
   client::ClientConfig,
   feed::{Feed, PostPreview},
-  filter::FilterConfig,
   filter_pipeline::FilterPipelineConfig,
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
@@ -24,8 +23,7 @@ pub async fn render_endpoint_page(
   let config = render_config_fragment(&endpoint);
 
   // render config
-  let filters =
-    render_topmost_filter_pipeline_fragment(&endpoint.config().filters);
+  let filters = render_filter_pipeline_fragment(&endpoint.config().filters);
 
   // render feed preview
   let feed = match param {
@@ -267,48 +265,18 @@ fn client_fragment(client: &ClientConfig) -> Markup {
   }
 }
 
-fn render_topmost_filter_pipeline_fragment(
-  filters: &FilterPipelineConfig,
-) -> Markup {
-  render_filter_pipeline_fragment(filters, true, true)
-}
-
-fn render_nested_filter_pipeline_fragment(
-  filters: &FilterPipelineConfig,
-) -> Markup {
-  render_filter_pipeline_fragment(filters, false, false)
-}
-
-fn render_filter_pipeline_fragment(
-  filters: &FilterPipelineConfig,
-  _render_index: bool,
-  _render_header: bool,
-) -> Markup {
+fn render_filter_pipeline_fragment(filters: &FilterPipelineConfig) -> Markup {
   html! {
-    nav {
-      ul {
-        @for filter in &filters.filters {
-          var { (filter.name()) }
-          li {
-            @match filter {
-              FilterConfig::Js(conf) => (conf),
-              FilterConfig::ModifyPost(conf) => (conf),
-              FilterConfig::ModifyFeed(conf) => (conf),
-              FilterConfig::FullText(_conf) => ("TODO: render filter"),
-              FilterConfig::SimplifyHtml(_conf) => ("TODO: render filter"),
-              FilterConfig::RemoveElement(_conf) => ("TODO: render filter"),
-              FilterConfig::KeepElement(_conf) => ("TODO: render filter"),
-              FilterConfig::Split(_conf) => ("TODO: render filter"),
-              FilterConfig::Sanitize(_conf) => ("TODO: render filter"),
-              FilterConfig::KeepOnly(_conf) => ("TODO: render filter"),
-              FilterConfig::Discard(_conf) => ("TODO: render filter"),
-              FilterConfig::Highlight(_conf) => ("TODO: render filter"),
-              FilterConfig::Merge(conf) => (conf),
-              FilterConfig::Note(_conf) => ("TODO: render filter"),
-              FilterConfig::ConvertTo(_conf) => ("TODO: render filter"),
-              FilterConfig::Limit(_conf) => ("TODO: render filter"),
-              FilterConfig::Magnet(_conf) => ("TODO: render filter"),
-              FilterConfig::ImageProxy(_conf) => ("TODO: render filter"),
+    ul {
+      @for filter in &filters.filters {
+        li .filter-item {
+          // TODO: support toggling individual filters
+          var .filter-name title="Toggle" { (filter.name()) }
+          @if let Ok(yaml) = filter.to_yaml() {
+            // TODO: show help button
+            div .filter-link {}
+            div .filter-definition {
+              pre { (yaml) }
             }
           }
         }
@@ -467,6 +435,38 @@ fn inline_styles() -> &'static str {
     &.htmx-request {
       display: flex;
       animation: rotation 2s infinite linear;
+    }
+  }
+
+  .filter-item {
+    position: relative;
+
+    > var {
+      cursor: pointer;
+    }
+
+    > .filter-definition, .filter-link {
+      display: none;
+    }
+
+    &:hover > .filter-link {
+      display: inline-block;
+      border-top: 1px solid var(--bd-muted);
+      border-bottom: 1px solid var(--bd-muted);
+      margin-left: 0.2rem;
+      width: 15rem;
+      vertical-align: middle;
+    }
+
+    &:hover > .filter-definition {
+      display: block;
+      position: absolute;
+      left: 15rem;
+      top: 0;
+      z-index: 1;
+      border: 1px solid var(--bd-muted);
+      border-radius: var(--bd-radius);
+      box-shadow: 1px 2px 3px var(--bd-muted);
     }
   }
   "#

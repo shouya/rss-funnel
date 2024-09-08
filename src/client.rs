@@ -22,24 +22,31 @@ struct HttpFixture {
   content: String,
 }
 
+#[serde_with::skip_serializing_none]
 #[derive(
   JsonSchema, Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, Hash,
 )]
 pub struct ClientConfig {
   /// The "user-agent" header to send with requests
+  #[serde(default)]
   pub user_agent: Option<String>,
   /// The "accept" header to send with requests
+  #[serde(default)]
   pub accept: Option<String>,
   /// The "cookie" header to send with requests (Deprecated, specify "cookie" field instead)
+  #[serde(default)]
   pub set_cookie: Option<String>,
   /// The "cookie" header to send with requests
+  #[serde(default)]
   pub cookie: Option<String>,
   /// The "referer" header to send with requests
+  #[serde(default)]
   pub referer: Option<String>,
   /// Ignore tls error
   #[serde(default)]
   pub accept_invalid_certs: bool,
   /// The maximum number of cached responses
+  #[serde(default)]
   pub cache_size: Option<usize>,
   /// The maximum time a response is kept in the cache (Format: "4s",
   /// 10m", "1h", "1d")

@@ -1,5 +1,4 @@
 mod endpoint;
-mod filters;
 mod list;
 
 use axum::{

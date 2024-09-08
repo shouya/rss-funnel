@@ -187,6 +187,10 @@ macro_rules! define_filters {
         }
       }
 
+      pub fn to_yaml(&self) -> Result<String, ConfigError> {
+        Ok(serde_yaml::to_string(self)?)
+      }
+
       pub fn name(&self) -> &'static str {
         match self {
           $(FilterConfig::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*

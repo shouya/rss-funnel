@@ -83,8 +83,8 @@ impl FeedFilterConfig for JsConfig {
 
   async fn build(self) -> Result<Self::Filter, ConfigError> {
     let runtime = Runtime::new().await?;
-    runtime.eval(&self.code).await?;
-    runtime.eval(MODIFY_POSTS_CODE).await?;
+    let () = runtime.eval(&self.code).await?;
+    let () = runtime.eval(MODIFY_POSTS_CODE).await?;
 
     Ok(Self::Filter { runtime })
   }
