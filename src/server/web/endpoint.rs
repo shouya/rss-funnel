@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
-use duration_str::HumanFormat as _;
 use either::Either;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 use url::Url;
 
 use crate::{
-  client::ClientConfig,
   feed::{Feed, PostPreview},
-  filter_pipeline::FilterPipelineConfig,
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
 };
@@ -23,9 +20,6 @@ pub async fn render_endpoint_page(
 
   // render config
   let config = render_config_fragment(&endpoint);
-
-  // render config
-  let filters = render_filter_pipeline_fragment(&endpoint.config().filters);
 
   // render feed preview
   let feed = match param {
@@ -48,8 +42,12 @@ pub async fn render_endpoint_page(
       style { (PreEscaped(inline_styles())) }
     }
     body {
-      span style="float:left; margin-right: 2rem;" { a href="/_/" { "Back" } }
-      header { h2 { (path) } }
+      header .header-bar {
+        button .back-button {
+          a href="/_/" { "Back" }
+        }
+        h2 { (path) }
+      }
 
       section {
         @if let Some(source) = source {
@@ -104,7 +102,7 @@ fn source_control_fragment(
       div title="Source" .source { (url) }
     }),
     Some(Source::Templated(templated)) => Some(html! {
-      div style="display: flex; position: relative; align-items: center;" {
+      div style="display: flex; position: relative; align-items: baseline;" {
         @let queries = param.as_ref().ok().map(|p| p.extra_queries());
         (source_template_fragment(templated, path, queries));
         div.loading { (sprite("loader")) }
@@ -222,82 +220,6 @@ fn render_config_fragment(endpoint: &EndpointService) -> Markup {
               }
             }
           }
-        }
-      }
-    }
-  }
-}
-
-fn client_fragment(client: &ClientConfig) -> Markup {
-  html! {
-    table {
-      @if let Some(user_agent) = &client.user_agent {
-        tr {
-          th { "User-Agent" }
-          td { (user_agent) }
-        }
-      }
-
-      @if let Some(accept) = &client.accept {
-        tr {
-          th { "Accept" }
-          td { (accept) }
-        }
-      }
-
-      @if let Some(cookie) = (client.cookie.as_ref()).or(client.set_cookie.as_ref()) {
-        tr {
-          th { "Cookie" }
-          td { (cookie) }
-        }
-      }
-
-      @if let Some(referer) = &client.referer {
-        tr {
-          th { "Referer" }
-          td { (referer) }
-        }
-      }
-
-      @if client.accept_invalid_certs {
-        tr {
-          th { "Accept invalid certs" }
-          td { "Yes" }
-        }
-      }
-
-      @if let Some(proxy) = &client.proxy {
-        tr {
-          th { "Proxy" }
-          td { (proxy) }
-        }
-      }
-
-      @if let Some(timeout) = &client.timeout {
-        tr {
-          th { "Timeout" }
-          td { (timeout.human_format()) }
-        }
-      }
-
-      @if let Some(cache_size) = &client.cache_size {
-        tr {
-          th { "Cache size" }
-          td { (cache_size) }
-        }
-      }
-
-      @if let Some(cache_ttl) = &client.cache_ttl {
-        tr {
-          th { "Cache TTL" }
-          td { (cache_ttl.human_format()) }
-        }
-      }
-
-      @if let Some(assume_content_type) = &client.assume_content_type {
-        tr {
-          th { "Assume content type" }
-          td { (assume_content_type) }
         }
       }
     }
@@ -489,9 +411,38 @@ fn inline_styles() -> &'static str {
     }
   }
 
+  .source-control {
+    background-color: var(--bg-active);
+    padding: 1rem;
+    border-radius: var(--bd-radius);
+  }
   .source-template-placeholder {
     width: auto;
     display: inline-block;
+  }
+
+
+  main.feed-section {
+    background-color: var(--bg-muted);
+    padding: 1.5rem;
+    border-radius: var(--bd-radius);
+  }
+
+  .header-bar {
+    margin: 1rem 0 !important;
+    padding-bottom: 1rem;
+    border-bottom: 1.5px dotted;
+    display: flex;
+    align-items: center;
+
+    > button {
+      float:left;
+      margin-right: 2rem;
+
+      a:hover {
+        color: var(--bg-accent);
+      }
+    }
   }
   "#
 }
