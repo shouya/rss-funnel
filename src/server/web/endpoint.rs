@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use duration_str::HumanFormat as _;
 use either::Either;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
@@ -51,7 +53,9 @@ pub async fn render_endpoint_page(
 
       div {
         @if let Some(source) = source {
-          (source)
+          div .source-control {
+            (source)
+          }
         }
 
         details open="" {
@@ -92,7 +96,8 @@ fn source_control_fragment(
           hx-trigger="keyup changed delay:500ms"
           hx-push-url="true"
           hx-indicator=".loading"
-          hx-target="body"
+          hx-target="main"
+          hx-select="main"
         {}
         div.loading { (sprite("loader")) }
       }
@@ -103,9 +108,13 @@ fn source_control_fragment(
     Some(Source::RelativeUrl(url)) => Some(html! {
       div .source.relative { (url) }
     }),
-    Some(Source::Templated(templated)) => {
-      Some(source_template_fragment(templated))
-    }
+    Some(Source::Templated(templated)) => Some(html! {
+      div style="display: flex; position: relative; align-items: center;" {
+        @let queries = param.as_ref().ok().map(|p| p.extra_queries());
+        (source_template_fragment(templated, path, queries));
+        div.loading { (sprite("loader")) }
+      }
+    }),
     Some(Source::FromScratch(scratch)) => Some(from_scratch_fragment(scratch)),
   }
 }
@@ -139,20 +148,34 @@ fn from_scratch_fragment(scratch: &FromScratch) -> Markup {
   }
 }
 
-fn source_template_fragment(templated: &crate::source::Templated) -> Markup {
+fn source_template_fragment(
+  templated: &crate::source::Templated,
+  path: &str,
+  queries: Option<&HashMap<String, String>>,
+) -> Markup {
   html! {
     @for fragment in templated.fragments() {
       @match fragment {
         Either::Left(plain) => span { (plain) },
         Either::Right((name, Some(placeholder))) => {
-          @let value=placeholder.default.as_ref();
+          @let value=queries.and_then(|q| q.get(name));
+          @let default_value=placeholder.default.as_ref();
+          @let value=value.or(default_value);
           @let validation=placeholder.validation.as_ref();
           input
+            .source-template-placeholder
             id={"placeholder-" (name)}
-            name=(name)
+          name=(name)
             placeholder=(name)
             pattern=[validation]
             value=[value]
+            hx-get=(format!("/_/endpoint/{path}"))
+            hx-trigger="keyup changed delay:500ms"
+            hx-push-url="true"
+            hx-include=".source-template-placeholder"
+            hx-indicator=".loading"
+            hx-target="main"
+            hx-select="main"
           {}
         }
         Either::Right((name, None)) => {
@@ -468,6 +491,11 @@ fn inline_styles() -> &'static str {
       border-radius: var(--bd-radius);
       box-shadow: 1px 2px 3px var(--bd-muted);
     }
+  }
+
+  .source-template-placeholder {
+    width: auto;
+    display: inline-block;
   }
   "#
 }
