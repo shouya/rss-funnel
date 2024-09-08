@@ -131,6 +131,10 @@ impl ClientConfig {
     );
     Ok(client)
   }
+
+  pub fn to_yaml(&self) -> Result<String, ConfigError> {
+    Ok(serde_yaml::to_string(self)?)
+  }
 }
 
 pub struct Client {

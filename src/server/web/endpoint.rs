@@ -49,25 +49,20 @@ pub async fn render_endpoint_page(
     }
     body {
       span style="float:left; margin-right: 2rem;" { a href="/_/" { "Back" } }
-      h2 { (path) }
+      header { h2 { (path) } }
 
-      div {
+      section {
         @if let Some(source) = source {
-          div .source-control {
+          section .source-control {
             (source)
           }
         }
 
-        details open="" {
-          summary { "Configuration" }
+        details {
+          summary { "Config" }
           section .config-section {
             (config)
           }
-        }
-
-        details .filters-section {
-          summary { "Filters" }
-          (filters)
         }
       }
 
@@ -103,10 +98,10 @@ fn source_control_fragment(
       }
     }),
     Some(Source::AbsoluteUrl(url)) => Some(html! {
-      div .source.absolute { (url) }
+      div title="Source" .source { (url) }
     }),
     Some(Source::RelativeUrl(url)) => Some(html! {
-      div .source.relative { (url) }
+      div title="Source" .source { (url) }
     }),
     Some(Source::Templated(templated)) => Some(html! {
       div style="display: flex; position: relative; align-items: center;" {
@@ -156,7 +151,7 @@ fn source_template_fragment(
   html! {
     @for fragment in templated.fragments() {
       @match fragment {
-        Either::Left(plain) => span { (plain) },
+        Either::Left(plain) => span style="white-space: nowrap" { (plain) },
         Either::Right((name, Some(placeholder))) => {
           @let value=queries.and_then(|q| q.get(name));
           @let default_value=placeholder.default.as_ref();
@@ -190,22 +185,43 @@ fn render_config_fragment(endpoint: &EndpointService) -> Markup {
   let config = endpoint.config();
 
   html! {
-    table {
-      tr {
-        th { "OTF filters" }
-        td {
-          @if config.on_the_fly_filters {
-            "Enabled"
-          } @else {
-            "Disabled"
+    @if config.on_the_fly_filters {
+      section {
+        var .bg-variant.bd-variant.variant { "On-the-fly filters enabled" }
+      }
+    }
+
+    @if let Some(client) = &config.client {
+      section {
+        header { b { "Custom client configuration:" } }
+        @if let Ok(yaml) = client.to_yaml() {
+          div .client-config {
+            pre { (yaml) }
           }
         }
       }
+    }
 
-      @if let Some(client) = &config.client {
-        tr {
-          th { "Client" }
-          td { (client_fragment(client)) }
+    @let filters = &config.filters;
+    @if filters.filters.is_empty() {
+      "No filters"
+    } @else {
+      div {
+        header { b { "Filters:" } }
+        ul {
+          @for filter in &filters.filters {
+            li .filter-item {
+              // TODO: support toggling individual filters
+              var .filter-name title="Toggle" { (filter.name()) }
+              @if let Ok(yaml) = filter.to_yaml() {
+                // TODO: show help button
+                div .filter-link {}
+                div .filter-definition {
+                  pre { (yaml) }
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -282,26 +298,6 @@ fn client_fragment(client: &ClientConfig) -> Markup {
         tr {
           th { "Assume content type" }
           td { (assume_content_type) }
-        }
-      }
-    }
-  }
-}
-
-fn render_filter_pipeline_fragment(filters: &FilterPipelineConfig) -> Markup {
-  html! {
-    ul {
-      @for filter in &filters.filters {
-        li .filter-item {
-          // TODO: support toggling individual filters
-          var .filter-name title="Toggle" { (filter.name()) }
-          @if let Ok(yaml) = filter.to_yaml() {
-            // TODO: show help button
-            div .filter-link {}
-            div .filter-definition {
-              pre { (yaml) }
-            }
-          }
         }
       }
     }
