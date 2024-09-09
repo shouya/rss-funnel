@@ -20,7 +20,7 @@ use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
-use crate::filter::FilterContext;
+use crate::filter::{FilterContext, FilterLimit};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
@@ -109,7 +109,7 @@ pub struct EndpointParam {
   source: Option<Url>,
   /// Only process the initial N filter steps
   #[serde(default)]
-  limit_filters: Option<usize>,
+  filter_limit: Option<FilterLimit>,
   /// Limit the number of items in the feed
   #[serde(default)]
   limit_posts: Option<usize>,
@@ -137,8 +137,8 @@ impl EndpointParam {
     self.base.as_ref()
   }
 
-  pub(crate) fn limit_filters(&self) -> Option<usize> {
-    self.limit_filters
+  pub(crate) fn filter_limit(&self) -> Option<&FilterLimit> {
+    self.filter_limit.as_ref()
   }
 
   pub(crate) fn extra_queries(&self) -> &HashMap<String, String> {
@@ -173,13 +173,13 @@ where
 impl EndpointParam {
   pub fn new(
     source: Option<Url>,
-    limit_filters: Option<usize>,
+    filter_limit: Option<usize>,
     limit_posts: Option<usize>,
     base: Option<Url>,
   ) -> Self {
     Self {
       source,
-      limit_filters,
+      filter_limit: filter_limit.map(FilterLimit::upto),
       limit_posts,
       base,
       query: None,
@@ -285,7 +285,7 @@ impl EndpointService {
       .fetch_feed(&context, Some(&self.client))
       .await
       .map_err(|e| Error::FetchSource(Box::new(e)))?;
-    if let Some(limit_filters) = param.limit_filters {
+    if let Some(limit_filters) = param.filter_limit {
       context.set_limit_filters(limit_filters);
     }
     if let Some(base) = param.base {

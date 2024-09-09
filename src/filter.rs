@@ -12,17 +12,33 @@ pub(crate) mod sanitize;
 pub(crate) mod select;
 pub(crate) mod simplify_html;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
 use url::Url;
 
 use crate::{
   feed::Feed,
   util::{ConfigError, Error, Result},
 };
+
+#[serde_as]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(transparent)]
+pub struct FilterLimit {
+  #[serde_as(as = "StringWithSeparator::<CommaSeparator, usize>")]
+  skip_indices: HashSet<usize>,
+}
+
+impl FilterLimit {
+  pub(crate) fn upto(n: usize) -> Self {
+    let skip_indices = (0..n).collect::<HashSet<usize>>();
+    Self { skip_indices }
+  }
+}
 
 #[derive(Clone)]
 pub struct FilterContext {
@@ -31,7 +47,7 @@ pub struct FilterContext {
   base: Option<Url>,
 
   /// The maximum number of filters to run on this pipeline
-  limit_filters: Option<usize>,
+  filter_limit: Option<FilterLimit>,
 
   /// The extra query parameters passed to the endpoint
   extra_queries: HashMap<String, String>,
@@ -42,13 +58,9 @@ impl FilterContext {
   pub fn new() -> Self {
     Self {
       base: None,
-      limit_filters: None,
+      filter_limit: None,
       extra_queries: HashMap::new(),
     }
-  }
-
-  pub fn limit_filters(&self) -> Option<usize> {
-    self.limit_filters
   }
 
   pub fn base(&self) -> Option<&Url> {
@@ -63,8 +75,8 @@ impl FilterContext {
     &self.extra_queries
   }
 
-  pub fn set_limit_filters(&mut self, limit: usize) {
-    self.limit_filters = Some(limit);
+  pub fn set_limit_filters(&mut self, limit: FilterLimit) {
+    self.filter_limit = Some(limit);
   }
 
   pub fn set_base(&mut self, base: Url) {
@@ -74,15 +86,23 @@ impl FilterContext {
   pub fn subcontext(&self) -> Self {
     Self {
       base: self.base.clone(),
-      limit_filters: None,
+      filter_limit: None,
       extra_queries: self.extra_queries.clone(),
+    }
+  }
+
+  pub fn allows_filter(&self, index: usize) -> bool {
+    if let Some(FilterLimit { skip_indices }) = &self.filter_limit {
+      !skip_indices.contains(&index)
+    } else {
+      true
     }
   }
 
   pub fn from_param(param: &crate::server::EndpointParam) -> Self {
     Self {
       base: param.base().cloned(),
-      limit_filters: param.limit_filters(),
+      filter_limit: param.filter_limit().cloned(),
       extra_queries: param.extra_queries().clone(),
     }
   }
