@@ -28,15 +28,19 @@ use crate::{
 #[serde_as]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(transparent)]
-pub struct FilterLimit {
+pub struct FilterSkip {
   #[serde_as(as = "StringWithSeparator::<CommaSeparator, usize>")]
-  skip_indices: HashSet<usize>,
+  indices: HashSet<usize>,
 }
 
-impl FilterLimit {
+impl FilterSkip {
   pub(crate) fn upto(n: usize) -> Self {
-    let skip_indices = (0..n).collect::<HashSet<usize>>();
-    Self { skip_indices }
+    let indices = (0..n).collect::<HashSet<usize>>();
+    Self { indices }
+  }
+
+  pub fn allows_filter(&self, index: usize) -> bool {
+    !self.indices.contains(&index)
   }
 }
 
@@ -47,7 +51,7 @@ pub struct FilterContext {
   base: Option<Url>,
 
   /// The maximum number of filters to run on this pipeline
-  filter_limit: Option<FilterLimit>,
+  filter_skip: Option<FilterSkip>,
 
   /// The extra query parameters passed to the endpoint
   extra_queries: HashMap<String, String>,
@@ -58,7 +62,7 @@ impl FilterContext {
   pub fn new() -> Self {
     Self {
       base: None,
-      filter_limit: None,
+      filter_skip: None,
       extra_queries: HashMap::new(),
     }
   }
@@ -75,8 +79,8 @@ impl FilterContext {
     &self.extra_queries
   }
 
-  pub fn set_limit_filters(&mut self, limit: FilterLimit) {
-    self.filter_limit = Some(limit);
+  pub fn set_filter_skip(&mut self, filter_skip: FilterSkip) {
+    self.filter_skip = Some(filter_skip);
   }
 
   pub fn set_base(&mut self, base: Url) {
@@ -86,24 +90,24 @@ impl FilterContext {
   pub fn subcontext(&self) -> Self {
     Self {
       base: self.base.clone(),
-      filter_limit: None,
+      filter_skip: None,
       extra_queries: self.extra_queries.clone(),
-    }
-  }
-
-  pub fn allows_filter(&self, index: usize) -> bool {
-    if let Some(FilterLimit { skip_indices }) = &self.filter_limit {
-      !skip_indices.contains(&index)
-    } else {
-      true
     }
   }
 
   pub fn from_param(param: &crate::server::EndpointParam) -> Self {
     Self {
       base: param.base().cloned(),
-      filter_limit: param.filter_limit().cloned(),
+      filter_skip: param.filter_skip().cloned(),
       extra_queries: param.extra_queries().clone(),
+    }
+  }
+
+  pub fn allows_filter(&self, index: usize) -> bool {
+    if let Some(f) = &self.filter_skip {
+      f.allows_filter(index)
+    } else {
+      true
     }
   }
 }

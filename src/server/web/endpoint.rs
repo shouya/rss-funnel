@@ -19,7 +19,7 @@ pub async fn render_endpoint_page(
   let source = source_control_fragment(&path, endpoint.source(), &param);
 
   // render config
-  let config = render_config_fragment(&endpoint);
+  let config = render_config_fragment(&path, param.as_ref().ok(), &endpoint);
 
   // render feed preview
   let feed = match param {
@@ -80,6 +80,7 @@ fn source_control_fragment(
     None => Some(html! {
       div style="display: flex; position: relative;" {
         input
+          .hx-included
           style="flex-grow: 1;"
           type="text"
           name="source"
@@ -89,6 +90,7 @@ fn source_control_fragment(
           hx-trigger="keyup changed delay:500ms"
           hx-push-url="true"
           hx-indicator=".loading"
+          hx-include=".hx-included"
           hx-target="main"
           hx-select="main"
         {}
@@ -156,19 +158,19 @@ fn source_template_fragment(
           @let value=value.or(default_value);
           @let validation=placeholder.validation.as_ref();
           input
-            .source-template-placeholder
-            id={"placeholder-" (name)}
-          name=(name)
+            .source-template-placeholder.hx-included
+            name=(name)
             placeholder=(name)
             pattern=[validation]
             value=[value]
             hx-get=(format!("/_/endpoint/{path}"))
             hx-trigger="keyup changed delay:500ms"
             hx-push-url="true"
-            hx-include=".source-template-placeholder"
+            hx-include=".hx-included"
             hx-indicator=".loading"
             hx-target="main"
             hx-select="main"
+            id={"placeholder-" (name)}
           {}
         }
         Either::Right((name, None)) => {
@@ -179,8 +181,19 @@ fn source_template_fragment(
   }
 }
 
-fn render_config_fragment(endpoint: &EndpointService) -> Markup {
+fn render_config_fragment(
+  path: &str,
+  param: Option<&EndpointParam>,
+  endpoint: &EndpointService,
+) -> Markup {
   let config = endpoint.config();
+  let filter_enabled = |i| {
+    if let Some(f) = param.and_then(|p| p.filter_skip()) {
+      f.allows_filter(i) as u8
+    } else {
+      true as u8
+    }
+  };
 
   html! {
     @if config.on_the_fly_filters {
@@ -206,11 +219,25 @@ fn render_config_fragment(endpoint: &EndpointService) -> Markup {
     } @else {
       div {
         header { b { "Filters:" } }
-        ul {
-          @for filter in &filters.filters {
+        ul #filter-list .hx-included
+          hx-vals="js:...gatherFilterSkip()"
+          hx-get=(format!("/_/endpoint/{path}"))
+          hx-trigger="click from:.filter-name"
+          hx-push-url="true"
+          hx-include=".hx-included"
+          hx-indicator=".loading"
+          hx-target="main"
+          hx-select="main"
+        {
+          @for (i, filter) in filters.filters.iter().enumerate() {
             li .filter-item {
-              // TODO: support toggling individual filters
-              var .filter-name title="Toggle" { (filter.name()) }
+              var .filter-name title="Toggle"
+                data-enabled=(filter_enabled(i))
+                onclick="this.dataset.enabled=1-+this.dataset.enabled"
+                data-index=(i) {
+                  (filter.name())
+                }
+
               @if let Ok(yaml) = filter.to_yaml() {
                 // TODO: show help button
                 div .filter-link {}
@@ -447,6 +474,13 @@ fn inline_styles() -> &'static str {
       }
     }
   }
+
+  .filter-item {
+    var.filter-name[data-enabled="0"] {
+      color: var(--muted);
+      background-color: var(--bg-muted);
+    }
+  }
   "#
 }
 
@@ -461,6 +495,15 @@ fn inline_script() -> &'static str {
     const article = element.closest("article");
     article.dataset.displayMode =
       article.dataset.displayMode === "rendered" ? "raw" : "rendered";
+  }
+
+  function gatherFilterSkip() {
+    const skipped = [...document.querySelectorAll(".filter-item > var")].filter(x=>!+x.dataset.enabled).map(x => x.dataset.index).join(",");
+    if (skipped === "") {
+      return {};
+    } else {
+      return {filter_skip: skipped};
+    }
   }
   "#
 }

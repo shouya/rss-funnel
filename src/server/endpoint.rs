@@ -20,7 +20,7 @@ use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
-use crate::filter::{FilterContext, FilterLimit};
+use crate::filter::{FilterContext, FilterSkip};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
@@ -109,7 +109,7 @@ pub struct EndpointParam {
   source: Option<Url>,
   /// Only process the initial N filter steps
   #[serde(default)]
-  filter_limit: Option<FilterLimit>,
+  filter_skip: Option<FilterSkip>,
   /// Limit the number of items in the feed
   #[serde(default)]
   limit_posts: Option<usize>,
@@ -130,15 +130,15 @@ impl EndpointParam {
   }
 
   pub const fn all_fields() -> &'static [&'static str] {
-    &["source", "limit_filters", "limit_posts"]
+    &["source", "filter_skip", "limit_posts"]
   }
 
   pub(crate) fn base(&self) -> Option<&Url> {
     self.base.as_ref()
   }
 
-  pub(crate) fn filter_limit(&self) -> Option<&FilterLimit> {
-    self.filter_limit.as_ref()
+  pub(crate) fn filter_skip(&self) -> Option<&FilterSkip> {
+    self.filter_skip.as_ref()
   }
 
   pub(crate) fn extra_queries(&self) -> &HashMap<String, String> {
@@ -173,13 +173,13 @@ where
 impl EndpointParam {
   pub fn new(
     source: Option<Url>,
-    filter_limit: Option<usize>,
+    filter_skip: Option<usize>,
     limit_posts: Option<usize>,
     base: Option<Url>,
   ) -> Self {
     Self {
       source,
-      filter_limit: filter_limit.map(FilterLimit::upto),
+      filter_skip: filter_skip.map(FilterSkip::upto),
       limit_posts,
       base,
       query: None,
@@ -285,8 +285,8 @@ impl EndpointService {
       .fetch_feed(&context, Some(&self.client))
       .await
       .map_err(|e| Error::FetchSource(Box::new(e)))?;
-    if let Some(limit_filters) = param.filter_limit {
-      context.set_limit_filters(limit_filters);
+    if let Some(filter_skip) = param.filter_skip {
+      context.set_filter_skip(filter_skip);
     }
     if let Some(base) = param.base {
       context.set_base(base);
