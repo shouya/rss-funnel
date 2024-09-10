@@ -45,7 +45,7 @@ async fn handle_endpoint(
 fn header_libs_fragment() -> Markup {
   html! {
     script
-      src="https://unpkg.com/htmx.org@2.0.1"
+      src="https://unpkg.com/htmx.org@2.0.2"
       referrerpolicy="no-referrer" {}
     link
       rel="stylesheet"

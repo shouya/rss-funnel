@@ -285,24 +285,26 @@ fn render_post(post: PostPreview) -> Markup {
 
         div .row.flex.grow style="margin-left: .5rem" { (post.title); (external_link(&post.link)) }
       }
+
       @if let Some(body) = &post.body {
         section {
-          div .entry-content.rendered style="overflow-x: scroll" {
-            template shadowrootmode="open" {
-              style {
-                (PreEscaped("* { max-width: 100%; }"))
-              }
-              (PreEscaped(santize_html(body, link_url)))
+          @let id = format!("entry-{}", rand_id());
+          @let content = santize_html(body, link_url);
+          div id=(id) .entry-content.rendered {
+            template {
+              style { (PreEscaped("max-width: 100%;")) }
+              (PreEscaped(content))
             }
+            script { (PreEscaped(format!("fillEntryContent('{id}')"))) }
           }
           div .entry-content.raw {
             pre { (body) }
           }
         }
-
       } @else {
         section { "No body" }
       }
+
       footer {
         @if let Some(date) = post.date {
           time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
@@ -375,6 +377,7 @@ fn inline_styles() -> &'static str {
     &[data-display-mode="rendered"] {
       .entry-content.rendered {
         display: block;
+        overflow-x: scroll;
       }
     }
     &[data-display-mode="raw"] {
@@ -505,6 +508,14 @@ fn inline_script() -> &'static str {
       return {filter_skip: skipped};
     }
   }
+
+  function fillEntryContent(id) {
+    const parent = document.getElementById(id);
+    const shadowRoot = parent.attachShadow({mode: 'open'});
+    const content = parent.querySelector("template").innerHTML;
+    parent.innerHTML = "";
+    shadowRoot.innerHTML = content;
+  }
   "#
 }
 
@@ -525,4 +536,9 @@ fn santize_html(html: &str, base: Option<Url>) -> String {
     builder.url_relative(UrlRelative::RewriteWithBase(base));
   }
   builder.clean(html).to_string()
+}
+
+fn rand_id() -> String {
+  use rand::Rng as _;
+  rand::thread_rng().gen::<u64>().to_string()
 }
