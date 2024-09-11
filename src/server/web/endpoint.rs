@@ -47,6 +47,9 @@ pub async fn render_endpoint_page(
           a href="/_/" { "Back" }
         }
         h2 { (path) }
+        button .copy-button title="Copy Endpoint URL" onclick="copyToClipboard()" {
+          (sprite("copy"))
+        }
       }
 
       section {
@@ -469,12 +472,22 @@ fn inline_styles() -> &'static str {
     align-items: center;
     height: 2rem;
 
-    > button {
-      float:left;
+    > h2 {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    > .back-button {
       margin-right: 2rem;
 
       a:hover {
         color: var(--bg-accent);
+      }
+    }
+
+    > .copy-button {
+      > svg {
+        vertical-align: middle;
       }
     }
   }
@@ -516,6 +529,12 @@ fn inline_script() -> &'static str {
     const content = parent.querySelector("template").innerHTML;
     parent.innerHTML = "";
     shadowRoot.innerHTML = content;
+  }
+
+  function copyToClipboard() {
+    const url = window.location.href.replace(/\/_\/endpoint\//, "/");
+    navigator.clipboard.writeText(url);
+    alert("Copied: " + url);
   }
   "#
 }
