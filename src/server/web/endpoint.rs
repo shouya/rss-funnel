@@ -467,6 +467,7 @@ fn inline_styles() -> &'static str {
     border-bottom: 1.5px dotted;
     display: flex;
     align-items: center;
+    height: 2rem;
 
     > button {
       float:left;

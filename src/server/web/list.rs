@@ -1,4 +1,4 @@
-use maud::{html, Markup, DOCTYPE};
+use maud::{html, Markup, PreEscaped, DOCTYPE};
 use url::Url;
 
 use crate::{cli::RootConfig, server::EndpointConfig, source::SourceConfig};
@@ -9,10 +9,14 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
     head {
       title { "RSS Funnel" }
       meta charset="utf-8";
-      (super::header_libs_fragment())
+      (super::header_libs_fragment());
+      style { (PreEscaped(inline_styles())) }
     }
     body {
-      h1 { "RSS Funnel" }
+      header .header-bar {
+        h2 { "RSS Funnel" }
+      }
+
       main {
         ul {
           @for endpoint in &root_config.endpoints {
@@ -103,4 +107,17 @@ fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
       }
     }
   }
+}
+
+fn inline_styles() -> &'static str {
+  r#"
+  .header-bar {
+    margin: 1rem 0 !important;
+    padding-bottom: 1rem;
+    border-bottom: 1.5px dotted;
+    display: flex;
+    align-items: center;
+    height: 2rem;
+  }
+  "#
 }
