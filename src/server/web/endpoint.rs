@@ -105,7 +105,7 @@ fn source_control_fragment(
       div title="Source" .source { (url) }
     }),
     Some(Source::Templated(templated)) => Some(html! {
-      div style="display: flex; position: relative; align-items: baseline; flex-wrap: wrap;" {
+      div .template-container {
         @let queries = param.as_ref().ok().map(|p| p.extra_queries());
         (source_template_fragment(templated, path, queries));
       }
@@ -331,7 +331,7 @@ fn render_feed(feed: &Feed) -> Markup {
     @if let Some(description) = &preview.description {
       p { (description) }
     }
-    p style="clear:both" { (format!("Entries ({}):", preview.posts.len())) }
+    p { (format!("Entries ({}):", preview.posts.len())) }
 
     @for post in preview.posts {
       (render_post(post))
@@ -452,9 +452,16 @@ fn inline_styles() -> &'static str {
     position: relative;
     align-items: center;
   }
-  .source-template-placeholder {
-    width: auto;
-    display: inline-block;
+  .source-template-container {
+    display: flex;
+    position: relative;
+    align-items: baseline;
+    flex-wrap: wrap;
+
+    .source-template-placeholder {
+      width: auto;
+      display: inline-block;
+    }
   }
 
 
