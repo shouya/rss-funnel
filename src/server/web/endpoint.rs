@@ -442,7 +442,7 @@ fn inline_styles() -> &'static str {
   }
 
   .source-control {
-    background-color: var(--bg-active);
+    background-color: var(--bg-muted);
     padding: 1rem;
     border-radius: var(--bd-radius);
     display :flex;
