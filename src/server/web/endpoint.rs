@@ -52,7 +52,8 @@ pub async fn render_endpoint_page(
       section {
         @if let Some(source) = source {
           section .source-control {
-            (source)
+            (source);
+            div.loading { (sprite("loader")) }
           }
         }
 
@@ -78,24 +79,21 @@ fn source_control_fragment(
 ) -> Option<Markup> {
   match source {
     None => Some(html! {
-      div style="display: flex; position: relative;" {
-        input
-          .hx-included
-          style="flex-grow: 1;"
-          type="text"
-          name="source"
-          placeholder="Source URL"
-          value=[param.as_ref().ok().and_then(|p| p.source()).map(|url| url.as_str())]
-          hx-get=(format!("/_/endpoint/{path}"))
-          hx-trigger="keyup changed delay:500ms"
-          hx-push-url="true"
-          hx-indicator=".loading"
-          hx-include=".hx-included"
-          hx-target="main"
-          hx-select="main"
-        {}
-        div.loading { (sprite("loader")) }
-      }
+      input
+        .hx-included
+        style="flex-grow: 1;"
+        type="text"
+        name="source"
+        placeholder="Source URL"
+        value=[param.as_ref().ok().and_then(|p| p.source()).map(|url| url.as_str())]
+        hx-get=(format!("/_/endpoint/{path}"))
+        hx-trigger="keyup changed delay:500ms"
+        hx-push-url="true"
+        hx-indicator=".loading"
+        hx-include=".hx-included"
+        hx-target="main"
+        hx-select="main"
+      {}
     }),
     Some(Source::AbsoluteUrl(url)) => Some(html! {
       div title="Source" .source { (url) }
@@ -104,10 +102,9 @@ fn source_control_fragment(
       div title="Source" .source { (url) }
     }),
     Some(Source::Templated(templated)) => Some(html! {
-      div style="display: flex; position: relative; align-items: baseline;" {
+      div style="display: flex; position: relative; align-items: baseline; flex-wrap: wrap;" {
         @let queries = param.as_ref().ok().map(|p| p.extra_queries());
         (source_template_fragment(templated, path, queries));
-        div.loading { (sprite("loader")) }
       }
     }),
     Some(Source::FromScratch(scratch)) => Some(from_scratch_fragment(scratch)),
@@ -198,7 +195,7 @@ fn render_config_fragment(
   html! {
     @if config.on_the_fly_filters {
       section {
-        var .bg-variant.bd-variant.variant { "On-the-fly filters enabled" }
+        var .bg-variant.bd-variant.variant title="On-the-fly filters enabled" { "OTF" }
       }
     }
 
@@ -276,10 +273,10 @@ fn render_post(post: PostPreview) -> Markup {
   html! {
     article data-display-mode="rendered" data-folded="true" .post-entry {
       header .flex {
-        span .icon-container.fold-icon onclick="toggleFold(this)" title="Toggle fold" {
+        span .icon-container.fold-icon onclick="toggleFold(this)" title="Expand" {
           (sprite("caret-right"))
         }
-        span .icon-container.raw-icon  onclick="toggleRaw(this)" title="Toggle HTML" {
+        span .icon-container.raw-icon  onclick="toggleRaw(this)" title="Raw HTML body" {
           (sprite("source-code"))
         }
 
@@ -402,7 +399,7 @@ fn inline_styles() -> &'static str {
   .loading {
     display: none;
     position: absolute;
-    right: 0.5rem;
+    right: 1rem;
     align-items: center;
     height: 100%;
 
@@ -448,6 +445,9 @@ fn inline_styles() -> &'static str {
     background-color: var(--bg-active);
     padding: 1rem;
     border-radius: var(--bd-radius);
+    display :flex;
+    position: relative;
+    align-items: center;
   }
   .source-template-placeholder {
     width: auto;
