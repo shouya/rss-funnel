@@ -43,9 +43,12 @@ pub async fn render_endpoint_page(
       style { (PreEscaped(inline_styles())) }
       link rel="stylesheet"
         referrerpolicy="no-referrer"
-        href="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/styles/default.min.css";
+        href="https://unpkg.com/prismjs@v1.x/themes/prism.css";
       script
-        src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"
+        src="https://unpkg.com/prismjs@v1.x/components/prism-core.min.js"
+        referrerpolicy="no-referrer" {}
+      script
+        src="https://unpkg.com/prismjs@v1.x/plugins/autoloader/prism-autoloader.min.js"
         referrerpolicy="no-referrer" {}
     }
     body {
@@ -77,9 +80,6 @@ pub async fn render_endpoint_page(
 
       main .feed-section {
         (feed)
-      }
-      script {
-        (PreEscaped("hljs.highlightAll();"))
       }
     }
   }
@@ -514,6 +514,10 @@ fn inline_styles() -> &'static str {
       color: var(--muted);
       background-color: var(--bg-muted);
     }
+  }
+
+  pre[class*="language"] {
+    margin: 0 !important;
   }
   "#
 }
