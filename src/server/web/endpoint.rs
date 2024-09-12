@@ -41,6 +41,12 @@ pub async fn render_endpoint_page(
       (super::header_libs_fragment());
       script { (PreEscaped(inline_script())) }
       style { (PreEscaped(inline_styles())) }
+      link rel="stylesheet"
+        referrerpolicy="no-referrer"
+        href="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/styles/default.min.css";
+      script
+        src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"
+        referrerpolicy="no-referrer" {}
     }
     body {
       header .header-bar {
@@ -71,6 +77,9 @@ pub async fn render_endpoint_page(
 
       main .feed-section {
         (feed)
+      }
+      script {
+        (PreEscaped("hljs.highlightAll();"))
       }
     }
   }
@@ -208,7 +217,7 @@ fn render_config_fragment(
         header { b { "Custom client configuration:" } }
         @if let Ok(yaml) = client.to_yaml() {
           div .client-config {
-            pre { (yaml) }
+            pre { code .language-yaml { (yaml) } }
           }
         }
       }
@@ -243,7 +252,7 @@ fn render_config_fragment(
                 // TODO: show help button
                 div .filter-link {}
                 div .filter-definition {
-                  pre { (yaml) }
+                  pre { code .language-yaml { (yaml) } }
                 }
               }
             }
@@ -299,7 +308,7 @@ fn render_post(post: PostPreview) -> Markup {
             script { (PreEscaped(format!("fillEntryContent('{id}')"))) }
           }
           div .entry-content.raw {
-            pre { (body) }
+            pre { code .language-html { (body) } }
           }
         }
       } @else {
