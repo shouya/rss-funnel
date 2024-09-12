@@ -18,6 +18,7 @@ pub async fn handle_login_page() -> impl IntoResponse {
     head {
       title { "Login - RSS Funnel" }
       meta charset="utf-8";
+      (super::favicon());
       (super::header_libs_fragment());
       style { (PreEscaped(inline_styles())) }
       script { (PreEscaped(inline_scripts())) }

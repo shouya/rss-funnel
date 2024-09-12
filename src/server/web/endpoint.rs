@@ -37,6 +37,7 @@ pub async fn render_endpoint_page(
     head {
       title { "RSS Funnel" }
       meta charset="utf-8";
+      (super::favicon());
       (super::header_libs_fragment());
       script { (PreEscaped(inline_script())) }
       style { (PreEscaped(inline_styles())) }

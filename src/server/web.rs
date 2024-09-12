@@ -75,7 +75,16 @@ fn header_libs_fragment() -> Markup {
   }
 }
 
-pub fn sprite(icon: &str) -> Markup {
+fn favicon() -> Markup {
+  html! {
+    link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-45 -50 140 140\"%3E%3Ccircle cx=\"306.7\" cy=\"343.7\" r=\"11.4\" fill=\"%23ff7b00\" transform=\"translate(-282 -331)\"/%3E%3Cpath fill=\"none\" stroke=\"%23ff7b00\" stroke-width=\"15\" d=\"M-3 16a29 29 0 1 1 56 0\"/%3E%3Cpath fill=\"none\" stroke=\"%23ff7b00\" stroke-width=\"15\" d=\"M-23 18a49 49 0 1 1 96-1\"/%3E%3Cpath fill=\"%23ff7b00\" d=\"m-24 29 98-1-1 10-40 28 1 19H17l1-20-42-27z\"/%3E%3C/svg%3E%0A";
+  }
+}
+
+fn sprite(icon: &str) -> Markup {
   html! {
     svg class="icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" {
       use xlink:href=(format!("/_/sprite.svg#{icon}"));

@@ -9,6 +9,7 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
     head {
       title { "RSS Funnel" }
       meta charset="utf-8";
+      (super::favicon());
       (super::header_libs_fragment());
       style { (PreEscaped(inline_styles())) }
     }
