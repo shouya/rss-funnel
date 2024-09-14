@@ -5,7 +5,7 @@ use maud::{html, Markup, PreEscaped, DOCTYPE};
 use url::Url;
 
 use crate::{
-  feed::{Feed, PostPreview},
+  feed::{Feed, Post, PostPreview},
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
 };
@@ -115,7 +115,7 @@ fn source_control_fragment(
       div title="Source" .source { (url) }
     }),
     Some(Source::Templated(templated)) => Some(html! {
-      div .template-container {
+      div .source-template-container {
         @let queries = param.as_ref().ok().map(|p| p.extra_queries());
         (source_template_fragment(templated, path, queries));
       }
@@ -269,7 +269,7 @@ async fn fetch_and_render_feed(
 ) -> Markup {
   html! {
     @match endpoint.run(params).await {
-      Ok(feed) => (render_feed(&feed)),
+      Ok(feed) => (render_feed(feed)),
       Err(e) => {
         div .flash.danger {
           header { b { "Failed to fetch feed" } }
@@ -280,8 +280,11 @@ async fn fetch_and_render_feed(
   }
 }
 
-fn render_post(post: PostPreview) -> Markup {
-  let link_url = Url::parse(&post.link).ok();
+fn render_post(preview: PostPreview, post: Post) -> Markup {
+  let link_url = Url::parse(&preview.link).ok();
+  let json =
+    serde_json::to_string_pretty(&post).unwrap_or_else(|e| e.to_string());
+  let id = format!("entry-{}", rand_id());
 
   html! {
     article data-display-mode="rendered" data-folded="true" .post-entry {
@@ -289,16 +292,20 @@ fn render_post(post: PostPreview) -> Markup {
         span .icon-container.fold-icon onclick="toggleFold(this)" title="Expand" {
           (sprite("caret-right"))
         }
-        span .icon-container.raw-icon  onclick="toggleRaw(this)" title="Raw HTML body" {
-          (sprite("source-code"))
+        span .icon-container.raw-icon  onclick="toggleRaw(this)" title="HTML body" {
+          (sprite("code"))
+        }
+        span .icon-container.json-icon  onclick="toggleJson(this)" title="JSON structure" {
+          (sprite("json"))
         }
 
-        div .row.flex.grow style="margin-left: .5rem" { (post.title); (external_link(&post.link)) }
+        div .row.flex.grow style="margin-left: .5rem" {
+          (preview.title); (external_link(&preview.link))
+        }
       }
 
-      @if let Some(body) = &post.body {
-        section {
-          @let id = format!("entry-{}", rand_id());
+      section {
+        @if let Some(body) = &preview.body {
           @let content = santize_html(body, link_url);
           div id=(id) .entry-content.rendered {
             template {
@@ -310,16 +317,25 @@ fn render_post(post: PostPreview) -> Markup {
           div .entry-content.raw {
             pre { code .language-html { (body) } }
           }
+        } @else {
+          div id=(id) .entry-content.rendered {
+            "No body"
+          }
+          div .entry-content.raw {
+            pre { code .language-html { } }
+          }
         }
-      } @else {
-        section { "No body" }
+
+        div .entry-content.json {
+          pre { code .language-json { (json) } }
+        }
       }
 
       footer {
-        @if let Some(date) = post.date {
+        @if let Some(date) = preview.date {
           time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
         }
-        @if let Some(author) = &post.author {
+        @if let Some(author) = &preview.author {
           span .ml-1 {
             (PreEscaped("By&nbsp;"));
             address .inline rel="author" { (author) }
@@ -330,8 +346,9 @@ fn render_post(post: PostPreview) -> Markup {
   }
 }
 
-fn render_feed(feed: &Feed) -> Markup {
+fn render_feed(mut feed: Feed) -> Markup {
   let preview = feed.preview();
+  let posts = feed.take_posts();
 
   html! {
     h3 style="display:flex" {
@@ -343,8 +360,8 @@ fn render_feed(feed: &Feed) -> Markup {
     }
     p { (format!("Entries ({}):", preview.posts.len())) }
 
-    @for post in preview.posts {
-      (render_post(post))
+    @for (preview, post) in preview.posts.into_iter().zip(posts) {
+      (render_post(preview, post))
     }
   }
 }
@@ -362,6 +379,7 @@ fn inline_styles() -> &'static str {
     .icon-container {
       display: inline-flex;
       align-self: center;
+      margin: 0 0.2rem;
     }
 
     &[data-folded="false"] {
@@ -395,6 +413,14 @@ fn inline_styles() -> &'static str {
         color: var(--active);
       }
       .entry-content.raw {
+        display: block;
+      }
+    }
+    &[data-display-mode="json"] {
+      .json-icon > .icon {
+        color: var(--active);
+      }
+      .entry-content.json {
         display: block;
       }
     }
@@ -531,8 +557,16 @@ fn inline_script() -> &'static str {
 
   function toggleRaw(element) {
     const article = element.closest("article");
+    article.dataset.folded = "false";
     article.dataset.displayMode =
-      article.dataset.displayMode === "rendered" ? "raw" : "rendered";
+      article.dataset.displayMode === "raw" ? "rendered" : "raw";
+  }
+
+  function toggleJson(element) {
+    const article = element.closest("article");
+    article.dataset.folded = "false";
+    article.dataset.displayMode =
+      article.dataset.displayMode === "json" ? "rendered" : "json";
   }
 
   function gatherFilterSkip() {
