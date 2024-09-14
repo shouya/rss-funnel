@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use axum::{
   extract::FromRequestParts,
   response::{IntoResponse, Redirect, Response},
@@ -106,48 +108,10 @@ pub async fn handle_login(
   }
 }
 
-fn inline_styles() -> &'static str {
-  r#"
-  body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  form {
-    margin-top: 15px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    width: 200px;
-    gap: 0.5rem;
-  }
-
-   .hidden {
-     display: none;
-   }
-
-   p#message {
-     color: red;
-   }
-   "#
+fn inline_styles() -> Cow<'static, str> {
+  super::Asset::get_content("login.css")
 }
 
-fn inline_scripts() -> &'static str {
-  r#"
-  function setErrorMessage() {
-    const message = document.getElementById("message");
-    const search = window.location.search;
-    if (search.includes("bad_auth=1")) {
-      message.classList.remove("hidden");
-      message.textContent = "Invalid username or password";
-    } else if (search.includes("logged_out=1")) {
-      message.classList.remove("hidden");
-      message.textContent = "You have been logged out";
-    } else if (search.includes("login_required=1")) {
-      message.classList.remove("hidden");
-      message.textContent = "You must be logged in to access that page";
-    }
-  }
-"#
+fn inline_scripts() -> Cow<'static, str> {
+  super::Asset::get_content("login.js")
 }

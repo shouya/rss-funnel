@@ -2,6 +2,8 @@ mod endpoint;
 mod list;
 mod login;
 
+use std::borrow::Cow;
+
 use axum::{
   extract::{rejection::QueryRejection, Path, Query},
   response::{IntoResponse, Redirect, Response},
@@ -12,6 +14,22 @@ use login::Auth;
 use maud::{html, Markup};
 
 use super::{feed_service::FeedService, EndpointParam};
+
+#[derive(rust_embed::RustEmbed)]
+#[folder = "static/"]
+#[include = "*.js"]
+#[include = "*.css"]
+struct Asset;
+
+impl Asset {
+  fn get_content(name: &str) -> Cow<'static, str> {
+    let file = <Asset as rust_embed::RustEmbed>::get(name).unwrap();
+    match file.data {
+      Cow::Borrowed(data) => String::from_utf8_lossy(data),
+      Cow::Owned(data) => String::from_utf8_lossy(&data).into_owned().into(),
+    }
+  }
+}
 
 pub fn router() -> Router {
   Router::new()

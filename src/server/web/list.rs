@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 use url::Url;
 
@@ -110,15 +112,6 @@ fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
   }
 }
 
-fn inline_styles() -> &'static str {
-  r#"
-  .header-bar {
-    margin: 1rem 0 !important;
-    padding-bottom: 1rem;
-    border-bottom: 1.5px dotted;
-    display: flex;
-    align-items: center;
-    height: 2rem;
-  }
-  "#
+fn inline_styles() -> Cow<'static, str> {
+  super::Asset::get_content("list.css")
 }
