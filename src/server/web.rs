@@ -86,10 +86,6 @@ fn header_libs_fragment() -> Markup {
     script
       src="https://unpkg.com/htmx.org@2.0.2"
       referrerpolicy="no-referrer" {}
-    link
-      rel="stylesheet"
-      href="https://matcha.mizu.sh/matcha.css"
-      referrerpolicy="no-referrer";
   }
 }
 
@@ -108,4 +104,8 @@ fn sprite(icon: &str) -> Markup {
       use xlink:href=(format!("/_/sprite.svg#{icon}"));
     }
   }
+}
+
+fn common_styles() -> Cow<'static, str> {
+  Asset::get_content("common.css")
 }

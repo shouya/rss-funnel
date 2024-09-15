@@ -20,12 +20,13 @@ pub async fn render_endpoint_page(
 
   // render config
   let config = render_config_fragment(&path, param.as_ref().ok(), &endpoint);
+  let config_tags = render_config_header_tags(&endpoint);
 
   // render feed preview
   let feed = match param {
     Ok(param) => fetch_and_render_feed(endpoint, param).await,
     Err(e) => html! {
-      div .flash.danger {
+      div .flash.error {
         header { b { "Invalid request params" } }
         p { (e) }
       }
@@ -40,6 +41,7 @@ pub async fn render_endpoint_page(
       (super::favicon());
       (super::header_libs_fragment());
       script { (PreEscaped(inline_script())) }
+      style { (PreEscaped(super::common_styles())) }
       style { (PreEscaped(inline_styles())) }
       link rel="stylesheet"
         referrerpolicy="no-referrer"
@@ -62,7 +64,7 @@ pub async fn render_endpoint_page(
         }
       }
 
-      section {
+      section .source-and-config {
         @if let Some(source) = source {
           section .source-control {
             (source);
@@ -70,8 +72,11 @@ pub async fn render_endpoint_page(
           }
         }
 
-        details {
-          summary { "Config" }
+        details .config {
+          summary {
+            "Config";
+            (config_tags)
+          }
           section .config-section {
             (config)
           }
@@ -191,6 +196,18 @@ fn source_template_fragment(
   }
 }
 
+fn render_config_header_tags(endpoint: &EndpointService) -> Markup {
+  let config = endpoint.config();
+
+  html! {
+    @if config.on_the_fly_filters {
+      div .tag-container {
+        span .tag.otf title="On-the-fly filters enabled" { "OTF" }
+      }
+    }
+  }
+}
+
 fn render_config_fragment(
   path: &str,
   param: Option<&EndpointParam>,
@@ -206,12 +223,6 @@ fn render_config_fragment(
   };
 
   html! {
-    @if config.on_the_fly_filters {
-      section {
-        var .bg-variant.bd-variant.variant title="On-the-fly filters enabled" { "OTF" }
-      }
-    }
-
     @if let Some(client) = &config.client {
       section {
         header { b { "Custom client configuration:" } }
@@ -230,7 +241,7 @@ fn render_config_fragment(
       div {
         header { b { "Filters:" } }
         ul #filter-list .hx-included
-          hx-vals="js:...gatherFilterSkip()"
+          hx-vals="js:{...gatherFilterSkip()}"
           hx-get=(format!("/_/endpoint/{path}"))
           hx-trigger="click from:.filter-name"
           hx-push-url="true"
@@ -241,7 +252,7 @@ fn render_config_fragment(
         {
           @for (i, filter) in filters.filters.iter().enumerate() {
             li .filter-item {
-              var .filter-name title="Toggle"
+              span .filter-name title="Toggle"
                 data-enabled=(filter_enabled(i))
                 onclick="this.dataset.enabled=1-+this.dataset.enabled"
                 data-index=(i) {
@@ -271,7 +282,7 @@ async fn fetch_and_render_feed(
     @match endpoint.run(params).await {
       Ok(feed) => (render_feed(feed)),
       Err(e) => {
-        div .flash.danger {
+        div .flash.error {
           header { b { "Failed to fetch feed" } }
           p { (e.to_string()) }
         }
@@ -299,8 +310,9 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
           (sprite("json"))
         }
 
-        div .row.flex.grow style="margin-left: .5rem" {
-          (preview.title); (external_link(&preview.link))
+        div .flex.grow style="margin-left: .5rem" {
+          span .entry-title.grow { (preview.title) }
+          (external_link(&preview.link))
         }
       }
 
@@ -309,7 +321,7 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
           @let content = santize_html(body, link_url);
           div id=(id) .entry-content.rendered {
             template {
-              style { (PreEscaped("max-width: 100%;")) }
+              style { (PreEscaped("*{max-width: 100%;}")) }
               (PreEscaped(content))
             }
             script { (PreEscaped(format!("fillEntryContent('{id}')"))) }

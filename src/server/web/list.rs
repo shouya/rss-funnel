@@ -13,6 +13,7 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
       meta charset="utf-8";
       (super::favicon());
       (super::header_libs_fragment());
+      style { (PreEscaped(super::common_styles())) }
       style { (PreEscaped(inline_styles())) }
     }
     body {
@@ -34,18 +35,20 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
 fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
   html! {
     li ."my-.5" {
-      a href={"/_/endpoint/" (endpoint.path.trim_start_matches('/'))} {
-        (endpoint.path)
-      }
-
-      // badges
-      small .ml-1 {
-        @if endpoint.config.on_the_fly_filters {
-          var .bg-variant .bd-variant .variant title="On-the-fly filters" { "OTF" }
+      p {
+        a href={"/_/endpoint/" (endpoint.path.trim_start_matches('/'))} {
+          (endpoint.path)
         }
 
-        @let source = endpoint.source();
-        (short_source_repr(source))
+        // badges
+        span .tag-container {
+          @if endpoint.config.on_the_fly_filters {
+            span .tag.otf  title="On-the-fly filters" { "OTF" }
+          }
+
+          @let source = endpoint.source();
+          (short_source_repr(source))
+        }
       }
 
       @if let Some(note) = &endpoint.note {
@@ -74,18 +77,18 @@ fn url_path(url: impl TryInto<Url>) -> Option<String> {
 fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
   match source {
     None => html! {
-      var .attention.bg-attention.bd-attention { "dynamic" }
+      span .tag.dynamic { "dynamic" }
     },
     Some(SourceConfig::Simple(url)) if url.starts_with("/") => {
       let path = url_path(url.as_str());
       let path = path.map(|p| format!("/_/{p}"));
       html! {
         @if let Some(path) = path {
-          var .accent.bg-accent.bd-accent {
+          span .tag.local {
             a href=(path) { "local" }
           }
         } @else {
-          var .accent.bg-accent.bd-accent title=(url) {
+          span .tag.local title=(url) {
             "local"
           }
         }
@@ -94,19 +97,19 @@ fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
     Some(SourceConfig::Simple(url)) => {
       let host = url_host(url.as_str()).unwrap_or_else(|| "...".into());
       html! {
-        var .accent.bg-accent.bd-accent {
+        span .tag.simple {
           a href=(url) { (host) }
         }
       }
     }
     Some(SourceConfig::FromScratch(_)) => {
       html! {
-        var title="Made from scratch" .attention.bg-attention.bd-attention { "scratch" }
+        span .tag.scratch title="Made from scratch" { "scratch" }
       }
     }
     Some(SourceConfig::Templated(_source)) => {
       html! {
-        var title="Templated source" .attention.bg-attention.bd-attention { "templated" }
+        span .tag.templated title="Templated source" { "templated" }
       }
     }
   }

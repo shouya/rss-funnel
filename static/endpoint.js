@@ -18,7 +18,7 @@ function toggleJson(element) {
 }
 
 function gatherFilterSkip() {
-  const skipped = [...document.querySelectorAll(".filter-item > var")]
+  const skipped = [...document.querySelectorAll(".filter-item > .filter-name")]
     .filter((x) => !+x.dataset.enabled)
     .map((x) => x.dataset.index)
     .join(",");
