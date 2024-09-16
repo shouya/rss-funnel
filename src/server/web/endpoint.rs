@@ -72,7 +72,7 @@ pub async fn render_endpoint_page(
           }
         }
 
-        details .config {
+        details {
           summary {
             "Config";
             (config_tags)
@@ -98,8 +98,7 @@ fn source_control_fragment(
   match source {
     None => Some(html! {
       input
-        .hx-included
-        style="flex-grow: 1;"
+        .hx-included.grow
         type="text"
         name="source"
         placeholder="Source URL"
@@ -299,7 +298,7 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
 
   html! {
     article data-display-mode="rendered" data-folded="true" .post-entry {
-      header .flex {
+      header {
         span .icon-container.fold-icon onclick="toggleFold(this)" title="Expand" {
           (sprite("caret-right"))
         }
@@ -310,7 +309,7 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
           (sprite("json"))
         }
 
-        div .flex.grow style="margin-left: .5rem" {
+        div .flex style="margin-left: .5rem" {
           span .entry-title.grow { (preview.title) }
           (external_link(&preview.link))
         }
@@ -348,7 +347,7 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
           time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
         }
         @if let Some(author) = &preview.author {
-          span .ml-1 {
+          span .author {
             (PreEscaped("By&nbsp;"));
             address .inline rel="author" { (author) }
           }
@@ -363,7 +362,7 @@ fn render_feed(mut feed: Feed) -> Markup {
   let posts = feed.take_posts();
 
   html! {
-    h3 style="display:flex" {
+    h3 .flex {
       (preview.title);
       (external_link(&preview.link))
     }
