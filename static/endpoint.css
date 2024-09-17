@@ -117,8 +117,8 @@
   &:hover > .filter-link {
     display: inline-block;
     border-top: 1px solid var(--bd-muted);
-    border-bottom: 1px solid var(--bd-muted);
     margin-left: 0.2rem;
+    height: 0;
     width: 15rem;
     vertical-align: middle;
   }

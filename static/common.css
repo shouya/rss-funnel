@@ -85,6 +85,10 @@ button {
   display: flex;
 }
 
+.flex-center {
+  align-items: center;
+}
+
 .grow {
   flex: 1;
 }

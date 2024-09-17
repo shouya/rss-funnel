@@ -250,19 +250,22 @@ fn render_config_fragment(
           hx-select="main"
         {
           @for (i, filter) in filters.filters.iter().enumerate() {
-            li .filter-item {
-              span .filter-name title="Toggle"
-                data-enabled=(filter_enabled(i))
-                onclick="this.dataset.enabled=1-+this.dataset.enabled"
-                data-index=(i) {
-                  (filter.name())
-                }
+            li {
+              div .filter-item.flex.flex-center {
+                span .filter-name title="Toggle"
+                  data-enabled=(filter_enabled(i))
+                  onclick="this.dataset.enabled=1-+this.dataset.enabled"
+                  data-index=(i) {
+                    (filter.name())
+                  }
 
-              @if let Ok(yaml) = filter.to_yaml() {
-                // TODO: show help button
-                div .filter-link {}
-                div .filter-definition {
-                  pre { code .language-yaml { (yaml) } }
+                (filter_doc(filter.name()));
+
+                @if let Ok(yaml) = filter.to_yaml() {
+                  div .filter-link {}
+                  div .filter-definition {
+                    pre { code .language-yaml { (yaml) } }
+                  }
                 }
               }
             }
@@ -389,8 +392,23 @@ fn inline_script() -> Cow<'static, str> {
 fn external_link(url: &str) -> Markup {
   html! {
     a style="margin-left: 0.25rem;display:inline-flex;align-self:center"
-      href=(url) {
+      href=(url)
+      title="Open external link"
+      target="_blank"
+      rel="noopener noreferrer" {
       (sprite("external-link"))
+    }
+  }
+}
+
+fn filter_doc(filter_name: &str) -> Markup {
+  html! {
+    a style="margin-left: 0.25rem;display:inline-flex;align-self:center"
+      href=(format!("https://github.com/shouya/rss-funnel/wiki/Filter-config#{}", filter_name))
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Documentation" {
+      (sprite("book"))
     }
   }
 }
