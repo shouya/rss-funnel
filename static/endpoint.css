@@ -192,3 +192,7 @@ pre[class*="language"] {
   flex-direction: column;
   gap: 1rem;
 }
+
+summary {
+  cursor: pointer;
+}
