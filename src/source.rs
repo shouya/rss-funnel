@@ -434,6 +434,13 @@ mod serialization {
     use super::*;
 
     #[test]
+    fn test_deserialize_null() {
+      let json = r#"null"#;
+      let config: SourceConfig = serde_json::from_str(json).unwrap();
+      assert_eq!(config, SourceConfig::Dynamic);
+    }
+
+    #[test]
     fn test_deserialize_dynamic() {
       let json = r#""dynamic""#;
       let config: SourceConfig = serde_json::from_str(json).unwrap();
