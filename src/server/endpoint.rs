@@ -45,7 +45,7 @@ impl EndpointConfig {
       path: path.to_string(),
       note: Some("Default On-the-fly filter endpoint".to_string()),
       config: EndpointServiceConfig {
-        source: None,
+        source: SourceConfig::Dynamic,
         filters: FilterPipelineConfig::default(),
         on_the_fly_filters: true,
         client: None,
@@ -66,8 +66,8 @@ impl EndpointConfig {
     EndpointService::from_config(self.config).await
   }
 
-  pub(crate) fn source(&self) -> Option<&SourceConfig> {
-    self.config.source.as_ref()
+  pub(crate) fn source(&self) -> &SourceConfig {
+    &self.config.source
   }
 }
 
@@ -76,7 +76,7 @@ impl EndpointConfig {
 )]
 pub struct EndpointServiceConfig {
   #[serde(default)]
-  pub source: Option<SourceConfig>,
+  pub source: SourceConfig,
   #[serde(default)]
   pub filters: FilterPipelineConfig,
   #[serde(default)]
@@ -97,7 +97,7 @@ pub struct EndpointServiceConfig {
 pub struct EndpointService {
   // used for detecting changes in the config for partial update
   config: EndpointServiceConfig,
-  source: Option<Source>,
+  source: Source,
   on_the_fly_filter: Option<Arc<Mutex<OnTheFlyFilter>>>,
   filters: Arc<FilterPipeline>,
   client: Arc<Client>,
@@ -235,7 +235,7 @@ impl EndpointService {
     self
   }
 
-  pub fn source(&self) -> &Option<Source> {
+  pub fn source(&self) -> &Source {
     &self.source
   }
 
@@ -262,7 +262,7 @@ impl EndpointService {
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
-    let source = config.source.map(|s| s.try_into()).transpose()?;
+    let source = config.source.try_into()?;
     let on_the_fly_filter = if config.on_the_fly_filters {
       Some(Default::default())
     } else {
@@ -313,13 +313,13 @@ impl EndpointService {
 
   fn find_source(&self, param: &Option<Url>) -> Result<Source> {
     match &self.source {
-      // ignore the source from param if it's already specified in config
-      Some(source) => Ok(source.clone()),
-      None => param
+      Source::Dynamic => param
         .as_ref()
         .ok_or(Error::Message("missing source".into()))
         .cloned()
         .map(Source::from),
+      // ignore the source from param if it's already specified in config
+      source => Ok(source.clone()),
     }
   }
 
@@ -340,7 +340,7 @@ impl EndpointService {
     }
 
     if self.config.source != config.source {
-      let source = config.source.map(|s| s.try_into()).transpose()?;
+      let source = config.source.try_into()?;
       self.source = source;
     }
 

@@ -65,11 +65,9 @@ pub async fn render_endpoint_page(
       }
 
       section .source-and-config {
-        @if let Some(source) = source {
-          section .source-control {
-            (source);
-            div.loading { (sprite("loader")) }
-          }
+        section .source-control {
+          (source);
+          div.loading { (sprite("loader")) }
         }
 
         details {
@@ -92,11 +90,11 @@ pub async fn render_endpoint_page(
 
 fn source_control_fragment(
   path: &str,
-  source: &Option<Source>,
+  source: &Source,
   param: &Result<EndpointParam, String>,
-) -> Option<Markup> {
+) -> Markup {
   match source {
-    None => Some(html! {
+    Source::Dynamic => html! {
       input
         .hx-included.grow
         type="text"
@@ -111,20 +109,16 @@ fn source_control_fragment(
         hx-target="main"
         hx-select="main"
       {}
-    }),
-    Some(Source::AbsoluteUrl(url)) => Some(html! {
-      div title="Source" .source { (url) }
-    }),
-    Some(Source::RelativeUrl(url)) => Some(html! {
-      div title="Source" .source { (url) }
-    }),
-    Some(Source::Templated(templated)) => Some(html! {
+    },
+    Source::AbsoluteUrl(url) => html! {div title="Source" .source { (url) }},
+    Source::RelativeUrl(url) => html! {div title="Source" .source { (url) }},
+    Source::Templated(templated) => html! {
       div .source-template-container {
         @let queries = param.as_ref().ok().map(|p| p.extra_queries());
         (source_template_fragment(templated, path, queries));
       }
-    }),
-    Some(Source::FromScratch(scratch)) => Some(from_scratch_fragment(scratch)),
+    },
+    Source::FromScratch(scratch) => from_scratch_fragment(scratch),
   }
 }
 

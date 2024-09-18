@@ -19,11 +19,13 @@ lazy_static::lazy_static! {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default,
 )]
 #[serde(untagged)]
 /// # Feed source
 pub enum SourceConfig {
+  #[default]
+  Dynamic,
   /// # Simple source
   ///
   /// A source that is a simple URL. A relative path (e.g. "/feed.xml")
@@ -141,6 +143,7 @@ impl Templated {
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 pub enum Source {
+  Dynamic,
   AbsoluteUrl(Url),
   RelativeUrl(String),
   Templated(Templated),
@@ -192,6 +195,7 @@ impl TryFrom<SourceConfig> for Source {
         validate_placeholders(&config)?;
         Ok(Source::Templated(config))
       }
+      SourceConfig::Dynamic => Ok(Source::Dynamic),
     }
   }
 }
@@ -270,7 +274,9 @@ impl Source {
         let base = context.base_expected()?;
         base.join(path)?
       }
-      Source::Templated(_) | Source::FromScratch(_) => unreachable!(),
+      Source::Templated(_) | Source::FromScratch(_) | Source::Dynamic => {
+        unreachable!()
+      }
     };
 
     let client =
