@@ -125,7 +125,7 @@ pub enum Error {
   #[error("Failed fetching source: {0}")]
   FetchSource(Box<Error>),
 
-  #[error("Dynamic source unspecified")]
+  #[error("Source URL unspecified for dynamic source")]
   DynamicSourceUnspecified,
 
   #[error("Source parameter {placeholder} failed to match validation: {validation} (input: {input})")]
