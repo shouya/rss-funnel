@@ -135,7 +135,7 @@ pub enum Error {
   #[error("Source template placeholder unspecified: {0}")]
   MissingSourceTemplatePlaceholder(String),
 
-  #[error("Based URL not inferred, please refer to https://github.com/shouya/rss-funnel/wiki/App-base")]
+  #[error("Can't infer app base, please refer to https://github.com/shouya/rss-funnel/wiki/App-base")]
   BaseUrlNotInferred,
 
   #[error("{0}")]

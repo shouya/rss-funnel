@@ -35,7 +35,7 @@ blake3 = "1.5.1"
 clap = { version = "4.5.1", features = ["derive", "env"] }
 serde = { version = "1.0.197", features = ["derive", "rc"] }
 serde_yaml = "0.9.32"
-duration-str = { version = "0.7.1", default-features = false, features = ["serde"] }
+duration-str = { version = "0.11.2", default-features = false, features = ["serde"] }
 
 # webserver
 axum-macros = "0.4.1"
@@ -87,6 +87,9 @@ glob-match = "0.2.1"
 # Logging
 tracing = { version = "0.1.40"}
 tracing-subscriber = "0.3.18"
+maud = { version = "0.26.0", features = ["axum"] }
+ammonia = "4.0.0"
+serde_with = "3.9.0"
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }

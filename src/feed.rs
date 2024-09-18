@@ -40,6 +40,15 @@ pub enum FeedFormat {
   Atom,
 }
 
+impl FeedFormat {
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      FeedFormat::Rss => "rss",
+      FeedFormat::Atom => "atom",
+    }
+  }
+}
+
 impl Feed {
   pub fn format(&self) -> FeedFormat {
     match self {

@@ -20,7 +20,7 @@ use url::Url;
 
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
-use crate::filter::FilterContext;
+use crate::filter::{FilterContext, FilterSkip};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
@@ -65,6 +65,10 @@ impl EndpointConfig {
   pub async fn build(self) -> Result<EndpointService, ConfigError> {
     EndpointService::from_config(self.config).await
   }
+
+  pub(crate) fn source(&self) -> Option<&SourceConfig> {
+    self.config.source.as_ref()
+  }
 }
 
 #[derive(
@@ -72,13 +76,13 @@ impl EndpointConfig {
 )]
 pub struct EndpointServiceConfig {
   #[serde(default)]
-  source: Option<SourceConfig>,
+  pub source: Option<SourceConfig>,
   #[serde(default)]
-  filters: FilterPipelineConfig,
+  pub filters: FilterPipelineConfig,
   #[serde(default)]
-  on_the_fly_filters: bool,
+  pub on_the_fly_filters: bool,
   #[serde(default)]
-  client: Option<ClientConfig>,
+  pub client: Option<ClientConfig>,
 }
 
 // Ideally I would implement this endpoint service to include a
@@ -105,7 +109,7 @@ pub struct EndpointParam {
   source: Option<Url>,
   /// Only process the initial N filter steps
   #[serde(default)]
-  limit_filters: Option<usize>,
+  filter_skip: Option<FilterSkip>,
   /// Limit the number of items in the feed
   #[serde(default)]
   limit_posts: Option<usize>,
@@ -121,16 +125,20 @@ pub struct EndpointParam {
 }
 
 impl EndpointParam {
+  pub fn source(&self) -> Option<&Url> {
+    self.source.as_ref()
+  }
+
   pub const fn all_fields() -> &'static [&'static str] {
-    &["source", "limit_filters", "limit_posts"]
+    &["source", "filter_skip", "limit_posts"]
   }
 
   pub(crate) fn base(&self) -> Option<&Url> {
     self.base.as_ref()
   }
 
-  pub(crate) fn limit_filters(&self) -> Option<usize> {
-    self.limit_filters
+  pub(crate) fn filter_skip(&self) -> Option<&FilterSkip> {
+    self.filter_skip.as_ref()
   }
 
   pub(crate) fn extra_queries(&self) -> &HashMap<String, String> {
@@ -165,13 +173,13 @@ where
 impl EndpointParam {
   pub fn new(
     source: Option<Url>,
-    limit_filters: Option<usize>,
+    filter_skip: Option<usize>,
     limit_posts: Option<usize>,
     base: Option<Url>,
   ) -> Self {
     Self {
       source,
-      limit_filters,
+      filter_skip: filter_skip.map(FilterSkip::upto),
       limit_posts,
       base,
       query: None,
@@ -227,6 +235,14 @@ impl EndpointService {
     self
   }
 
+  pub fn source(&self) -> &Option<Source> {
+    &self.source
+  }
+
+  pub fn config(&self) -> &EndpointServiceConfig {
+    &self.config
+  }
+
   async fn handle(self, mut req: Request) -> Result<Response, Response> {
     // infallible
     let param: EndpointParam = req.extract_parts().await.unwrap();
@@ -269,8 +285,8 @@ impl EndpointService {
       .fetch_feed(&context, Some(&self.client))
       .await
       .map_err(|e| Error::FetchSource(Box::new(e)))?;
-    if let Some(limit_filters) = param.limit_filters {
-      context.set_limit_filters(limit_filters);
+    if let Some(filter_skip) = param.filter_skip {
+      context.set_filter_skip(filter_skip);
     }
     if let Some(base) = param.base {
       context.set_base(base);

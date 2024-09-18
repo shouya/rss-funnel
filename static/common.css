@@ -1,0 +1,149 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --fg: #000;
+  --bg: #fff;
+  --fg-active: #007bff;
+  --fg-muted: #333;
+  --bg-muted: #f5f5f5;
+  --bd-radius: 0.2rem;
+  --bd-muted: #ddd;
+
+  --shadow: #777;
+
+  --bg-otf: #f8d7da;
+  --bg-templated: #d4edda;
+  --bg-scratch: #cce5ff;
+  --bg-local: #fff3cd;
+  --bg-remote: #d6d8d9;
+}
+
+body {
+  & > header,
+  section,
+  main {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 800px;
+  }
+
+  & > section {
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+  }
+}
+
+.header-bar {
+  padding: 0.5rem 0;
+  border-bottom: 1.5px dotted;
+  display: flex;
+  align-items: center;
+
+  h2 {
+    flex: 1;
+    margin: 0;
+  }
+}
+
+article {
+  margin: 1rem;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background-color: var(--bg);
+  border-radius: var(--bd-radius);
+
+  & > header {
+    border-bottom: 1px solid;
+    display: flex;
+    max-width: 100%;
+  }
+  & > footer {
+    border-top: 1px solid;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  & > section {
+    max-width: 100%;
+  }
+}
+
+button {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+/* Utility classes */
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  align-items: center;
+}
+
+.grow {
+  flex: 1;
+}
+
+.inline {
+  display: inline;
+}
+
+.flash {
+  border-radius: var(--bd-radius);
+  padding: 0.5rem;
+  border: 1px solid;
+
+  &.error {
+    color: red;
+    border-color: red;
+  }
+}
+
+.tag-container {
+  margin: 0 0.5rem;
+  display: inline-flex;
+  gap: 0.2rem;
+
+  .tag {
+    color: var(--fg-muted);
+    background-color: var(--bg-muted);
+    padding: 0.2rem;
+    border-radius: var(--bd-radius);
+    font-size: 0.8rem;
+    cursor: default;
+
+    &.otf {
+      background-color: var(--bg-otf);
+    }
+    &.templated {
+      background-color: var(--bg-templated);
+    }
+    &.scratch {
+      background-color: var(--bg-scratch);
+    }
+    &.local {
+      background-color: var(--bg-local);
+    }
+    &.remote {
+      background-color: var(--bg-remote);
+    }
+
+    a {
+      color: var(--fg);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--fg-active);
+      }
+    }
+  }
+}

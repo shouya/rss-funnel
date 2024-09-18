@@ -5,6 +5,7 @@ pub mod image_proxy;
 #[cfg(feature = "inspector-ui")]
 mod inspector;
 mod watcher;
+mod web;
 
 use std::{path::Path, sync::Arc};
 
@@ -120,7 +121,13 @@ impl ServerConfig {
 
     #[cfg(feature = "inspector-ui")]
     if self.inspector_ui {
-      app = app.nest("/", inspector::router())
+      app = app
+        .nest("/", inspector::router())
+        .nest("/_/", web::router())
+        .route(
+          "/",
+          get(|| async { axum::response::Redirect::temporary("/_/") }),
+        );
     } else {
       app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
     }

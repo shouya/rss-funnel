@@ -14,7 +14,7 @@ use crate::{
 )]
 #[serde(transparent)]
 pub struct FilterPipelineConfig {
-  filters: Vec<FilterConfig>,
+  pub filters: Vec<FilterConfig>,
 }
 
 impl From<Vec<FilterConfig>> for FilterPipelineConfig {
@@ -88,16 +88,11 @@ impl Inner {
     mut context: FilterContext,
     mut feed: Feed,
   ) -> Result<Feed> {
-    let limit_filters = context
-      .limit_filters()
-      .unwrap_or_else(|| self.num_filters());
-    for filter in self.filters.iter().take(limit_filters) {
-      feed = filter.run(&mut context, feed).await?;
+    for (i, filter) in self.filters.iter().enumerate() {
+      if context.allows_filter(i) {
+        feed = filter.run(&mut context, feed).await?;
+      }
     }
     Ok(feed)
-  }
-
-  fn num_filters(&self) -> usize {
-    self.filters.len()
   }
 }

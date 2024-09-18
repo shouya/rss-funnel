@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use axum::extract::Query;
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::response::{IntoResponse, Response};
 use axum::Json;
 use axum::{
   routing::{get, post},
@@ -32,15 +32,6 @@ pub fn router() -> Router {
     .route("/_inspector/config", get(config_handler))
     .route("/_inspector/filter_schema", get(filter_schema_handler))
     .route("/_inspector/preview", get(preview_handler))
-    .route("/", get(index_handler))
-}
-
-async fn index_handler(auth: Option<Auth>) -> impl IntoResponse {
-  if auth.is_some() {
-    Redirect::temporary("/_inspector/index.html")
-  } else {
-    Redirect::temporary("/_inspector/login.html")
-  }
 }
 
 async fn inspector_page_handler(_auth: Auth) -> impl IntoResponse {

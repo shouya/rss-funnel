@@ -87,7 +87,10 @@ impl FeedService {
 
     let mut buffer = [0u8; 32];
     OsRng.fill_bytes(&mut buffer);
-    let session_id = format!("{:x?}", buffer);
+    let mut session_id = String::with_capacity(32 * 2);
+    for byte in buffer.iter() {
+      session_id.push_str(&format!("{:02x}", byte));
+    }
 
     let mut inner = self.inner.write().await;
     inner.session_id = Some(session_id.clone());

@@ -50,7 +50,7 @@ struct TestConfig {
   source: Option<Url>,
   /// Limit the first N filter steps to run
   #[clap(long, short)]
-  limit_filters: Option<usize>,
+  filter_skip: Option<usize>,
   /// Limit the number of items in the feed
   #[clap(long, short('n'))]
   limit_posts: Option<usize>,
@@ -66,7 +66,7 @@ impl TestConfig {
   fn to_endpoint_param(&self) -> server::EndpointParam {
     server::EndpointParam::new(
       self.source.as_ref().cloned(),
-      self.limit_filters,
+      self.filter_skip,
       self.limit_posts,
       self.base.clone(),
     )

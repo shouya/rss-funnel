@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
-use crate::source::{Source, SourceConfig};
+use crate::source::{SimpleSourceConfig, Source};
 use crate::util::{ConfigError, Result, SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
@@ -28,7 +28,7 @@ pub enum MergeConfig {
 )]
 #[serde(transparent)]
 pub struct MergeSimpleConfig {
-  source: SingleOrVec<SourceConfig>,
+  pub source: SingleOrVec<SimpleSourceConfig>,
 }
 
 #[derive(
@@ -36,16 +36,16 @@ pub struct MergeSimpleConfig {
 )]
 pub struct MergeFullConfig {
   /// Source configuration
-  source: SingleOrVec<SourceConfig>,
+  pub source: SingleOrVec<SimpleSourceConfig>,
   /// Number of concurrent requests to make for fetching multiple sources (default: 20)
   #[serde(default)]
-  parallelism: Option<usize>,
+  pub parallelism: Option<usize>,
   /// Client configuration
   #[serde(default)]
-  client: Option<ClientConfig>,
+  pub client: Option<ClientConfig>,
   /// Filters to apply to the merged feed
   #[serde(default)]
-  filters: Option<FilterPipelineConfig>,
+  pub filters: Option<FilterPipelineConfig>,
 }
 
 impl From<MergeSimpleConfig> for MergeFullConfig {

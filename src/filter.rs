@@ -1,28 +1,48 @@
-mod convert;
-mod full_text;
-mod highlight;
-mod html;
-mod image_proxy;
-mod js;
-mod limit;
-mod magnet;
-mod merge;
-mod note;
-mod sanitize;
-mod select;
-mod simplify_html;
+pub(crate) mod convert;
+pub(crate) mod full_text;
+pub(crate) mod highlight;
+pub(crate) mod html;
+pub(crate) mod image_proxy;
+pub(crate) mod js;
+pub(crate) mod limit;
+pub(crate) mod magnet;
+pub(crate) mod merge;
+pub(crate) mod note;
+pub(crate) mod sanitize;
+pub(crate) mod select;
+pub(crate) mod simplify_html;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
 use url::Url;
 
 use crate::{
   feed::Feed,
   util::{ConfigError, Error, Result},
 };
+
+#[serde_as]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(transparent)]
+pub struct FilterSkip {
+  #[serde_as(as = "StringWithSeparator::<CommaSeparator, usize>")]
+  indices: HashSet<usize>,
+}
+
+impl FilterSkip {
+  pub(crate) fn upto(n: usize) -> Self {
+    let indices = (0..n).collect::<HashSet<usize>>();
+    Self { indices }
+  }
+
+  pub fn allows_filter(&self, index: usize) -> bool {
+    !self.indices.contains(&index)
+  }
+}
 
 #[derive(Clone)]
 pub struct FilterContext {
@@ -31,7 +51,7 @@ pub struct FilterContext {
   base: Option<Url>,
 
   /// The maximum number of filters to run on this pipeline
-  limit_filters: Option<usize>,
+  filter_skip: Option<FilterSkip>,
 
   /// The extra query parameters passed to the endpoint
   extra_queries: HashMap<String, String>,
@@ -42,13 +62,9 @@ impl FilterContext {
   pub fn new() -> Self {
     Self {
       base: None,
-      limit_filters: None,
+      filter_skip: None,
       extra_queries: HashMap::new(),
     }
-  }
-
-  pub fn limit_filters(&self) -> Option<usize> {
-    self.limit_filters
   }
 
   pub fn base(&self) -> Option<&Url> {
@@ -63,8 +79,8 @@ impl FilterContext {
     &self.extra_queries
   }
 
-  pub fn set_limit_filters(&mut self, limit: usize) {
-    self.limit_filters = Some(limit);
+  pub fn set_filter_skip(&mut self, filter_skip: FilterSkip) {
+    self.filter_skip = Some(filter_skip);
   }
 
   pub fn set_base(&mut self, base: Url) {
@@ -74,7 +90,7 @@ impl FilterContext {
   pub fn subcontext(&self) -> Self {
     Self {
       base: self.base.clone(),
-      limit_filters: None,
+      filter_skip: None,
       extra_queries: self.extra_queries.clone(),
     }
   }
@@ -82,8 +98,16 @@ impl FilterContext {
   pub fn from_param(param: &crate::server::EndpointParam) -> Self {
     Self {
       base: param.base().cloned(),
-      limit_filters: param.limit_filters(),
+      filter_skip: param.filter_skip().cloned(),
       extra_queries: param.extra_queries().clone(),
+    }
+  }
+
+  pub fn allows_filter(&self, index: usize) -> bool {
+    if let Some(f) = &self.filter_skip {
+      f.allows_filter(index)
+    } else {
+      true
     }
   }
 }
@@ -185,6 +209,10 @@ macro_rules! define_filters {
             Ok(BoxedFilter::from(filter))
           })*
         }
+      }
+
+      pub fn to_yaml(&self) -> Result<String, ConfigError> {
+        Ok(serde_yaml::to_string(self)?)
       }
 
       pub fn name(&self) -> &'static str {
