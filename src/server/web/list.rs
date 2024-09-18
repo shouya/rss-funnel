@@ -34,7 +34,7 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
 
 fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
   html! {
-    li ."my-.5" {
+    li {
       p {
         a href={"/_/endpoint/" (endpoint.path.trim_start_matches('/'))} {
           (endpoint.path)
@@ -74,12 +74,12 @@ fn url_path(url: impl TryInto<Url>) -> Option<String> {
   Some(url.path().to_owned())
 }
 
-fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
+fn short_source_repr(source: &SourceConfig) -> Markup {
   match source {
-    None => html! {
+    SourceConfig::Dynamic => html! {
       span .tag.dynamic { "dynamic" }
     },
-    Some(SourceConfig::Simple(url)) if url.starts_with("/") => {
+    SourceConfig::Simple(url) if url.starts_with("/") => {
       let path = url_path(url.as_str());
       let path = path.map(|p| format!("/_/{p}"));
       html! {
@@ -94,7 +94,7 @@ fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
         }
       }
     }
-    Some(SourceConfig::Simple(url)) => {
+    SourceConfig::Simple(url) => {
       let host = url_host(url.as_str()).unwrap_or_else(|| "...".into());
       html! {
         span .tag.simple {
@@ -102,12 +102,12 @@ fn short_source_repr(source: Option<&SourceConfig>) -> Markup {
         }
       }
     }
-    Some(SourceConfig::FromScratch(_)) => {
+    SourceConfig::FromScratch(_) => {
       html! {
         span .tag.scratch title="Made from scratch" { "scratch" }
       }
     }
-    Some(SourceConfig::Templated(_source)) => {
+    SourceConfig::Templated(_source) => {
       html! {
         span .tag.templated title="Templated source" { "templated" }
       }

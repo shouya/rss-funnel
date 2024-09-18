@@ -50,6 +50,9 @@ pub struct FilterContext {
   /// from a relative path.
   base: Option<Url>,
 
+  /// User supplied source (`?source=` query parameter)
+  source: Option<Url>,
+
   /// The maximum number of filters to run on this pipeline
   filter_skip: Option<FilterSkip>,
 
@@ -63,6 +66,7 @@ impl FilterContext {
     Self {
       base: None,
       filter_skip: None,
+      source: None,
       extra_queries: HashMap::new(),
     }
   }
@@ -79,6 +83,10 @@ impl FilterContext {
     &self.extra_queries
   }
 
+  pub fn source(&self) -> Option<&Url> {
+    self.source.as_ref()
+  }
+
   pub fn set_filter_skip(&mut self, filter_skip: FilterSkip) {
     self.filter_skip = Some(filter_skip);
   }
@@ -90,6 +98,7 @@ impl FilterContext {
   pub fn subcontext(&self) -> Self {
     Self {
       base: self.base.clone(),
+      source: None,
       filter_skip: None,
       extra_queries: self.extra_queries.clone(),
     }
@@ -98,6 +107,7 @@ impl FilterContext {
   pub fn from_param(param: &crate::server::EndpointParam) -> Self {
     Self {
       base: param.base().cloned(),
+      source: param.source().cloned(),
       filter_skip: param.filter_skip().cloned(),
       extra_queries: param.extra_queries().clone(),
     }

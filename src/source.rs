@@ -18,12 +18,11 @@ lazy_static::lazy_static! {
   static ref VAR_RE: Regex = Regex::new(r"\$\{(?<name>\w+)\}").unwrap();
 }
 
-#[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
-)]
-#[serde(untagged)]
+#[derive(JsonSchema, Clone, Debug, PartialEq, Eq, Hash, Default)]
 /// # Feed source
 pub enum SourceConfig {
+  #[default]
+  Dynamic,
   /// # Simple source
   ///
   /// A source that is a simple URL. A relative path (e.g. "/feed.xml")
@@ -141,6 +140,7 @@ impl Templated {
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 pub enum Source {
+  Dynamic,
   AbsoluteUrl(Url),
   RelativeUrl(String),
   Templated(Templated),
@@ -192,6 +192,7 @@ impl TryFrom<SourceConfig> for Source {
         validate_placeholders(&config)?;
         Ok(Source::Templated(config))
       }
+      SourceConfig::Dynamic => Ok(Source::Dynamic),
     }
   }
 }
@@ -254,28 +255,24 @@ impl Source {
     context: &FilterContext,
     client: Option<&Client>,
   ) -> Result<Feed> {
-    if let Source::FromScratch(config) = self {
-      let feed = Feed::from(config);
-      return Ok(feed);
-    }
+    let client = client.ok_or_else(|| Error::Message("client not set".into()));
 
-    if let Source::Templated(config) = self {
-      let source = config.to_regular_source(context.extra_queries())?;
-      return Box::pin(source.fetch_feed(context, client)).await;
-    }
-
-    let source_url = match self {
-      Source::AbsoluteUrl(url) => url.clone(),
-      Source::RelativeUrl(path) => {
-        let base = context.base_expected()?;
-        base.join(path)?
+    match self {
+      Source::Dynamic => {
+        let url = context.source().ok_or(Error::DynamicSourceUnspecified)?;
+        client?.fetch_feed(url).await
       }
-      Source::Templated(_) | Source::FromScratch(_) => unreachable!(),
-    };
-
-    let client =
-      client.ok_or_else(|| Error::Message("client not set".into()))?;
-    client.fetch_feed(&source_url).await
+      Source::AbsoluteUrl(url) => client?.fetch_feed(url).await,
+      Source::RelativeUrl(path) => {
+        let url = context.base_expected()?.join(path)?;
+        client?.fetch_feed(&url).await
+      }
+      Source::FromScratch(config) => Ok(Feed::from(config)),
+      Source::Templated(template) => {
+        let source = template.to_regular_source(context.extra_queries())?;
+        Box::pin(source.fetch_feed(context, client.ok())).await
+      }
+    }
   }
 }
 
@@ -379,5 +376,99 @@ placeholders:
       ))
     );
     assert_eq!(fragments[4], Either::Left("/feed.xml"));
+  }
+}
+
+mod serialization {
+  // this custom deserialize implementation allows us to parse the
+  // special value "dynamic" as a SourceConfig::Dynamic.
+  use super::*;
+  use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
+
+  impl<'de> Deserialize<'de> for SourceConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+      D: Deserializer<'de>,
+    {
+      #[derive(Deserialize)]
+      #[serde(untagged)]
+      enum SourceConfigHelper {
+        Null,
+        Str(String),
+        FromScratch(FromScratch),
+        Templated(Templated),
+      }
+
+      let helper = SourceConfigHelper::deserialize(deserializer)?;
+
+      match helper {
+        SourceConfigHelper::Null => Ok(SourceConfig::Dynamic),
+        SourceConfigHelper::Str(s) if s == "dynamic" => {
+          Ok(SourceConfig::Dynamic)
+        }
+        SourceConfigHelper::Str(s) => Ok(SourceConfig::Simple(s.to_string())),
+        SourceConfigHelper::FromScratch(fs) => {
+          Ok(SourceConfig::FromScratch(fs))
+        }
+        SourceConfigHelper::Templated(t) => Ok(SourceConfig::Templated(t)),
+      }
+    }
+  }
+
+  impl Serialize for SourceConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+      S: Serializer,
+    {
+      match self {
+        SourceConfig::Dynamic => serializer.serialize_str("dynamic"),
+        SourceConfig::Simple(url) => serializer.serialize_str(url),
+        SourceConfig::FromScratch(fs) => fs.serialize(serializer),
+        SourceConfig::Templated(t) => t.serialize(serializer),
+      }
+    }
+  }
+
+  #[cfg(test)]
+  mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_null() {
+      let json = r#"null"#;
+      let config: SourceConfig = serde_json::from_str(json).unwrap();
+      assert_eq!(config, SourceConfig::Dynamic);
+    }
+
+    #[test]
+    fn test_deserialize_dynamic() {
+      let json = r#""dynamic""#;
+      let config: SourceConfig = serde_json::from_str(json).unwrap();
+      assert_eq!(config, SourceConfig::Dynamic);
+    }
+
+    #[test]
+    fn test_deserialize_simple() {
+      let json = r#""https://example.com/feed.xml""#;
+      let config: SourceConfig = serde_json::from_str(json).unwrap();
+      assert_eq!(
+        config,
+        SourceConfig::Simple("https://example.com/feed.xml".into())
+      );
+    }
+
+    #[test]
+    fn test_serialize_dynamic() {
+      let config = SourceConfig::Dynamic;
+      let json = serde_json::to_string(&config).unwrap();
+      assert_eq!(json, r#""dynamic""#);
+    }
+
+    #[test]
+    fn test_serialize_simple() {
+      let config = SourceConfig::Simple("https://example.com/feed.xml".into());
+      let json = serde_json::to_string(&config).unwrap();
+      assert_eq!(json, r#""https://example.com/feed.xml""#);
+    }
   }
 }
