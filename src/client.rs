@@ -55,6 +55,7 @@ pub struct ClientConfig {
   #[schemars(with = "String")]
   pub cache_ttl: Option<Duration>,
   /// Request timeout (Format: "4s", "10m", "1h", "1d")
+  #[serde(default)]
   #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
   #[schemars(with = "String")]
   pub timeout: Option<Duration>,
