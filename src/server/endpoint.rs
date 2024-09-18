@@ -279,9 +279,9 @@ impl EndpointService {
   }
 
   pub async fn run(self, param: EndpointParam) -> Result<Feed> {
-    let source = self.find_source(&param.source)?;
     let mut context = FilterContext::from_param(&param);
-    let feed = source
+    let feed = self
+      .source
       .fetch_feed(&context, Some(&self.client))
       .await
       .map_err(|e| Error::FetchSource(Box::new(e)))?;
@@ -309,18 +309,6 @@ impl EndpointService {
     }
 
     Ok(feed)
-  }
-
-  fn find_source(&self, param: &Option<Url>) -> Result<Source> {
-    match &self.source {
-      Source::Dynamic => param
-        .as_ref()
-        .ok_or(Error::Message("missing source".into()))
-        .cloned()
-        .map(Source::from),
-      // ignore the source from param if it's already specified in config
-      source => Ok(source.clone()),
-    }
   }
 
   pub fn config_changed(&self, config: &EndpointServiceConfig) -> bool {

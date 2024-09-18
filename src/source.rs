@@ -258,30 +258,24 @@ impl Source {
     context: &FilterContext,
     client: Option<&Client>,
   ) -> Result<Feed> {
-    if let Source::FromScratch(config) = self {
-      let feed = Feed::from(config);
-      return Ok(feed);
-    }
+    let client = client.ok_or_else(|| Error::Message("client not set".into()));
 
-    if let Source::Templated(config) = self {
-      let source = config.to_regular_source(context.extra_queries())?;
-      return Box::pin(source.fetch_feed(context, client)).await;
-    }
-
-    let source_url = match self {
-      Source::AbsoluteUrl(url) => url.clone(),
+    match self {
+      Source::Dynamic => {
+        let url = context.source().ok_or(Error::DynamicSourceUnspecified)?;
+        client?.fetch_feed(url).await
+      }
+      Source::AbsoluteUrl(url) => client?.fetch_feed(url).await,
       Source::RelativeUrl(path) => {
-        let base = context.base_expected()?;
-        base.join(path)?
+        let url = context.base_expected()?.join(path)?;
+        client?.fetch_feed(&url).await
       }
-      Source::Templated(_) | Source::FromScratch(_) | Source::Dynamic => {
-        unreachable!()
+      Source::FromScratch(config) => Ok(Feed::from(config)),
+      Source::Templated(template) => {
+        let source = template.to_regular_source(context.extra_queries())?;
+        Box::pin(source.fetch_feed(context, client.ok())).await
       }
-    };
-
-    let client =
-      client.ok_or_else(|| Error::Message("client not set".into()))?;
-    client.fetch_feed(&source_url).await
+    }
   }
 }
 
