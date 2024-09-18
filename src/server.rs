@@ -124,6 +124,10 @@ impl ServerConfig {
       app = app
         .nest("/", inspector::router())
         .nest("/_/", web::router())
+        .route(
+          "/",
+          get(|| async { axum::response::Redirect::temporary("/_/") }),
+        );
     } else {
       app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
