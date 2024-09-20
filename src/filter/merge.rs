@@ -149,8 +149,9 @@ impl FeedFilter for Merge {
         .clone()
         .unwrap_or_else(|| format!("{:?}", source));
 
-      let body =
-        format!("<p>Source:<br>{source_desc}</p><p>Error:<br>{error}</p>");
+      let body = format!(
+        "<p><b>Source:</b><br>{source_desc}</p><p><b>Error:</b><br>{error}</p>"
+      );
       feed.add_item(title, body, source_url.unwrap_or_default());
     }
 
