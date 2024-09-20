@@ -274,6 +274,19 @@ impl Source {
       }
     }
   }
+
+  pub fn full_url(&self, ctx: &FilterContext) -> Option<Url> {
+    match self {
+      Source::Dynamic => ctx.source().cloned(),
+      Source::AbsoluteUrl(url) => Some(url.clone()),
+      Source::RelativeUrl(path) => ctx
+        .base_expected()
+        .ok()
+        .map(|base| base.join(path).expect("failed to join base and path")),
+      Source::FromScratch(_) => None,
+      Source::Templated(_) => None,
+    }
+  }
 }
 
 fn split_with_delimiter<'a>(

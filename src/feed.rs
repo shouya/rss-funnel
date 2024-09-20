@@ -255,6 +255,18 @@ impl Feed {
       }
     }
   }
+
+  #[allow(clippy::field_reassign_with_default)]
+  pub fn add_post(&mut self, post_preview: PostPreview) {
+    match self {
+      Feed::Rss(channel) => {
+        channel.items.push(post_preview.into_rss_item());
+      }
+      Feed::Atom(feed) => {
+        feed.entries.push(post_preview.into_atom_entry());
+      }
+    };
+  }
 }
 
 #[cfg(test)]
