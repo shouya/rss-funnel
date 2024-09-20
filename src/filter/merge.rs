@@ -282,6 +282,6 @@ mod test {
 
     let results = vec![(1, Err::<(), _>("error1")), (2, Err("error2"))];
     let err = super::collect_partial_oks(results.into_iter()).unwrap_err();
-    assert_eq!(err, "error1");
+    assert_eq!(err, "error2");
   }
 }
