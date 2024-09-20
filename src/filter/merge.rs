@@ -176,8 +176,8 @@ fn post_from_error(
   }
 }
 
-// return Err(e) only if all results are Err.
-// otherwise return a Vec<T> with failed results
+// Return Err only if all results are Err. Otherwise return both
+// succeeded results (Vec<T>) and failed results (Vec<(S, E)>).
 #[allow(clippy::type_complexity)]
 fn collect_partial_oks<S, T, E>(
   iter: impl Iterator<Item = (S, Result<T, E>)>,
