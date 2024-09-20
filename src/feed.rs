@@ -256,6 +256,7 @@ impl Feed {
     }
   }
 
+  #[allow(clippy::field_reassign_with_default)]
   pub fn add_item(&mut self, title: String, body: String, link: String) {
     let guid = link.clone();
 

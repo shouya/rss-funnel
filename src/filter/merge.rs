@@ -157,6 +157,7 @@ impl FeedFilter for Merge {
 
 // return Err(e) only if all results are Err.
 // otherwise return a Vec<T> with failed results
+#[allow(clippy::type_complexity)]
 fn collect_partial_oks<S, T, E>(
   iter: impl Iterator<Item = (S, Result<T, E>)>,
 ) -> Result<(Vec<T>, Vec<(S, E)>), E> {
