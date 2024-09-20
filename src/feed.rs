@@ -257,34 +257,13 @@ impl Feed {
   }
 
   #[allow(clippy::field_reassign_with_default)]
-  pub fn add_item(&mut self, title: String, body: String, link: String) {
-    let guid = link.clone();
-
+  pub fn add_post(&mut self, post_preview: PostPreview) {
     match self {
       Feed::Rss(channel) => {
-        let mut item = rss::Item::default();
-        item.title = Some(title);
-        item.description = Some(body);
-        item.link = Some(link);
-        item.guid = Some(rss::Guid {
-          value: guid,
-          ..Default::default()
-        });
-        channel.items.push(item);
+        channel.items.push(post_preview.into_rss_item());
       }
       Feed::Atom(feed) => {
-        let mut entry = atom_syndication::Entry::default();
-        entry.title = atom_syndication::Text::plain(title);
-        entry.content = Some(atom_syndication::Content {
-          value: Some(body),
-          ..Default::default()
-        });
-        entry.links.push(atom_syndication::Link {
-          href: link,
-          ..Default::default()
-        });
-        entry.id = guid;
-        feed.entries.push(entry);
+        feed.entries.push(post_preview.into_atom_entry());
       }
     };
   }

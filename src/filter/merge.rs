@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::client::{Client, ClientConfig};
-use crate::feed::Feed;
+use crate::feed::{Feed, PostPreview};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{SimpleSourceConfig, Source};
 use crate::util::{ConfigError, Error, Result, SingleOrVec};
@@ -140,23 +140,39 @@ impl FeedFilter for Merge {
     }
 
     for (source, error) in errors {
-      let source_url = source.full_url(ctx).map(|u| u.to_string());
-      let title = match source_url.as_ref() {
-        Some(url) => format!("Error fetching source: {}", url),
-        None => "Error: Failed fetching source".to_owned(),
-      };
-      let source_desc = source_url
-        .clone()
-        .unwrap_or_else(|| format!("{:?}", source));
-
-      let body = format!(
-        "<p><b>Source:</b><br>{source_desc}</p><p><b>Error:</b><br>{error}</p>"
-      );
-      feed.add_item(title, body, source_url.unwrap_or_default());
+      let post = post_from_error(source, error, ctx);
+      feed.add_post(post);
     }
 
     feed.reorder();
     Ok(feed)
+  }
+}
+
+fn post_from_error(
+  source: Source,
+  error: Error,
+  ctx: &FilterContext,
+) -> PostPreview {
+  let source_url = source.full_url(ctx).map(|u| u.to_string());
+  let title = match source_url.as_ref() {
+    Some(url) => format!("Error fetching source: {}", url),
+    None => "Error: Failed fetching source".to_owned(),
+  };
+  let source_desc = source_url
+    .clone()
+    .unwrap_or_else(|| format!("{:?}", source));
+
+  let body = format!(
+    "<p><b>Source:</b><br>{source_desc}</p><p><b>Error:</b><br>{error}</p>"
+  );
+
+  PostPreview {
+    title,
+    link: source_url.unwrap_or_default(),
+    author: Some("rss-funnel".to_owned()),
+    body: Some(body),
+    date: Some(chrono::Utc::now().fixed_offset()),
   }
 }
 
