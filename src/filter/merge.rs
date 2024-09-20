@@ -140,13 +140,17 @@ impl FeedFilter for Merge {
     }
 
     for (source, error) in errors {
-      let title = "Failed fetching source".to_owned();
       let source_url = source.full_url(ctx).map(|u| u.to_string());
+      let title = match source_url.as_ref() {
+        Some(url) => format!("Error fetching source: {}", url),
+        None => "Error: Failed fetching source".to_owned(),
+      };
       let source_desc = source_url
         .clone()
         .unwrap_or_else(|| format!("{:?}", source));
 
-      let body = format!("<p>Source: {source_desc}</p><p>Error: {error}</p>");
+      let body =
+        format!("<p>Source:<br>{source_desc}</p><p>Error:<br>{error}</p>");
       feed.add_item(title, body, source_url.unwrap_or_default());
     }
 
