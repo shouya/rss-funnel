@@ -255,6 +255,38 @@ impl Feed {
       }
     }
   }
+
+  pub fn add_item(&mut self, title: String, body: String, link: String) {
+    let guid = link.clone();
+
+    match self {
+      Feed::Rss(channel) => {
+        let mut item = rss::Item::default();
+        item.title = Some(title);
+        item.description = Some(body);
+        item.link = Some(link);
+        item.guid = Some(rss::Guid {
+          value: guid,
+          ..Default::default()
+        });
+        channel.items.push(item);
+      }
+      Feed::Atom(feed) => {
+        let mut entry = atom_syndication::Entry::default();
+        entry.title = atom_syndication::Text::plain(title);
+        entry.content = Some(atom_syndication::Content {
+          value: Some(body),
+          ..Default::default()
+        });
+        entry.links.push(atom_syndication::Link {
+          href: link,
+          ..Default::default()
+        });
+        entry.id = guid;
+        feed.entries.push(entry);
+      }
+    };
+  }
 }
 
 #[cfg(test)]

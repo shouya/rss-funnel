@@ -8,7 +8,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::Feed;
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{SimpleSourceConfig, Source};
-use crate::util::{ConfigError, Result, SingleOrVec};
+use crate::util::{ConfigError, Error, Result, SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -107,33 +107,72 @@ pub struct Merge {
 }
 
 impl Merge {
-  async fn fetch_sources(&self, ctx: &FilterContext) -> Result<Vec<Feed>> {
-    stream::iter(self.sources.clone())
+  async fn fetch_sources(
+    &self,
+    ctx: &FilterContext,
+  ) -> Result<(Vec<Feed>, Vec<(Source, Error)>)> {
+    let iter = stream::iter(self.sources.clone())
       .map(|source: Source| {
         let client = &self.client;
         async move {
-          let feed = source.fetch_feed(ctx, Some(client)).await?;
-          Ok(feed)
+          let fetch_res = source.fetch_feed(ctx, Some(client)).await;
+          (source, fetch_res)
         }
       })
       .buffered(self.parallelism)
       .collect::<Vec<_>>()
       .await
-      .into_iter()
-      .collect::<Result<Vec<Feed>>>()
+      .into_iter();
+
+    collect_partial_oks(iter)
   }
 }
 
 #[async_trait::async_trait]
 impl FeedFilter for Merge {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
-    for new_feed in self.fetch_sources(ctx).await? {
+    let (new_feeds, errors) = self.fetch_sources(ctx).await?;
+
+    for new_feed in new_feeds {
       let ctx = ctx.subcontext();
       let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
       feed.merge(filtered_new_feed)?;
     }
+
+    for (source, error) in errors {
+      let title = "Failed fetching source".to_owned();
+      let source_url = source.full_url(ctx).map(|u| u.to_string());
+      let source_desc = source_url
+        .clone()
+        .unwrap_or_else(|| format!("{:?}", source));
+
+      let body = format!("<p>Source: {source_desc}</p><p>Error: {error}</p>");
+      feed.add_item(title, body, source_url.unwrap_or_default());
+    }
+
     feed.reorder();
     Ok(feed)
+  }
+}
+
+// return Err(e) only if all results are Err.
+// otherwise return a Vec<T> with failed results
+fn collect_partial_oks<S, T, E>(
+  iter: impl Iterator<Item = (S, Result<T, E>)>,
+) -> Result<(Vec<T>, Vec<(S, E)>), E> {
+  let mut oks = Vec::new();
+  let mut errs = Vec::new();
+  for (source, res) in iter {
+    match res {
+      Ok(ok) => oks.push(ok),
+      Err(err) => errs.push((source, err)),
+    }
+  }
+
+  if oks.is_empty() && !errs.is_empty() {
+    Err(errs.pop().map(|(_, e)| e).unwrap())
+  } else {
+    Ok((oks, errs))
   }
 }
 
@@ -205,5 +244,22 @@ mod test {
     for (_, titles) in groups {
       assert_eq!(titles.len(), 3);
     }
+  }
+
+  #[test]
+  fn test_partial_collect() {
+    let results = vec![
+      (1, Ok(1)),
+      (2, Err("error2")),
+      (3, Ok(3)),
+      (4, Err("error4")),
+    ];
+    let (oks, errs) = super::collect_partial_oks(results.into_iter()).unwrap();
+    assert_eq!(oks, vec![1, 3]);
+    assert_eq!(errs, vec![(2, "error2"), (4, "error4")]);
+
+    let results = vec![(1, Err::<(), _>("error1")), (2, Err("error2"))];
+    let err = super::collect_partial_oks(results.into_iter()).unwrap_err();
+    assert_eq!(err, "error1");
   }
 }
