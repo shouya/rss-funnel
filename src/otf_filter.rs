@@ -4,7 +4,7 @@ use tracing::warn;
 
 use crate::{
   feed::Feed,
-  filter::{FilterConfig, FilterContext},
+  filter::{FilterConfig, FilterConfigEnum, FilterContext},
   filter_pipeline::{FilterPipeline, FilterPipelineConfig},
   util::{ConfigError, Error},
 };
@@ -25,7 +25,7 @@ impl OnTheFlyFilterQuery {
         filter_name = param;
       }
 
-      if FilterConfig::is_valid_key(filter_name) {
+      if FilterConfigEnum::is_valid_key(filter_name) {
         query.push(param.to_string());
       }
     }

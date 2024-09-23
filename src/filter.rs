@@ -13,6 +13,7 @@ pub(crate) mod select;
 pub(crate) mod simplify_html;
 
 use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 use std::sync::Arc;
 
 use schemars::JsonSchema;
@@ -153,12 +154,44 @@ impl BoxedFilter {
   }
 }
 
+type Span = std::ops::Range<usize>;
+
+#[derive(
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+)]
+pub struct FilterConfig {
+  pub value: FilterConfigEnum,
+  pub span: Option<Span>,
+}
+
+impl Deref for FilterConfig {
+  type Target = FilterConfigEnum;
+
+  fn deref(&self) -> &Self::Target {
+    &self.value
+  }
+}
+
+impl FilterConfig {
+  pub async fn build(self) -> Result<BoxedFilter, ConfigError> {
+    self.value.build().await
+  }
+
+  pub fn parse_yaml_value(
+    key: &str,
+    value: serde_yaml::Value,
+  ) -> Result<Self, ConfigError> {
+    let value = FilterConfigEnum::parse_yaml_value(key, value)?;
+    Ok(Self { value, span: None })
+  }
+}
+
 macro_rules! define_filters {
   ($($variant:ident => $config:ty, $desc:literal);* ;) => {
     paste::paste! {
       #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
       #[serde(rename_all = "snake_case")]
-      pub enum FilterConfig {
+      pub enum FilterConfigEnum {
         $(
            #[doc = "# " $variant:snake "\n\n" $desc "\n"]
            $variant($config),
@@ -167,13 +200,13 @@ macro_rules! define_filters {
     }
 
 
-    impl FilterConfig {
+    impl FilterConfigEnum {
       // currently only used in tests
       #[cfg(test)]
       pub fn parse_yaml_variant(input: &str) -> Result<Box<dyn std::any::Any>> {
-        let config: FilterConfig = Self::parse_yaml(input)?;
+        let config: FilterConfigEnum = Self::parse_yaml(input)?;
         match config {
-          $(FilterConfig::$variant(config) => {
+          $(FilterConfigEnum::$variant(config) => {
             Ok(Box::new(config))
           })*
         }
@@ -184,18 +217,21 @@ macro_rules! define_filters {
         #[derive(Deserialize)]
         struct Dummy {
           #[serde(flatten)]
-          config: FilterConfig
+          config: FilterConfigEnum
         }
 
         let dummy: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
         Ok(dummy.config)
       }
 
-      pub fn parse_yaml_value(key: &str, value: serde_yaml::Value) -> Result<Self, ConfigError> {
+      pub fn parse_yaml_value(
+        key: &str,
+        value: serde_yaml::Value
+      ) -> Result<Self, ConfigError> {
         #[derive(Deserialize)]
         struct Dummy {
           #[serde(flatten)]
-          config: FilterConfig
+          config: FilterConfigEnum
         }
 
         use serde_yaml::{Value, Mapping, value::{Tag, TaggedValue}};
@@ -214,7 +250,7 @@ macro_rules! define_filters {
 
       pub async fn build(self) -> Result<BoxedFilter, ConfigError> {
         match self {
-          $(FilterConfig::$variant(config) => {
+          $(FilterConfigEnum::$variant(config) => {
             let filter = config.build().await?;
             Ok(BoxedFilter::from(filter))
           })*
@@ -227,7 +263,7 @@ macro_rules! define_filters {
 
       pub fn name(&self) -> &'static str {
         match self {
-          $(FilterConfig::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*
+          $(FilterConfigEnum::$variant(_) => paste::paste! {stringify!([<$variant:snake>])},)*
         }
       }
 

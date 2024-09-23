@@ -11,7 +11,7 @@ use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
 use serde_json::json;
 
-use crate::filter::FilterConfig;
+use crate::filter::FilterConfigEnum;
 use crate::util::Error;
 
 use super::auth::{handle_login, handle_logout, Auth};
@@ -99,12 +99,12 @@ async fn filter_schema_handler(
   _auth: Auth,
 ) -> Result<Json<HashMap<String, RootSchema>>, BadRequest<String>> {
   if params.filters == "all" {
-    return Ok(Json(FilterConfig::schema_for_all()));
+    return Ok(Json(FilterConfigEnum::schema_for_all()));
   }
 
   let mut schemas = HashMap::new();
   for filter in params.filters.split(',') {
-    let Some(schema) = FilterConfig::schema_for(filter) else {
+    let Some(schema) = FilterConfigEnum::schema_for(filter) else {
       return Err(BadRequest(format!("unknown filter: {}", filter)));
     };
     schemas.insert(filter.to_string(), schema);
