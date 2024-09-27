@@ -1,6 +1,10 @@
+mod html;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
+
+pub use self::html::{convert_relative_url, fragment_root_node_id, html_body};
 
 pub const USER_AGENT: &str =
   concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));

@@ -9,7 +9,7 @@ use url::Url;
 
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
-use crate::html::convert_relative_url;
+use crate::util::convert_relative_url;
 use crate::util::TimedLruCache;
 use crate::{ConfigError, Error, Result};
 
@@ -204,7 +204,7 @@ fn strip_post_content(
   if simplify {
     text = super::simplify_html::simplify(&text, link).unwrap_or(text);
   } else {
-    text = crate::html::html_body(&text);
+    text = crate::util::html_body(&text);
   }
 
   if let Some(k) = keep_element.as_ref() {

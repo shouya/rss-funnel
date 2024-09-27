@@ -11,9 +11,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
-use crate::html::convert_relative_url;
-use crate::html::html_body;
 use crate::source::FromScratch;
+use crate::util::{convert_relative_url, html_body};
 use crate::Error;
 use crate::Result;
 

@@ -7,6 +7,7 @@ const RELATIVE_URL_PROPERTIES: [(&str, &str); 3] = [
   ("*[srcset]", "srcset"),
 ];
 
+/// Convert relative URLs in an HTML document to absolute URLs.
 pub fn convert_relative_url(html: &mut Html, base_url: &str) {
   use html5ever::{namespace_url, ns, LocalName, QualName};
   lazy_static::lazy_static! {
@@ -46,6 +47,7 @@ pub fn convert_relative_url(html: &mut Html, base_url: &str) {
   }
 }
 
+/// Extract the body HTML from an HTML document string.
 pub fn html_body(html: &str) -> String {
   Html::parse_document(html)
     .select(&Selector::parse("body").unwrap())
@@ -54,6 +56,7 @@ pub fn html_body(html: &str) -> String {
     .unwrap_or_else(|| html.to_string())
 }
 
+/// Get the root node ID of a fragment.
 pub fn fragment_root_node_id(mut node: NodeRef<'_, scraper::Node>) -> NodeId {
   let val = node.value();
   if val.is_fragment() || val.is_document() {
