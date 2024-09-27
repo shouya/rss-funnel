@@ -1,3 +1,6 @@
+mod filter_cache;
+
+use filter_cache::FilterCache;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -30,6 +33,7 @@ pub struct FilterPipeline {
 struct Inner {
   filters: Vec<BoxedFilter>,
   configs: Vec<FilterConfig>,
+  filter_cache: Option<FilterCache>,
 }
 
 impl FilterPipelineConfig {
@@ -41,7 +45,11 @@ impl FilterPipelineConfig {
       filters.push(filter);
     }
 
-    let inner = Mutex::new(Inner { filters, configs });
+    let inner = Mutex::new(Inner {
+      filters,
+      configs,
+      filter_cache: None,
+    });
     Ok(FilterPipeline { inner })
   }
 }
@@ -71,7 +79,11 @@ impl FilterPipeline {
       }
     }
 
-    *inner = Inner { filters, configs };
+    *inner = Inner {
+      filters,
+      configs,
+      filter_cache: None,
+    };
     Ok(())
   }
 }
@@ -83,6 +95,19 @@ impl Inner {
     Some(self.filters.remove(index))
   }
 
+  async fn step(
+    &self,
+    filter: &BoxedFilter,
+    context: &mut FilterContext,
+    feed: Feed,
+  ) -> Result<Feed> {
+    if let Some(cache) = self.filter_cache.as_ref() {
+      cache.run(feed, |feed| filter.run(context, feed)).await
+    } else {
+      filter.run(context, feed).await
+    }
+  }
+
   async fn run(
     &self,
     mut context: FilterContext,
@@ -90,9 +115,10 @@ impl Inner {
   ) -> Result<Feed> {
     for (i, filter) in self.filters.iter().enumerate() {
       if context.allows_filter(i) {
-        feed = filter.run(&mut context, feed).await?;
+        feed = self.step(filter, &mut context, feed).await?;
       }
     }
+
     Ok(feed)
   }
 }
