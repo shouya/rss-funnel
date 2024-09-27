@@ -18,8 +18,7 @@ use crate::Result;
 
 use extension::ExtensionExt;
 
-use self::norm::NormalizedFeed;
-pub use self::norm::NormalizedPost;
+pub use self::norm::{NormalizedFeed, NormalizedPost};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]

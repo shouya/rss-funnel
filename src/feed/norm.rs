@@ -1,7 +1,7 @@
 use chrono::{DateTime, FixedOffset};
 use serde::Serialize;
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Hash, PartialEq, Eq, Default)]
 pub struct NormalizedFeed {
   pub title: String,
   pub link: String,
