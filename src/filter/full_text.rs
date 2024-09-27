@@ -7,10 +7,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::cache::TimedLruCache;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
+use crate::util::TimedLruCache;
 use crate::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};

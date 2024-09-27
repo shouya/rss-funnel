@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use crate::cache::TimedLruCache;
-
 use mime::Mime;
 use reqwest::header::HeaderMap;
 use url::Url;
 
-use crate::{Error, Result};
+use crate::{util::TimedLruCache, Error, Result};
 
 pub type ResponseCache = TimedLruCache<Url, Response>;
 
