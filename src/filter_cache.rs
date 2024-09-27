@@ -109,7 +109,7 @@ impl FilterCache {
     }
 
     // add any remaining posts from the output feed
-    final_output_posts.extend(output_posts.into_iter().rev().map(|x| Some(x)));
+    final_output_posts.extend(output_posts.into_iter().rev().map(Some));
 
     let final_output_posts = final_output_posts.into_iter().flatten().collect();
     output_feed.set_posts(final_output_posts);
