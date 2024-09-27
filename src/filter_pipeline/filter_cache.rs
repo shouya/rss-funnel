@@ -9,19 +9,17 @@ use crate::{
 };
 
 pub struct FilterCache {
-  feed_cache: FeedCache,
-  post_cache: PostCache,
+  feed_cache: TimedLruCache<NormalizedFeed, Feed>,
+  // WIP
+  #[expect(unused)]
+  post_cache: TimedLruCache<NormalizedPost, Option<Post>>,
 }
 
 impl FilterCache {
   pub fn new() -> Self {
     Self {
-      feed_cache: FeedCache {
-        cache: TimedLruCache::new(1, Duration::from_secs(12 * 3600)),
-      },
-      post_cache: PostCache {
-        cache: TimedLruCache::new(40, Duration::from_secs(3600)),
-      },
+      feed_cache: TimedLruCache::new(1, Duration::from_secs(12 * 3600)),
+      post_cache: TimedLruCache::new(40, Duration::from_secs(3600)),
     }
   }
 
@@ -30,16 +28,21 @@ impl FilterCache {
     F: FnOnce(Feed) -> Fut,
     Fut: Future<Output = Result<Feed>>,
   {
-    f(feed).await
+    let normalized_feed = feed.normalize();
+    if let Some(output_feed) = self.feed_cache.get_cached(&normalized_feed) {
+      return Ok(output_feed);
+    }
+
+    match f(feed).await {
+      Ok(output_feed) => {
+        self.register(normalized_feed, output_feed.clone());
+        Ok(output_feed)
+      }
+      Err(e) => Err(e),
+    }
   }
-}
 
-struct PostCache {
-  // input -> output
-  cache: TimedLruCache<NormalizedPost, Post>,
-}
-
-struct FeedCache {
-  // input -> output
-  cache: TimedLruCache<NormalizedFeed, Feed>,
+  fn register(&self, input_feed: NormalizedFeed, output_feed: Feed) {
+    self.feed_cache.insert(input_feed, output_feed);
+  }
 }
