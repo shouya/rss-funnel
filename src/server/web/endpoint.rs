@@ -5,7 +5,7 @@ use maud::{html, Markup, PreEscaped, DOCTYPE};
 use url::Url;
 
 use crate::{
-  feed::{Feed, Post, PostPreview},
+  feed::{Feed, NormalizedPost, Post},
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
 };
@@ -22,7 +22,7 @@ pub async fn render_endpoint_page(
   let config = render_config_fragment(&path, param.as_ref().ok(), &endpoint);
   let config_tags = render_config_header_tags(&endpoint);
 
-  // render feed preview
+  // render normalized feed
   let feed = match param {
     Ok(param) => fetch_and_render_feed(endpoint, param).await,
     Err(e) => html! {
@@ -287,8 +287,8 @@ async fn fetch_and_render_feed(
   }
 }
 
-fn render_post(preview: PostPreview, post: Post) -> Markup {
-  let link_url = Url::parse(&preview.link).ok();
+fn render_post(normalized_post: NormalizedPost, post: Post) -> Markup {
+  let link_url = Url::parse(&normalized_post.link).ok();
   let json =
     serde_json::to_string_pretty(&post).unwrap_or_else(|e| e.to_string());
   let id = format!("entry-{}", rand_id());
@@ -307,13 +307,13 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
         }
 
         div .flex style="margin-left: .5rem" {
-          span .entry-title.grow { (preview.title) }
-          (external_link(&preview.link))
+          span .entry-title.grow { (normalized_post.title) }
+          (external_link(&normalized_post.link))
         }
       }
 
       section {
-        @if let Some(body) = &preview.body {
+        @if let Some(body) = &normalized_post.body {
           @let content = santize_html(body, link_url);
           div id=(id) .entry-content.rendered {
             template {
@@ -340,10 +340,10 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
       }
 
       footer {
-        @if let Some(date) = preview.date {
+        @if let Some(date) = normalized_post.date {
           time .inline datetime=(date.to_rfc3339()) { (date.to_rfc2822()) }
         }
-        @if let Some(author) = &preview.author {
+        @if let Some(author) = &normalized_post.author {
           span .author {
             (PreEscaped("By&nbsp;"));
             address .inline rel="author" { (author) }
@@ -355,21 +355,21 @@ fn render_post(preview: PostPreview, post: Post) -> Markup {
 }
 
 fn render_feed(mut feed: Feed) -> Markup {
-  let preview = feed.preview();
+  let normalized_feed = feed.normalize();
   let posts = feed.take_posts();
 
   html! {
     h3 .flex {
-      (preview.title);
-      (external_link(&preview.link))
+      (normalized_feed.title);
+      (external_link(&normalized_feed.link))
     }
-    @if let Some(description) = &preview.description {
+    @if let Some(description) = &normalized_feed.description {
       p { (description) }
     }
-    p { (format!("Entries ({}):", preview.posts.len())) }
+    p { (format!("Entries ({}):", normalized_feed.posts.len())) }
 
-    @for (preview, post) in preview.posts.into_iter().zip(posts) {
-      (render_post(preview, post))
+    @for (norm_post, post) in normalized_feed.posts.into_iter().zip(posts) {
+      (render_post(norm_post, post))
     }
   }
 }

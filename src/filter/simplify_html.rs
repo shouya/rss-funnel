@@ -3,8 +3,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::util::Result;
-use crate::{feed::Feed, util::ConfigError};
+use crate::Result;
+use crate::{feed::Feed, ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

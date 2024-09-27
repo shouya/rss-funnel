@@ -7,17 +7,17 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::cache::TimedLruCache;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
-use crate::html::convert_relative_url;
-use crate::util::{ConfigError, Error, Result};
+use crate::util::convert_relative_url;
+use crate::util::TimedLruCache;
+use crate::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::feed::PostPreview;
+use crate::feed::NormalizedPost;
 
-type PostCache = TimedLruCache<PostPreview, Post>;
+type PostCache = TimedLruCache<NormalizedPost, Post>;
 
 const DEFAULT_PARALLELISM: usize = 20;
 
@@ -152,14 +152,14 @@ impl FullTextFilter {
   }
 
   async fn fetch_full_post_cached(&self, post: Post) -> Result<Post> {
-    let post_preview = post.preview();
-    if let Some(result_post) = self.post_cache.get_cached(&post_preview) {
+    let normalized_post = post.normalize();
+    if let Some(result_post) = self.post_cache.get_cached(&normalized_post) {
       return Ok(result_post);
     };
 
     match self.fetch_full_post(post).await {
       Ok(result_post) => {
-        self.post_cache.insert(post_preview, result_post.clone());
+        self.post_cache.insert(normalized_post, result_post.clone());
         Ok(result_post)
       }
       Err(e) => Err(e),
@@ -204,7 +204,7 @@ fn strip_post_content(
   if simplify {
     text = super::simplify_html::simplify(&text, link).unwrap_or(text);
   } else {
-    text = crate::html::html_body(&text);
+    text = crate::util::html_body(&text);
   }
 
   if let Some(k) = keep_element.as_ref() {

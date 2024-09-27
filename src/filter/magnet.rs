@@ -6,7 +6,7 @@ use tracing::warn;
 
 use crate::{
   feed::{Feed, Post},
-  util::{ConfigError, Error},
+  ConfigError, Error,
 };
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};

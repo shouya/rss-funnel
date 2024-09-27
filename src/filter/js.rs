@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::feed::{Feed, Post};
 use crate::js::{AsJson, Runtime};
-use crate::util::{ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

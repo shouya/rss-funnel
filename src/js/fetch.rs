@@ -140,7 +140,7 @@ pub(super) async fn fetch(
 #[cfg(test)]
 mod tests {
   use crate::test_utils::fetch_endpoint;
-  use crate::util::Result;
+  use crate::Result;
 
   #[tokio::test]
   async fn test_fetch() -> Result<()> {

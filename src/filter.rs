@@ -20,10 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
 use url::Url;
 
-use crate::{
-  feed::Feed,
-  util::{ConfigError, Error, Result},
-};
+use crate::{feed::Feed, ConfigError, Error, Result};
 
 #[serde_as]
 #[derive(Clone, Debug, Deserialize)]

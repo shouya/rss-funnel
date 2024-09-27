@@ -6,7 +6,7 @@ use tracing::warn;
 use url::Url;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{feed::Feed, util::ConfigError, Result};
+use crate::{feed::Feed, ConfigError, Error, Result};
 
 const IMAGE_PROXY_ROUTE: &str = "/_image";
 
@@ -262,7 +262,7 @@ fn rewrite_img_elem(
         new_sources.push(new_url);
       }
 
-      Ok::<_, crate::util::Error>(new_sources.join(", "))
+      Ok::<_, Error>(new_sources.join(", "))
     })
     .transpose()?;
 

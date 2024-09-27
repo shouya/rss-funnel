@@ -13,8 +13,8 @@ use scraper::{ElementRef, Html, Selector};
 use serde::{Deserialize, Serialize};
 
 use crate::feed::Post;
-use crate::util::{Error, Result};
-use crate::{feed::Feed, util::ConfigError};
+use crate::{feed::Feed, ConfigError};
+use crate::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

@@ -6,10 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use std::borrow::Cow;
 
-use crate::{
-  feed::Feed,
-  util::{ConfigError, Result, SingleOrVec},
-};
+use crate::{feed::Feed, util::SingleOrVec, ConfigError, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

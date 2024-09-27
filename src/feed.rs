@@ -1,6 +1,6 @@
 mod conversion;
 mod extension;
-mod preview;
+mod norm;
 
 use std::hash::Hash;
 
@@ -11,16 +11,15 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
-use crate::html::convert_relative_url;
-use crate::html::html_body;
 use crate::source::FromScratch;
-use crate::util::Error;
-use crate::util::Result;
+use crate::util::{convert_relative_url, html_body};
+use crate::Error;
+use crate::Result;
 
 use extension::ExtensionExt;
 
-use self::preview::FeedPreview;
-pub use self::preview::PostPreview;
+use self::norm::NormalizedFeed;
+pub use self::norm::NormalizedPost;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
@@ -84,7 +83,7 @@ impl Feed {
     }
   }
 
-  pub fn preview(&self) -> FeedPreview {
+  pub fn normalize(&self) -> NormalizedFeed {
     let title = self.title().to_string();
     let link = self.link().to_string();
     let description = self.description().map(String::from);
@@ -94,16 +93,16 @@ impl Feed {
       Feed::Rss(channel) => channel
         .items
         .iter()
-        .map(|item| Post::Rss(item.clone()).preview())
+        .map(|item| Post::Rss(item.clone()).normalize())
         .collect(),
       Feed::Atom(feed) => feed
         .entries
         .iter()
-        .map(|entry| Post::Atom(entry.clone()).preview())
+        .map(|entry| Post::Atom(entry.clone()).normalize())
         .collect(),
     };
 
-    FeedPreview {
+    NormalizedFeed {
       title,
       link,
       description,
@@ -257,7 +256,7 @@ impl Feed {
   }
 
   #[allow(clippy::field_reassign_with_default)]
-  pub fn add_post(&mut self, post_preview: PostPreview) {
+  pub fn add_post(&mut self, post_preview: NormalizedPost) {
     match self {
       Feed::Rss(channel) => {
         channel.items.push(post_preview.into_rss_item());
@@ -377,14 +376,14 @@ enum PostField {
 }
 
 impl Post {
-  pub fn preview(&self) -> PostPreview {
+  pub fn normalize(&self) -> NormalizedPost {
     let title = self.title().map(String::from).unwrap_or_default();
     let author = self.author().map(String::from);
     let link = self.link().map(String::from).unwrap_or_default();
     let body = self.first_body().map(String::from);
     let published = self.pub_date();
 
-    PostPreview {
+    NormalizedPost {
       title,
       author,
       link,

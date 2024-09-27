@@ -15,7 +15,7 @@ use http::StatusCode;
 use tower_http::compression::CompressionLayer;
 use tracing::{info, warn};
 
-use crate::{cli::RootConfig, util::Result};
+use crate::{cli::RootConfig, Result};
 pub use endpoint::{EndpointConfig, EndpointParam};
 
 use self::{feed_service::FeedService, watcher::Watcher};

@@ -5,11 +5,7 @@ use schemars::JsonSchema;
 use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  feed::Feed,
-  html::fragment_root_node_id,
-  util::{ConfigError, Result},
-};
+use crate::{feed::Feed, util::fragment_root_node_id, ConfigError, Result};
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,

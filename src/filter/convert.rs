@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   feed::{Feed, FeedFormat},
-  util::{ConfigError, Result},
+  ConfigError, Result,
 };
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
@@ -43,7 +43,7 @@ impl FeedFilter for ConvertTo {
 mod tests {
   use super::*;
   use crate::test_utils::fetch_endpoint;
-  use crate::util::Result;
+  use crate::Result;
 
   #[tokio::test]
   async fn test_convert_to() -> Result<()> {

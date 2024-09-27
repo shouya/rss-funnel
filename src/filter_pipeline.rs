@@ -6,7 +6,7 @@ use tracing::info;
 use crate::{
   feed::Feed,
   filter::{BoxedFilter, FeedFilter, FilterConfig, FilterContext},
-  util::{ConfigError, Result},
+  ConfigError, Result,
 };
 
 #[derive(

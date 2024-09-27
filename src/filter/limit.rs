@@ -4,10 +4,7 @@ use chrono::Utc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  feed::Feed,
-  util::{ConfigError, Error},
-};
+use crate::{feed::Feed, ConfigError, Error};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

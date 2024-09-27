@@ -5,10 +5,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::client::{Client, ClientConfig};
-use crate::feed::{Feed, PostPreview};
+use crate::feed::{Feed, NormalizedPost};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{SimpleSourceConfig, Source};
-use crate::util::{ConfigError, Error, Result, SingleOrVec};
+use crate::{util::SingleOrVec, ConfigError, Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -153,7 +153,7 @@ fn post_from_error(
   source: Source,
   error: Error,
   ctx: &FilterContext,
-) -> PostPreview {
+) -> NormalizedPost {
   let source_url = source.full_url(ctx).map(|u| u.to_string());
   let title = match source_url.as_ref() {
     Some(url) => format!("Error fetching source: {}", url),
@@ -167,7 +167,7 @@ fn post_from_error(
     "<p><b>Source:</b><br>{source_desc}</p><p><b>Error:</b><br>{error}</p>"
   );
 
-  PostPreview {
+  NormalizedPost {
     title,
     link: source_url.unwrap_or_default(),
     author: Some("rss-funnel".to_owned()),

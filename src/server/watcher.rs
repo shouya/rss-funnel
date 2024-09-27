@@ -9,7 +9,7 @@ use tokio::{
 };
 use tracing::{error, warn};
 
-use crate::util::{ConfigError, Result};
+use crate::{ConfigError, Result};
 
 pub struct Watcher {
   path: PathBuf,

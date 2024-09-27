@@ -12,7 +12,7 @@ use schemars::schema::RootSchema;
 use serde_json::json;
 
 use crate::filter::FilterConfig;
-use crate::util::Error;
+use crate::Error;
 
 use super::auth::{handle_login, handle_logout, Auth};
 use super::feed_service::FeedService;
@@ -134,7 +134,7 @@ async fn preview_handler(
   let body = json!({
     "content_type": feed.content_type(),
     "post_count": feed.post_count(),
-    "unified": feed.preview(),
+    "unified": feed.normalize(),
     "raw": feed.serialize(true)?,
     "json": feed
   });
