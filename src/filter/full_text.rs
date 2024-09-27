@@ -189,6 +189,10 @@ impl FeedFilter for FullTextFilter {
     feed.set_posts(posts);
     Ok(feed)
   }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
+  }
 }
 
 fn strip_post_content(

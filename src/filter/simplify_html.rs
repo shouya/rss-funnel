@@ -47,6 +47,10 @@ impl FeedFilter for SimplifyHtmlFilter {
     feed.set_posts(posts);
     Ok(feed)
   }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
+  }
 }
 
 pub(super) fn simplify(text: &str, url: &str) -> Option<String> {

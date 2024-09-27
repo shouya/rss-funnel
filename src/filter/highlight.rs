@@ -226,6 +226,10 @@ impl FeedFilter for Highlight {
 
     Ok(feed)
   }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
+  }
 }
 
 fn insert_sibling_fragment(
