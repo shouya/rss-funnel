@@ -6,7 +6,7 @@ use tracing::warn;
 use url::Url;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{feed::Feed, Error, ConfigError, Result};
+use crate::{feed::Feed, ConfigError, Error, Result};
 
 const IMAGE_PROXY_ROUTE: &str = "/_image";
 
