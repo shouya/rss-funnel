@@ -2,15 +2,15 @@ use chrono::{DateTime, FixedOffset};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Default)]
-pub struct FeedPreview {
+pub struct NormalizedFeed {
   pub title: String,
   pub link: String,
   pub description: Option<String>,
-  pub posts: Vec<PostPreview>,
+  pub posts: Vec<NormalizedPost>,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, Hash, Default)]
-pub struct PostPreview {
+pub struct NormalizedPost {
   pub title: String,
   pub author: Option<String>,
   pub link: String,
@@ -18,7 +18,7 @@ pub struct PostPreview {
   pub date: Option<DateTime<FixedOffset>>,
 }
 
-impl PostPreview {
+impl NormalizedPost {
   pub fn into_rss_item(self) -> rss::Item {
     let guid = rss::Guid {
       value: self.link.clone(),

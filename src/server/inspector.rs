@@ -134,7 +134,7 @@ async fn preview_handler(
   let body = json!({
     "content_type": feed.content_type(),
     "post_count": feed.post_count(),
-    "unified": feed.preview(),
+    "unified": feed.normalize(),
     "raw": feed.serialize(true)?,
     "json": feed
   });
