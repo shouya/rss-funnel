@@ -10,14 +10,10 @@ use url::Url;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::util::convert_relative_url;
-use crate::util::TimedLruCache;
 use crate::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::feed::NormalizedPost;
-
-type PostCache = TimedLruCache<NormalizedPost, Post>;
 
 const DEFAULT_PARALLELISM: usize = 20;
 
@@ -46,7 +42,6 @@ pub struct FullTextFilter {
   keep_element: Option<KeepElement>,
   simplify: bool,
   keep_guid: bool,
-  post_cache: PostCache,
 }
 
 #[async_trait::async_trait]
@@ -66,10 +61,6 @@ impl FeedFilterConfig for FullTextConfig {
       None => None,
       Some(c) => Some(c.build().await?),
     };
-    let post_cache = PostCache::new(
-      conf_client.get_cache_size(),
-      conf_client.get_cache_ttl(default_cache_ttl),
-    );
 
     Ok(FullTextFilter {
       simplify,
@@ -78,7 +69,6 @@ impl FeedFilterConfig for FullTextConfig {
       append_mode,
       keep_guid,
       keep_element,
-      post_cache,
     })
   }
 }
@@ -151,24 +141,9 @@ impl FullTextFilter {
     }
   }
 
-  async fn fetch_full_post_cached(&self, post: Post) -> Result<Post> {
-    let normalized_post = post.normalize();
-    if let Some(result_post) = self.post_cache.get_cached(&normalized_post) {
-      return Ok(result_post);
-    };
-
-    match self.fetch_full_post(post).await {
-      Ok(result_post) => {
-        self.post_cache.insert(normalized_post, result_post.clone());
-        Ok(result_post)
-      }
-      Err(e) => Err(e),
-    }
-  }
-
   async fn fetch_all_posts(&self, posts: Vec<Post>) -> Result<Vec<Post>> {
     stream::iter(posts)
-      .map(|post| self.fetch_full_post_cached(post))
+      .map(|post| self.fetch_full_post(post))
       .buffered(self.parallelism)
       .collect::<Vec<_>>()
       .await
