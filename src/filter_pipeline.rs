@@ -102,7 +102,11 @@ impl Inner {
     feed: Feed,
   ) -> Result<Feed> {
     if let Some(cache) = self.filter_cache.as_ref() {
-      cache.run(feed, |feed| filter.run(context, feed)).await
+      cache
+        .run(feed, filter_cache::CacheGranularity::FeedOnly, |feed| {
+          filter.run(context, feed)
+        })
+        .await
     } else {
       filter.run(context, feed).await
     }
