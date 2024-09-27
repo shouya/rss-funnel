@@ -1,6 +1,3 @@
-mod filter_cache;
-
-use filter_cache::FilterCache;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -9,6 +6,7 @@ use tracing::info;
 use crate::{
   feed::Feed,
   filter::{BoxedFilter, FeedFilter, FilterConfig, FilterContext},
+  filter_cache::FilterCache,
   ConfigError, Result,
 };
 
@@ -102,10 +100,9 @@ impl Inner {
     feed: Feed,
   ) -> Result<Feed> {
     if let Some(cache) = self.filter_cache.as_ref() {
+      let granularity = filter.cache_granularity();
       cache
-        .run(feed, filter_cache::CacheGranularity::FeedOnly, |feed| {
-          filter.run(context, feed)
-        })
+        .run(feed, granularity, |feed| filter.run(context, feed))
         .await
     } else {
       filter.run(context, feed).await

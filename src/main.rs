@@ -11,6 +11,7 @@ mod server;
 mod source;
 mod util;
 
+mod filter_cache;
 #[cfg(test)]
 mod test_utils;
 

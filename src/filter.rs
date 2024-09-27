@@ -20,7 +20,9 @@ use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
 use url::Url;
 
-use crate::{feed::Feed, ConfigError, Error, Result};
+use crate::{
+  feed::Feed, filter_cache::CacheGranularity, ConfigError, Error, Result,
+};
 
 #[serde_as]
 #[derive(Clone, Debug, Deserialize)]
@@ -122,6 +124,10 @@ impl FilterContext {
 #[async_trait::async_trait]
 pub trait FeedFilter {
   async fn run(&self, ctx: &mut FilterContext, feed: Feed) -> Result<Feed>;
+
+  fn cache_granularity(&self) -> CacheGranularity {
+    CacheGranularity::FeedOnly
+  }
 }
 
 #[async_trait::async_trait]
