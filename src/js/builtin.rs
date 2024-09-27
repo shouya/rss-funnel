@@ -7,7 +7,7 @@ use rquickjs::{
 
 use super::dom::{Node, DOM};
 use super::fetch::fetch;
-use crate::util::Result;
+use crate::Result;
 
 pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
   Class::<DOM>::define(&ctx.globals())?;

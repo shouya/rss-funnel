@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::{
   server::{self, EndpointConfig, ServerConfig},
-  util::{ConfigError, Result},
+  ConfigError, Result,
 };
 
 #[derive(Parser)]

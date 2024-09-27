@@ -6,7 +6,7 @@ use crate::{
   feed::Feed,
   filter::{FilterConfig, FilterContext},
   filter_pipeline::{FilterPipeline, FilterPipelineConfig},
-  util::{ConfigError, Error},
+  ConfigError, Error,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

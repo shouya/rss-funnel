@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
   feed::Feed,
   html::fragment_root_node_id,
-  util::{ConfigError, Result},
+  ConfigError, Result,
 };
 
 #[derive(

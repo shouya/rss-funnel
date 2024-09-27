@@ -16,7 +16,7 @@ use rquickjs::{
 };
 use url::Url;
 
-use crate::util::JsError;
+use crate::error::JsError;
 
 pub struct Runtime {
   context: rquickjs::AsyncContext,

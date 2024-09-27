@@ -12,7 +12,7 @@ use schemars::schema::RootSchema;
 use serde_json::json;
 
 use crate::filter::FilterConfig;
-use crate::util::Error;
+use crate::Error;
 
 use super::auth::{handle_login, handle_logout, Auth};
 use super::feed_service::FeedService;

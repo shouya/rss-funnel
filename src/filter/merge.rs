@@ -8,7 +8,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::{Feed, NormalizedPost};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{SimpleSourceConfig, Source};
-use crate::util::{ConfigError, Error, Result, SingleOrVec};
+use crate::{util::SingleOrVec, ConfigError, Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

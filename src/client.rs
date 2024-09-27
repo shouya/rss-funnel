@@ -9,7 +9,7 @@ use url::Url;
 
 use crate::{
   feed::Feed,
-  util::{ConfigError, Error, Result},
+  ConfigError, Error, Result,
 };
 
 use self::cache::{Response, ResponseCache};

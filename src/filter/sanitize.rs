@@ -4,8 +4,8 @@ use regex::{Regex, RegexBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::util::Result;
-use crate::{feed::Feed, util::ConfigError};
+use crate::Result;
+use crate::{feed::Feed, ConfigError};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

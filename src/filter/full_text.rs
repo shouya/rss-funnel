@@ -11,7 +11,7 @@ use crate::cache::TimedLruCache;
 use crate::client::{self, Client};
 use crate::feed::{Feed, Post};
 use crate::html::convert_relative_url;
-use crate::util::{ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};

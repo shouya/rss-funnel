@@ -11,7 +11,7 @@ use crate::{
   feed::{Feed, FeedFormat},
   filter::FilterContext,
   server::EndpointParam,
-  util::{ConfigError, Error, Result},
+  ConfigError, Error, Result,
 };
 
 lazy_static::lazy_static! {

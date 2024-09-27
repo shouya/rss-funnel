@@ -24,7 +24,7 @@ use crate::filter::{FilterContext, FilterSkip};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
-use crate::util::{ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result};
 
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;

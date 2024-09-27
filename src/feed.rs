@@ -14,8 +14,8 @@ use url::Url;
 use crate::html::convert_relative_url;
 use crate::html::html_body;
 use crate::source::FromScratch;
-use crate::util::Error;
-use crate::util::Result;
+use crate::Error;
+use crate::Result;
 
 use extension::ExtensionExt;
 

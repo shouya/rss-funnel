@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use tower::Service;
 use tracing::info;
 
-use crate::{cli::RootConfig, util::ConfigError};
+use crate::{cli::RootConfig, ConfigError};
 
 use super::{endpoint::EndpointService, EndpointConfig};
 

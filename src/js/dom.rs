@@ -8,7 +8,7 @@ use rquickjs::{
 };
 use scraper::ElementRef;
 
-use crate::{html::fragment_root_node_id, util::Result};
+use crate::{html::fragment_root_node_id, Result};
 
 #[rquickjs::class]
 #[derive(Clone)]
