@@ -1,7 +1,7 @@
 use chrono::{DateTime, FixedOffset};
 use serde::Serialize;
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq, Default)]
 pub struct NormalizedFeed {
   pub title: String,
   pub link: String,
@@ -9,7 +9,7 @@ pub struct NormalizedFeed {
   pub posts: Vec<NormalizedPost>,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, Hash, Default)]
 pub struct NormalizedPost {
   pub title: String,
   pub author: Option<String>,

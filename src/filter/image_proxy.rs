@@ -168,6 +168,10 @@ impl FeedFilter for ImageProxy {
     feed.set_posts(posts);
     Ok(feed)
   }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
+  }
 }
 
 fn rewrite_html(

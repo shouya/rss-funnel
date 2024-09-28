@@ -151,6 +151,10 @@ impl FeedFilter for Sanitize {
     feed.set_posts(posts);
     Ok(feed)
   }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
+  }
 }
 
 #[cfg(test)]

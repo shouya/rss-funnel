@@ -85,7 +85,10 @@ impl<'a, T> Iterator for SingleOrVecIter<'a, T> {
 use std::{
   hash::Hash,
   num::NonZeroUsize,
-  sync::RwLock,
+  sync::{
+    atomic::{AtomicUsize, Ordering},
+    RwLock,
+  },
   time::{Duration, Instant},
 };
 
@@ -98,6 +101,8 @@ pub struct Timed<T> {
 
 pub struct TimedLruCache<K: Hash + Eq, V: Clone> {
   map: RwLock<LruCache<K, Timed<V>>>,
+  misses: AtomicUsize,
+  hits: AtomicUsize,
   timeout: Duration,
 }
 
@@ -107,16 +112,25 @@ impl<K: Hash + Eq, V: Clone> TimedLruCache<K, V> {
     Self {
       map: RwLock::new(LruCache::new(max_entries)),
       timeout,
+      misses: AtomicUsize::new(0),
+      hits: AtomicUsize::new(0),
     }
   }
 
   pub fn get_cached(&self, key: &K) -> Option<V> {
     let mut map = self.map.write().ok()?;
-    let entry = map.get(key)?;
+    let Some(entry) = map.get(key) else {
+      self.misses.fetch_add(1, Ordering::Relaxed);
+      return None;
+    };
+
     if entry.created.elapsed() > self.timeout {
+      self.misses.fetch_add(1, Ordering::Relaxed);
       map.pop(key);
       return None;
     }
+
+    self.hits.fetch_add(1, Ordering::Relaxed);
     Some(entry.value.clone())
   }
 
@@ -127,5 +141,14 @@ impl<K: Hash + Eq, V: Clone> TimedLruCache<K, V> {
     };
     self.map.write().ok()?.push(key, timed);
     Some(())
+  }
+
+  // hit, miss
+  #[allow(unused)]
+  pub fn stats(&self) -> (usize, usize) {
+    (
+      self.hits.load(Ordering::Relaxed),
+      self.misses.load(Ordering::Relaxed),
+    )
   }
 }

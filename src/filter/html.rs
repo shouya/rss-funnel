@@ -101,6 +101,10 @@ impl FeedFilter for RemoveElement {
     feed.set_posts(posts);
     Ok(feed)
   }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
+  }
 }
 
 /// Keep only selected elements from the post's body parsed as HTML.
@@ -191,6 +195,10 @@ impl FeedFilter for KeepElement {
 
     feed.set_posts(posts);
     Ok(feed)
+  }
+
+  fn cache_granularity(&self) -> super::CacheGranularity {
+    super::CacheGranularity::FeedAndPost
   }
 }
 
