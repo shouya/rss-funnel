@@ -5,7 +5,7 @@ mod login;
 use std::borrow::Cow;
 
 use axum::{
-  extract::{rejection::QueryRejection, Path, Query},
+  extract::Path,
   response::{IntoResponse, Redirect, Response},
   routing, Extension, Router,
 };
@@ -70,14 +70,13 @@ async fn handle_endpoint(
   _: Auth,
   Path(path): Path<String>,
   Extension(service): Extension<FeedService>,
-  param: Result<Query<EndpointParam>, QueryRejection>,
+  param: EndpointParam,
 ) -> Result<Markup, Response> {
   let endpoint = service.get_endpoint(&path).await.ok_or_else(|| {
     (StatusCode::NOT_FOUND, format!("Endpoint {path} not found"))
       .into_response()
   })?;
 
-  let param = param.map(|q| q.0).map_err(|e| e.body_text());
   Ok(endpoint::render_endpoint_page(endpoint, path, param).await)
 }
 
