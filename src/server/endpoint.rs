@@ -188,10 +188,21 @@ impl EndpointParam {
   }
 
   fn get_base(req: &Parts) -> Option<Url> {
+    if let Some(url) = Self::base_from_env().as_ref() {
+      return Some(url.clone());
+    }
+
+    if let Some(url) = Self::base_from_reverse_proxy(req) {
+      return Some(url);
+    }
+
+    Self::base_from_host(req)
+  }
+
+  fn base_from_reverse_proxy(req: &Parts) -> Option<Url> {
     let host = req
       .headers
       .get("X-Forwarded-Host")
-      .or_else(|| req.headers.get(HOST))
       .and_then(|x| x.to_str().ok())?;
 
     let proto = req
@@ -203,6 +214,27 @@ impl EndpointParam {
     let base = format!("{proto}://{host}/");
     let base = base.parse().ok()?;
     Some(base)
+  }
+
+  fn base_from_host(req: &Parts) -> Option<Url> {
+    let host = req.headers.get(HOST)?.to_str().ok()?;
+    let base = format!("http://{}/", host);
+    let base = base.parse().ok()?;
+    Some(base)
+  }
+
+  fn base_from_env() -> &'static Option<Url> {
+    use std::env;
+    use std::sync::OnceLock;
+
+    static APP_BASE_URL: OnceLock<Option<Url>> = OnceLock::new();
+    APP_BASE_URL.get_or_init(|| {
+      let var = env::var("RSS_FUNNEL_APP_BASE").ok();
+      var.map(|v| {
+        v.parse()
+          .expect("Invalid base url specified in RSS_FUNNEL_APP_BASE")
+      })
+    })
   }
 }
 
