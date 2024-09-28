@@ -13,25 +13,17 @@ use crate::{
 pub async fn render_endpoint_page(
   endpoint: EndpointService,
   path: String,
-  param: Result<EndpointParam, String>,
+  param: EndpointParam,
 ) -> Markup {
   // render source control
   let source = source_control_fragment(&path, endpoint.source(), &param);
 
   // render config
-  let config = render_config_fragment(&path, param.as_ref().ok(), &endpoint);
+  let config = render_config_fragment(&path, &param, &endpoint);
   let config_tags = render_config_header_tags(&endpoint);
 
   // render normalized feed
-  let feed = match param {
-    Ok(param) => fetch_and_render_feed(endpoint, param).await,
-    Err(e) => html! {
-      div .flash.error {
-        header { b { "Invalid request params" } }
-        p { (e) }
-      }
-    },
-  };
+  let feed = fetch_and_render_feed(endpoint, param).await;
 
   html! {
     (DOCTYPE)
@@ -91,7 +83,7 @@ pub async fn render_endpoint_page(
 fn source_control_fragment(
   path: &str,
   source: &Source,
-  param: &Result<EndpointParam, String>,
+  param: &EndpointParam,
 ) -> Markup {
   match source {
     Source::Dynamic => html! {
@@ -100,7 +92,7 @@ fn source_control_fragment(
         type="text"
         name="source"
         placeholder="Source URL"
-        value=[param.as_ref().ok().and_then(|p| p.source()).map(|url| url.as_str())]
+        value=[param.source().map(|url| url.as_str())]
         hx-get=(format!("/_/endpoint/{path}"))
         hx-trigger="keyup changed delay:500ms"
         hx-push-url="true"
@@ -114,7 +106,7 @@ fn source_control_fragment(
     Source::RelativeUrl(url) => html! {div title="Source" .source { (url) }},
     Source::Templated(templated) => html! {
       div .source-template-container {
-        @let queries = param.as_ref().ok().map(|p| p.extra_queries());
+        @let queries = param.extra_queries();
         (source_template_fragment(templated, path, queries));
       }
     },
@@ -154,14 +146,14 @@ fn from_scratch_fragment(scratch: &FromScratch) -> Markup {
 fn source_template_fragment(
   templated: &crate::source::Templated,
   path: &str,
-  queries: Option<&HashMap<String, String>>,
+  queries: &HashMap<String, String>,
 ) -> Markup {
   html! {
     @for fragment in templated.fragments() {
       @match fragment {
         Either::Left(plain) => span style="white-space: nowrap" { (plain) },
         Either::Right((name, Some(placeholder))) => {
-          @let value=queries.and_then(|q| q.get(name));
+          @let value=queries.get(name);
           @let default_value=placeholder.default.as_ref();
           @let value=value.or(default_value);
           @let validation=placeholder.validation.as_ref();
@@ -203,12 +195,12 @@ fn render_config_header_tags(endpoint: &EndpointService) -> Markup {
 
 fn render_config_fragment(
   path: &str,
-  param: Option<&EndpointParam>,
+  param: &EndpointParam,
   endpoint: &EndpointService,
 ) -> Markup {
   let config = endpoint.config();
   let filter_enabled = |i| {
-    if let Some(f) = param.and_then(|p| p.filter_skip()) {
+    if let Some(f) = param.filter_skip() {
       f.allows_filter(i) as u8
     } else {
       true as u8
