@@ -20,7 +20,7 @@ pub struct FilterCache {
 impl FilterCache {
   pub fn new() -> Self {
     Self {
-      feed_cache: TimedLruCache::new(1, Duration::from_secs(12 * 3600)),
+      feed_cache: TimedLruCache::new(5, Duration::from_secs(12 * 3600)),
       post_cache: TimedLruCache::new(40, Duration::from_secs(3600)),
     }
   }
