@@ -13,13 +13,11 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
   Class::<DOM>::define(&ctx.globals())?;
   Class::<Node>::define(&ctx.globals())?;
 
-  ctx
-    .globals()
-    .set("console", Class::instance(ctx.clone(), Console::new())?)?;
+  let console = Class::instance(ctx.clone(), Console::new())?;
+  ctx.globals().set("console", console)?;
 
-  ctx
-    .globals()
-    .set("util", Class::instance(ctx.clone(), Util {})?)?;
+  let util = Class::instance(ctx.clone(), Util {})?;
+  ctx.globals().set("util", util)?;
 
   let fetch_fn = Func::new(Async(fetch));
   ctx.globals().set("fetch", fetch_fn)?;
@@ -29,7 +27,7 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
 
 #[derive(Trace)]
 #[rquickjs::class]
-struct Console {
+pub(super) struct Console {
   aggregated_logs: Vec<String>,
 }
 
@@ -38,6 +36,10 @@ impl Console {
     Self {
       aggregated_logs: Vec::new(),
     }
+  }
+
+  pub(super) fn extract_logs(&mut self) -> Vec<String> {
+    std::mem::take(&mut self.aggregated_logs)
   }
 }
 

@@ -5,6 +5,7 @@ mod fetch;
 use std::fs;
 use std::path::PathBuf;
 
+use builtin::Console;
 use rquickjs::loader::{
   BuiltinLoader, BuiltinResolver, FileResolver, Loader, Resolver, ScriptLoader,
 };
@@ -12,7 +13,7 @@ use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
 use rquickjs::promise::Promise;
 use rquickjs::{
-  async_with, AsyncContext, Ctx, FromJs, Function, IntoJs, Value,
+  async_with, AsyncContext, Class, Ctx, FromJs, Function, IntoJs, Value,
 };
 use url::Url;
 
@@ -160,6 +161,20 @@ impl Runtime {
     self
       .context
       .with(|ctx| handle_exception(&ctx, retval))
+      .await
+  }
+
+  pub async fn extract_console_logs(&self) -> Vec<String> {
+    self
+      .context
+      .with(|ctx| {
+        ctx
+          .globals()
+          .get::<_, Class<builtin::Console>>("console")
+          .unwrap()
+          .borrow_mut()
+          .extract_logs()
+      })
       .await
   }
 }
