@@ -34,24 +34,31 @@ struct Console {}
 #[rquickjs::methods]
 impl Console {
   fn log(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
-    let msg = match value.try_into_string() {
-      Ok(s) => s.to_string()?,
-      Err(v) => format!("[{}] {:?}", v.type_name(), v),
-    };
-
-    println!("[console.log] {}", msg);
+    let ty = value.type_name();
+    println!("[log] ({ty}) {}", string_repr(value)?);
     Ok(())
   }
 
   fn error(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
-    let msg = match value.try_into_string() {
-      Ok(s) => s.to_string()?,
-      Err(v) => format!("[{}] {:?}", v.type_name(), v),
-    };
-
-    eprintln!("[console.error] {}", msg);
+    let ty = value.type_name();
+    println!("[error] ({ty}) {}", string_repr(value)?);
     Ok(())
   }
+}
+
+fn string_repr(value: rquickjs::Value<'_>) -> Result<String, rquickjs::Error> {
+  let ctx = value.ctx();
+  if let Some(json) =
+    ctx.json_stringify_replacer_space(value.clone(), rquickjs::Undefined, 4)?
+  {
+    return Ok(json.to_string().unwrap());
+  }
+
+  if let Some(string) = value.into_string() {
+    return Ok(string.to_string().unwrap());
+  }
+
+  Ok("unknown value".to_owned())
 }
 
 #[derive(Trace)]
