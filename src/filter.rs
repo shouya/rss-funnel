@@ -57,6 +57,10 @@ pub struct FilterContext {
 
   /// The extra query parameters passed to the endpoint
   extra_queries: HashMap<String, String>,
+
+  /// Logs collected from the filters. None indicates logging is
+  /// disabled.
+  logs: Option<Vec<String>>,
 }
 
 impl FilterContext {
@@ -67,6 +71,7 @@ impl FilterContext {
       filter_skip: None,
       source: None,
       extra_queries: HashMap::new(),
+      logs: None,
     }
   }
 
@@ -100,7 +105,28 @@ impl FilterContext {
       source: None,
       filter_skip: None,
       extra_queries: self.extra_queries.clone(),
+      logs: self.logs.clone(),
     }
+  }
+
+  pub fn log<'a, S>(&mut self, msg: S)
+  where
+    S: Into<std::borrow::Cow<'a, str>>,
+  {
+    if let Some(logs) = &mut self.logs {
+      logs.push(msg.into().into_owned());
+    }
+  }
+
+  pub fn enable_logging(self) -> Self {
+    Self {
+      logs: Some(Vec::new()),
+      ..self
+    }
+  }
+
+  pub fn logs(&self) -> Option<&[String]> {
+    self.logs.as_deref()
   }
 
   pub fn from_param(param: &crate::server::EndpointParam) -> Self {
@@ -109,6 +135,7 @@ impl FilterContext {
       source: param.source().cloned(),
       filter_skip: param.filter_skip().cloned(),
       extra_queries: param.extra_queries().clone(),
+      logs: None,
     }
   }
 

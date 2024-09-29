@@ -15,7 +15,7 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
 
   ctx
     .globals()
-    .set("console", Class::instance(ctx.clone(), Console {})?)?;
+    .set("console", Class::instance(ctx.clone(), Console::new())?)?;
 
   ctx
     .globals()
@@ -29,19 +29,36 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
 
 #[derive(Trace)]
 #[rquickjs::class]
-struct Console {}
+struct Console {
+  aggregated_logs: Vec<String>,
+}
+
+impl Console {
+  fn new() -> Self {
+    Self {
+      aggregated_logs: Vec::new(),
+    }
+  }
+}
 
 #[rquickjs::methods]
 impl Console {
-  fn log(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
+  fn log(&mut self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
     let ty = value.type_name();
-    println!("[log] ({ty}) {}", string_repr(value)?);
+    let msg = format!("[log] ({ty}) {}", string_repr(value)?);
+    println!("{msg}");
+    self.aggregated_logs.push(msg);
     Ok(())
   }
 
-  fn error(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
+  fn error(
+    &mut self,
+    value: rquickjs::Value<'_>,
+  ) -> Result<(), rquickjs::Error> {
     let ty = value.type_name();
-    println!("[error] ({ty}) {}", string_repr(value)?);
+    let msg = format!("[error] ({ty}) {}", string_repr(value)?);
+    println!("{msg}");
+    self.aggregated_logs.push(msg);
     Ok(())
   }
 }
