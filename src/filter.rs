@@ -108,10 +108,7 @@ impl FilterContext {
     self.source.as_ref()
   }
 
-  pub fn set_filter_skip(&mut self, filter_skip: FilterSkip) {
-    self.filter_skip = Some(filter_skip);
-  }
-
+  #[cfg(test)]
   pub fn set_base(&mut self, base: Url) {
     self.base = Some(base);
   }
