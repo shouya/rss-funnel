@@ -367,7 +367,7 @@ fn render_feed(mut feed: Feed, logs: Option<&[String]>) -> Markup {
       Some(logs) if !logs.is_empty() => {
         details .flash.error.logs {
           summary { "Logs" }
-          div {
+          div style="overflow-x:scroll" {
             @for log in logs {
               { pre { (log) } }
             }
