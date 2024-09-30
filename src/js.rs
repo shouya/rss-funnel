@@ -5,7 +5,6 @@ mod fetch;
 use std::fs;
 use std::path::PathBuf;
 
-use builtin::Console;
 use rquickjs::loader::{
   BuiltinLoader, BuiltinResolver, FileResolver, Loader, Resolver, ScriptLoader,
 };

@@ -63,6 +63,23 @@ pub struct FilterContext {
   logs: Option<Vec<String>>,
 }
 
+pub struct SubContext<'a> {
+  context: &'a mut FilterContext,
+  saved_filter_skip: Option<FilterSkip>,
+}
+
+impl AsMut<FilterContext> for SubContext<'_> {
+  fn as_mut(&mut self) -> &mut FilterContext {
+    self.context
+  }
+}
+
+impl Drop for SubContext<'_> {
+  fn drop(&mut self) {
+    self.context.filter_skip = self.saved_filter_skip.take();
+  }
+}
+
 impl FilterContext {
   #[cfg(test)]
   pub fn new() -> Self {
@@ -99,13 +116,11 @@ impl FilterContext {
     self.base = Some(base);
   }
 
-  pub fn subcontext(&self) -> Self {
-    Self {
-      base: self.base.clone(),
-      source: None,
-      filter_skip: None,
-      extra_queries: self.extra_queries.clone(),
-      logs: self.logs.clone(),
+  pub fn subcontext(&mut self) -> SubContext<'_> {
+    let saved_filter_skip = self.filter_skip.take();
+    SubContext {
+      context: self,
+      saved_filter_skip,
     }
   }
 
@@ -118,11 +133,10 @@ impl FilterContext {
     }
   }
 
-  pub fn enable_logging(self) -> Self {
-    Self {
-      logs: Some(Vec::new()),
-      ..self
-    }
+  pub fn enable_logging(&mut self) {
+    if self.logs.is_none() {
+      self.logs = Some(Vec::new());
+    };
   }
 
   pub fn logs(&self) -> Option<&[String]> {

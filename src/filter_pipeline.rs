@@ -56,7 +56,11 @@ impl FilterPipelineConfig {
 }
 
 impl FilterPipeline {
-  pub async fn run(&self, context: FilterContext, feed: Feed) -> Result<Feed> {
+  pub async fn run(
+    &self,
+    context: &mut FilterContext,
+    feed: Feed,
+  ) -> Result<Feed> {
     self.inner.lock().await.run(context, feed).await
   }
 
@@ -127,12 +131,12 @@ impl Inner {
 
   async fn run(
     &self,
-    mut context: FilterContext,
+    context: &mut FilterContext,
     mut feed: Feed,
   ) -> Result<Feed> {
     for (i, filter) in self.filters.iter().enumerate() {
       if context.allows_filter(i) {
-        feed = self.step(i, filter, &mut context, feed).await?;
+        feed = self.step(i, filter, context, feed).await?;
       }
     }
 

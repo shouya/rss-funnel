@@ -64,7 +64,7 @@ impl OnTheFlyFilter {
   pub async fn run(
     &mut self,
     query: OnTheFlyFilterQuery,
-    context: FilterContext,
+    context: &mut FilterContext,
     feed: Feed,
   ) -> Result<Feed, Error> {
     let pipeline = self.update(query).await?;
