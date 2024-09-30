@@ -189,13 +189,14 @@ impl JsFilter {
 
 #[async_trait::async_trait]
 impl FeedFilter for JsFilter {
-  async fn run(
-    &self,
-    _ctx: &mut FilterContext,
-    mut feed: Feed,
-  ) -> Result<Feed> {
+  async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
     self.modify_feed(&mut feed).await?;
     self.modify_posts(&mut feed).await?;
+
+    for log in self.runtime.extract_console_logs().await {
+      ctx.log(log);
+    }
+
     Ok(feed)
   }
 }

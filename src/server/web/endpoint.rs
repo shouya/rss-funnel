@@ -6,6 +6,7 @@ use url::Url;
 
 use crate::{
   feed::{Feed, NormalizedPost, Post},
+  filter::FilterContext,
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
 };
@@ -266,9 +267,12 @@ async fn fetch_and_render_feed(
   endpoint: EndpointService,
   params: EndpointParam,
 ) -> Markup {
+  let mut context = FilterContext::from_param(&params);
+  context.enable_logging();
+
   html! {
-    @match endpoint.run(params).await {
-      Ok(feed) => (render_feed(feed)),
+    @match endpoint.run_with_context(&mut context, params).await {
+      Ok(feed) => (render_feed(feed, context.logs())),
       Err(e) => {
         div .flash.error {
           header { b { "Failed to fetch feed" } }
@@ -346,7 +350,7 @@ fn render_post(normalized_post: NormalizedPost, post: Post) -> Markup {
   }
 }
 
-fn render_feed(mut feed: Feed) -> Markup {
+fn render_feed(mut feed: Feed, logs: Option<&[String]>) -> Markup {
   let normalized_feed = feed.normalize();
   let posts = feed.take_posts();
 
@@ -358,6 +362,21 @@ fn render_feed(mut feed: Feed) -> Markup {
     @if let Some(description) = &normalized_feed.description {
       p { (description) }
     }
+
+    @match logs {
+      Some(logs) if !logs.is_empty() => {
+        details .flash.error.logs {
+          summary { "Logs" }
+          div style="overflow-x:scroll" {
+            @for log in logs {
+              { pre { (log) } }
+            }
+          }
+        }
+      }
+      _ => {}
+    }
+
     p { (format!("Entries ({}):", normalized_feed.posts.len())) }
 
     @for (norm_post, post) in normalized_feed.posts.into_iter().zip(posts) {

@@ -13,13 +13,11 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
   Class::<DOM>::define(&ctx.globals())?;
   Class::<Node>::define(&ctx.globals())?;
 
-  ctx
-    .globals()
-    .set("console", Class::instance(ctx.clone(), Console {})?)?;
+  let console = Class::instance(ctx.clone(), Console::new())?;
+  ctx.globals().set("console", console)?;
 
-  ctx
-    .globals()
-    .set("util", Class::instance(ctx.clone(), Util {})?)?;
+  let util = Class::instance(ctx.clone(), Util {})?;
+  ctx.globals().set("util", util)?;
 
   let fetch_fn = Func::new(Async(fetch));
   ctx.globals().set("fetch", fetch_fn)?;
@@ -29,29 +27,57 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
 
 #[derive(Trace)]
 #[rquickjs::class]
-struct Console {}
+pub(super) struct Console {
+  aggregated_logs: Vec<String>,
+}
+
+impl Console {
+  fn new() -> Self {
+    Self {
+      aggregated_logs: Vec::new(),
+    }
+  }
+
+  pub(super) fn extract_logs(&mut self) -> Vec<String> {
+    std::mem::take(&mut self.aggregated_logs)
+  }
+}
 
 #[rquickjs::methods]
 impl Console {
-  fn log(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
-    let msg = match value.try_into_string() {
-      Ok(s) => s.to_string()?,
-      Err(v) => format!("[{}] {:?}", v.type_name(), v),
-    };
-
-    println!("[console.log] {}", msg);
+  fn log(&mut self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
+    let ty = value.type_name();
+    let msg = format!("[log] ({ty}) {}", string_repr(value)?);
+    println!("{msg}");
+    self.aggregated_logs.push(msg);
     Ok(())
   }
 
-  fn error(&self, value: rquickjs::Value<'_>) -> Result<(), rquickjs::Error> {
-    let msg = match value.try_into_string() {
-      Ok(s) => s.to_string()?,
-      Err(v) => format!("[{}] {:?}", v.type_name(), v),
-    };
-
-    eprintln!("[console.error] {}", msg);
+  fn error(
+    &mut self,
+    value: rquickjs::Value<'_>,
+  ) -> Result<(), rquickjs::Error> {
+    let ty = value.type_name();
+    let msg = format!("[error] ({ty}) {}", string_repr(value)?);
+    println!("{msg}");
+    self.aggregated_logs.push(msg);
     Ok(())
   }
+}
+
+fn string_repr(value: rquickjs::Value<'_>) -> Result<String, rquickjs::Error> {
+  let ctx = value.ctx();
+  if let Some(json) =
+    ctx.json_stringify_replacer_space(value.clone(), rquickjs::Undefined, 4)?
+  {
+    return Ok(json.to_string().unwrap());
+  }
+
+  if let Some(string) = value.into_string() {
+    return Ok(string.to_string().unwrap());
+  }
+
+  Ok("unknown value".to_owned())
 }
 
 #[derive(Trace)]

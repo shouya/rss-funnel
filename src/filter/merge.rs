@@ -133,11 +133,12 @@ impl FeedFilter for Merge {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
     let (new_feeds, errors) = self.fetch_sources(ctx).await?;
 
+    let mut subctx = ctx.subcontext();
     for new_feed in new_feeds {
-      let ctx = ctx.subcontext();
-      let filtered_new_feed = self.filters.run(ctx, new_feed).await?;
-      feed.merge(filtered_new_feed)?;
+      let new_feed = self.filters.run(subctx.as_mut(), new_feed).await?;
+      feed.merge(new_feed)?;
     }
+    drop(subctx);
 
     for (source, error) in errors {
       let post = post_from_error(source, error, ctx);

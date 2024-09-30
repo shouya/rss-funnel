@@ -57,6 +57,27 @@ pub struct FilterContext {
 
   /// The extra query parameters passed to the endpoint
   extra_queries: HashMap<String, String>,
+
+  /// Logs collected from the filters. None indicates logging is
+  /// disabled.
+  logs: Option<Vec<String>>,
+}
+
+pub struct SubContext<'a> {
+  context: &'a mut FilterContext,
+  saved_filter_skip: Option<FilterSkip>,
+}
+
+impl AsMut<FilterContext> for SubContext<'_> {
+  fn as_mut(&mut self) -> &mut FilterContext {
+    self.context
+  }
+}
+
+impl Drop for SubContext<'_> {
+  fn drop(&mut self) {
+    self.context.filter_skip = self.saved_filter_skip.take();
+  }
 }
 
 impl FilterContext {
@@ -67,6 +88,7 @@ impl FilterContext {
       filter_skip: None,
       source: None,
       extra_queries: HashMap::new(),
+      logs: None,
     }
   }
 
@@ -86,21 +108,36 @@ impl FilterContext {
     self.source.as_ref()
   }
 
-  pub fn set_filter_skip(&mut self, filter_skip: FilterSkip) {
-    self.filter_skip = Some(filter_skip);
-  }
-
+  #[cfg(test)]
   pub fn set_base(&mut self, base: Url) {
     self.base = Some(base);
   }
 
-  pub fn subcontext(&self) -> Self {
-    Self {
-      base: self.base.clone(),
-      source: None,
-      filter_skip: None,
-      extra_queries: self.extra_queries.clone(),
+  pub fn subcontext(&mut self) -> SubContext<'_> {
+    let saved_filter_skip = self.filter_skip.take();
+    SubContext {
+      context: self,
+      saved_filter_skip,
     }
+  }
+
+  pub fn log<'a, S>(&mut self, msg: S)
+  where
+    S: Into<std::borrow::Cow<'a, str>>,
+  {
+    if let Some(logs) = &mut self.logs {
+      logs.push(msg.into().into_owned());
+    }
+  }
+
+  pub fn enable_logging(&mut self) {
+    if self.logs.is_none() {
+      self.logs = Some(Vec::new());
+    };
+  }
+
+  pub fn logs(&self) -> Option<&[String]> {
+    self.logs.as_deref()
   }
 
   pub fn from_param(param: &crate::server::EndpointParam) -> Self {
@@ -109,6 +146,7 @@ impl FilterContext {
       source: param.source().cloned(),
       filter_skip: param.filter_skip().cloned(),
       extra_queries: param.extra_queries().clone(),
+      logs: None,
     }
   }
 
