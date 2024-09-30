@@ -310,21 +310,17 @@ impl EndpointService {
     })
   }
 
-  pub async fn run(self, param: EndpointParam) -> Result<Feed> {
-    let mut context = FilterContext::from_param(&param);
+  pub async fn run_with_context(
+    self,
+    context: &mut FilterContext,
+    param: EndpointParam,
+  ) -> Result<Feed> {
     let feed = self
       .source
-      .fetch_feed(&context, Some(&self.client))
+      .fetch_feed(context, Some(&self.client))
       .await
       .map_err(|e| Error::FetchSource(Box::new(e)))?;
-    if let Some(filter_skip) = param.filter_skip {
-      context.set_filter_skip(filter_skip);
-    }
-    if let Some(base) = param.base {
-      context.set_base(base);
-    }
-    // TODO: change filter pipeline to operate on a borrowed context
-    let mut feed = self.filters.run(context.clone(), feed).await?;
+    let mut feed = self.filters.run(context, feed).await?;
 
     if let (Some(on_the_fly_filter), Some(query)) =
       (self.on_the_fly_filter, param.query)
@@ -340,6 +336,12 @@ impl EndpointService {
       feed.set_posts(posts);
     }
 
+    Ok(feed)
+  }
+
+  pub async fn run(self, param: EndpointParam) -> Result<Feed> {
+    let mut context = FilterContext::from_param(&param);
+    let feed = self.run_with_context(&mut context, param).await?;
     Ok(feed)
   }
 
