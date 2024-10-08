@@ -116,10 +116,15 @@ impl FeedService {
 
   // Update the feed definition and reconfigure the services. Return true if
   // the reload was successful, false if there was an error.
-  pub async fn reload(&self, path: &std::path::Path) -> bool {
+  pub async fn reload(&self) -> bool {
+    let Some(path) = self.inner.read().await.config_path.clone() else {
+      // no path specified, no reload needed
+      return true;
+    };
+
     let mut inner = self.inner.write().await;
     inner.config_error = None;
-    let feed_defn = match RootConfig::load_from_file(path) {
+    let feed_defn = match RootConfig::load_from_file(&path) {
       Err(e) => {
         inner.config_error = Some(e);
         return false;

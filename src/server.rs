@@ -92,11 +92,10 @@ impl ServerConfig {
 
     // signal for reload on config update
     let feed_service_clone = feed_service.clone();
-    let config_path_clone = config_path.to_owned();
     tokio::task::spawn(async move {
       while change_alert.recv().await.is_some() {
         info!("config updated, reloading service");
-        if !feed_service_clone.reload(&config_path_clone).await {
+        if !feed_service_clone.reload().await {
           feed_service_clone
             .with_error(|e| {
               warn!("failed to reload config: {}", e);
