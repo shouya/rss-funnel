@@ -15,7 +15,7 @@ use http::StatusCode;
 use tower_http::compression::CompressionLayer;
 use tracing::{info, warn};
 
-use crate::{cli::RootConfig, Result};
+use crate::Result;
 pub use endpoint::{EndpointConfig, EndpointParam};
 
 use self::{feed_service::FeedService, watcher::Watcher};
@@ -61,8 +61,7 @@ impl ServerConfig {
   }
 
   pub async fn run_without_config(self) -> Result<()> {
-    let config = RootConfig::on_the_fly("/otf");
-    let feed_service = FeedService::try_from(config).await?;
+    let feed_service = FeedService::new_otf().await?;
     info!("serving on-the-fly endpoint on /otf");
     self.serve(feed_service).await
   }
@@ -76,16 +75,13 @@ impl ServerConfig {
     }
   }
 
-  #[allow(unused)]
   pub async fn run_without_fs_watcher(self, config_path: &Path) -> Result<()> {
-    let config = RootConfig::load_from_file(config_path)?;
-    let feed_service = FeedService::try_from(config).await?;
+    let feed_service = FeedService::new(config_path).await?;
     self.serve(feed_service).await
   }
 
   pub async fn run_with_fs_watcher(self, config_path: &Path) -> Result<()> {
-    let config = RootConfig::load_from_file(config_path)?;
-    let feed_service = FeedService::try_from(config).await?;
+    let feed_service = FeedService::new(config_path).await?;
 
     // watcher must not be dropped until the end of the function
     let mut watcher = Watcher::new(config_path)?;
