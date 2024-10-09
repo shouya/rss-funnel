@@ -156,14 +156,16 @@
   }
 }
 
-main.feed-section {
-  background-color: var(--bg-muted);
-  padding: 1.5rem;
-  border-radius: var(--bd-radius);
+main {
+  .feed-section {
+    background-color: var(--bg-muted);
+    padding: 1.5rem;
+    border-radius: var(--bd-radius);
+  }
 }
 
 .header-bar {
-  > .back-button {
+  > .left-button {
     margin-right: 2rem;
 
     a:hover {
@@ -171,7 +173,7 @@ main.feed-section {
     }
   }
 
-  > .copy-button {
+  > .button {
     > svg {
       vertical-align: middle;
     }

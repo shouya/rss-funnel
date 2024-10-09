@@ -2,7 +2,7 @@ mod endpoint;
 mod list;
 mod login;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, convert::Infallible};
 
 use axum::{
   extract::Path,
@@ -50,6 +50,47 @@ async fn handle_sprite() -> impl IntoResponse {
   (StatusCode::OK, [("Content-Type", "image/svg+xml")], svg)
 }
 
+// bool: whether the reload is successful
+struct AutoReload(Option<bool>);
+
+impl AutoReload {
+  // (style, message)
+  async fn flash_message(
+    &self,
+    service: &FeedService,
+  ) -> Option<(&'static str, String)> {
+    match self.0 {
+      None => None,
+      Some(true) => Some(("success", "Config reloaded.".to_owned())),
+      Some(false) => service.with_error(|e| ("error", e.to_string())).await,
+    }
+  }
+}
+
+#[async_trait::async_trait]
+impl<S> axum::extract::FromRequestParts<S> for AutoReload {
+  type Rejection = Infallible;
+
+  async fn from_request_parts(
+    parts: &mut http::request::Parts,
+    _state: &S,
+  ) -> Result<Self, Self::Rejection> {
+    let Some(value) = parts.headers.get("HX-Trigger-Name") else {
+      return Ok(Self(None));
+    };
+
+    if value.as_bytes() != b"reload" {
+      return Ok(Self(None));
+    }
+
+    let Some(feed_service) = parts.extensions.get::<FeedService>() else {
+      return Ok(Self(None));
+    };
+
+    Ok(Self(Some(feed_service.reload().await)))
+  }
+}
+
 async fn handle_home(auth: Option<Auth>) -> impl IntoResponse {
   if auth.is_some() {
     Redirect::temporary("/_/endpoints")
@@ -60,15 +101,19 @@ async fn handle_home(auth: Option<Auth>) -> impl IntoResponse {
 
 async fn handle_endpoint_list(
   _: Auth,
+  auto_reload: AutoReload,
   Extension(service): Extension<FeedService>,
 ) -> Markup {
   let root_config = service.root_config().await;
-  list::render_endpoint_list_page(&root_config)
+
+  let reload_message = auto_reload.flash_message(&service).await;
+  list::render_endpoint_list_page(&root_config, reload_message)
 }
 
 async fn handle_endpoint(
   _: Auth,
   Path(path): Path<String>,
+  auto_reload: AutoReload,
   Extension(service): Extension<FeedService>,
   param: EndpointParam,
 ) -> Result<Markup, Response> {
@@ -77,7 +122,11 @@ async fn handle_endpoint(
       .into_response()
   })?;
 
-  Ok(endpoint::render_endpoint_page(endpoint, path, param).await)
+  let reload_message = auto_reload.flash_message(&service).await;
+  let page =
+    endpoint::render_endpoint_page(endpoint, path, param, reload_message).await;
+
+  Ok(page)
 }
 
 fn header_libs_fragment() -> Markup {

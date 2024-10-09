@@ -3,9 +3,17 @@ use std::borrow::Cow;
 use maud::{html, Markup, PreEscaped, DOCTYPE};
 use url::Url;
 
-use crate::{cli::RootConfig, server::EndpointConfig, source::SourceConfig};
+use crate::{
+  cli::RootConfig,
+  server::{web::sprite, EndpointConfig},
+  source::SourceConfig,
+};
 
-pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
+pub fn render_endpoint_list_page(
+  root_config: &RootConfig,
+  // (style, message)
+  reload_message: Option<(&str, String)>,
+) -> Markup {
   html! {
     (DOCTYPE)
     head {
@@ -19,9 +27,24 @@ pub fn render_endpoint_list_page(root_config: &RootConfig) -> Markup {
     body {
       header .header-bar {
         h2 { "RSS Funnel" }
+
+        button .button
+          name="reload"
+          hx-get=(format!("/_/endpoints"))
+          hx-target="main"
+          hx-select="main"
+          title="Reload config file" {
+            (sprite("reload"))
+          }
       }
 
       main {
+        @if let Some((style, message)) = reload_message {
+          section .flash.(style) style="margin: 1rem;" {
+            (message)
+          }
+        }
+
         ul {
           @for endpoint in &root_config.endpoints {
             (endpoint_list_entry_fragment(endpoint))
