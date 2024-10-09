@@ -63,8 +63,9 @@ pub async fn render_endpoint_page(
           hx-indicator=".loading"
           hx-include=".hx-included"
           hx-target="main"
-          hx-select="main" {
-          (sprite("copy"))
+          hx-select="main"
+          title="Reload config file" {
+          (sprite("reload"))
         }
       }
 
