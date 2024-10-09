@@ -15,6 +15,8 @@ pub async fn render_endpoint_page(
   endpoint: EndpointService,
   path: String,
   param: EndpointParam,
+  // (style, message)
+  reload_msg: Option<(&str, String)>,
 ) -> Markup {
   // render source control
   let source = source_control_fragment(&path, endpoint.source(), &param);
@@ -48,11 +50,20 @@ pub async fn render_endpoint_page(
     }
     body {
       header .header-bar {
-        button .back-button {
+        button .left-button {
           a href="/_/" { "Back" }
         }
         h2 { (path) }
-        button .copy-button title="Copy Endpoint URL" onclick="copyToClipboard()" {
+        button .button title="Copy Endpoint URL" onclick="copyToClipboard()" {
+          (sprite("copy"))
+        }
+        button .button
+          name="reload"
+          hx-get=(format!("/_/endpoint/{path}"))
+          hx-indicator=".loading"
+          hx-include=".hx-included"
+          hx-target="main"
+          hx-select="main" {
           (sprite("copy"))
         }
       }
@@ -74,8 +85,16 @@ pub async fn render_endpoint_page(
         }
       }
 
-      main .feed-section {
-        (feed)
+      main {
+        @if let Some((style, message)) = reload_msg {
+          section .flash.(style) style="margin-bottom: 1rem;" {
+            (message)
+          }
+        }
+
+        .feed-section {
+          (feed)
+        }
       }
     }
   }
