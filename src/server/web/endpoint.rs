@@ -16,7 +16,7 @@ pub async fn render_endpoint_page(
   path: String,
   param: EndpointParam,
   // (style, message)
-  reload_msg: Option<(&str, String)>,
+  reload_message: Option<(&str, String)>,
 ) -> Markup {
   // render source control
   let source = source_control_fragment(&path, endpoint.source(), &param);
@@ -87,7 +87,7 @@ pub async fn render_endpoint_page(
       }
 
       main {
-        @if let Some((style, message)) = reload_msg {
+        @if let Some((style, message)) = reload_message {
           section .flash.(style) style="margin-bottom: 1rem;" {
             (message)
           }

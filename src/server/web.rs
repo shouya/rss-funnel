@@ -53,6 +53,20 @@ async fn handle_sprite() -> impl IntoResponse {
 // bool: whether the reload is successful
 struct AutoReload(Option<bool>);
 
+impl AutoReload {
+  // (style, message)
+  async fn flash_message(
+    &self,
+    service: &FeedService,
+  ) -> Option<(&'static str, String)> {
+    match self.0 {
+      None => None,
+      Some(true) => Some(("success", "Config reloaded.".to_owned())),
+      Some(false) => service.with_error(|e| ("error", e.to_string())).await,
+    }
+  }
+}
+
 #[async_trait::async_trait]
 impl<S> axum::extract::FromRequestParts<S> for AutoReload {
   type Rejection = Infallible;
@@ -87,16 +101,19 @@ async fn handle_home(auth: Option<Auth>) -> impl IntoResponse {
 
 async fn handle_endpoint_list(
   _: Auth,
+  auto_reload: AutoReload,
   Extension(service): Extension<FeedService>,
 ) -> Markup {
   let root_config = service.root_config().await;
-  list::render_endpoint_list_page(&root_config)
+
+  let reload_message = auto_reload.flash_message(&service).await;
+  list::render_endpoint_list_page(&root_config, reload_message)
 }
 
 async fn handle_endpoint(
   _: Auth,
   Path(path): Path<String>,
-  AutoReload(reloaded): AutoReload,
+  auto_reload: AutoReload,
   Extension(service): Extension<FeedService>,
   param: EndpointParam,
 ) -> Result<Markup, Response> {
@@ -105,13 +122,11 @@ async fn handle_endpoint(
       .into_response()
   })?;
 
-  let reload_msg = match reloaded {
-    None => None,
-    Some(true) => Some(("success", "Config reloaded.".to_owned())),
-    Some(false) => service.with_error(|e| ("error", e.to_string())).await,
-  };
+  let reload_message = auto_reload.flash_message(&service).await;
+  let page =
+    endpoint::render_endpoint_page(endpoint, path, param, reload_message).await;
 
-  Ok(endpoint::render_endpoint_page(endpoint, path, param, reload_msg).await)
+  Ok(page)
 }
 
 fn header_libs_fragment() -> Markup {
