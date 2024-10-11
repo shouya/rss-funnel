@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::DerefMut, sync::Arc};
+use std::{collections::HashMap, ops::DerefMut, path::PathBuf, sync::Arc};
 
 use axum::{
   extract::{Path, Request},
@@ -21,6 +21,7 @@ pub struct FeedService {
 }
 
 struct Inner {
+  config_path: Option<PathBuf>,
   config_error: Option<ConfigError>,
   root_config: Arc<RootConfig>,
   session_id: Option<String>,
@@ -29,7 +30,22 @@ struct Inner {
 }
 
 impl FeedService {
-  pub async fn try_from(root_config: RootConfig) -> Result<Self, ConfigError> {
+  pub async fn new_otf() -> Result<Self, ConfigError> {
+    let config = RootConfig::on_the_fly("/otf");
+    Self::build(config, None).await
+  }
+
+  pub async fn new(path: &std::path::Path) -> Result<Self, ConfigError> {
+    let config = RootConfig::load_from_file(path)?;
+    Self::build(config, Some(path)).await
+  }
+}
+
+impl FeedService {
+  async fn build(
+    root_config: RootConfig,
+    config_path: Option<&std::path::Path>,
+  ) -> Result<Self, ConfigError> {
     let mut endpoints = HashMap::new();
     for endpoint_config in root_config.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
@@ -43,6 +59,7 @@ impl FeedService {
     }
 
     let inner = Inner {
+      config_path: config_path.map(PathBuf::from),
       config_error: None,
       session_id: None,
       root_config: Arc::new(root_config),
@@ -99,10 +116,15 @@ impl FeedService {
 
   // Update the feed definition and reconfigure the services. Return true if
   // the reload was successful, false if there was an error.
-  pub async fn reload(&self, path: &std::path::Path) -> bool {
+  pub async fn reload(&self) -> bool {
+    let Some(path) = self.inner.read().await.config_path.clone() else {
+      // no path specified, no reload needed
+      return true;
+    };
+
     let mut inner = self.inner.write().await;
     inner.config_error = None;
-    let feed_defn = match RootConfig::load_from_file(path) {
+    let feed_defn = match RootConfig::load_from_file(&path) {
       Err(e) => {
         inner.config_error = Some(e);
         return false;
