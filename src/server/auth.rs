@@ -6,7 +6,7 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use http::request::Parts;
 
-use crate::util::{self, relative_path};
+use crate::util::relative_path;
 
 use super::feed_service::FeedService;
 

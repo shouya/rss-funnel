@@ -14,7 +14,7 @@ use axum::{
   routing::get,
   Extension, Router,
 };
-use clap::{builder::IntoResettable, Parser};
+use clap::Parser;
 use http::StatusCode;
 use tower_http::compression::CompressionLayer;
 use tracing::{info, warn};

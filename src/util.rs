@@ -97,7 +97,6 @@ impl<'a, T> Iterator for SingleOrVecIter<'a, T> {
 }
 
 use std::{
-  cell::{LazyCell, OnceCell},
   hash::Hash,
   num::NonZeroUsize,
   sync::{
