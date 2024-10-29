@@ -24,6 +24,17 @@ pub fn is_env_set(name: &str) -> bool {
   matches!(val.as_str(), "1" | "t" | "true" | "y" | "yes")
 }
 
+const DEFAULT_PATH_PREFIX: &str = "/";
+static PATH_PREFIX: LazyLock<Box<str>> = LazyLock::new(|| {
+  std::env::var("RSS_FUNNEL_PATH_PREFIX")
+    .unwrap_or_else(|_| DEFAULT_PATH_PREFIX.to_owned())
+    .into_boxed_str()
+});
+
+pub fn path_prefix() -> &'static str {
+  &*PATH_PREFIX
+}
+
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
@@ -83,11 +94,12 @@ impl<'a, T> Iterator for SingleOrVecIter<'a, T> {
 }
 
 use std::{
+  cell::{LazyCell, OnceCell},
   hash::Hash,
   num::NonZeroUsize,
   sync::{
     atomic::{AtomicUsize, Ordering},
-    RwLock,
+    LazyLock, RwLock,
   },
   time::{Duration, Instant},
 };
