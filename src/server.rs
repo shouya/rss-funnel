@@ -70,8 +70,12 @@ impl ServerConfig {
   }
 
   pub async fn run_without_config(self) -> Result<()> {
-    let feed_service = FeedService::new_otf().await?;
-    info!("serving on-the-fly endpoint on /otf");
+    let config = RootConfig::on_the_fly("/otf");
+    let feed_service = FeedService::try_from(config).await?;
+    let rel_path = relative_path("otf");
+    info!(
+      "No config detected. Serving automatic on-the-fly endpoint on {rel_path}"
+    );
     self.serve(feed_service).await
   }
 
@@ -131,8 +135,7 @@ impl ServerConfig {
         routes.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
 
-    #[cfg(not(feature = "inspector-ui"))]
-    {
+    if !cfg!(feature = "inspector-ui") {
       routes =
         routes.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
@@ -160,8 +163,14 @@ impl ServerConfig {
     let listener = tokio::net::TcpListener::bind(&*self.bind).await?;
 
     let mut app = Router::new();
+
     let prefix = util::relative_path("");
-    app = app.nest(&prefix, self.router(feed_service));
+    if prefix == "/" {
+      app = self.router(feed_service);
+    } else {
+      info!("Path prefix set to {prefix}");
+      app = app.nest(&prefix, self.router(feed_service))
+    };
 
     info!("starting server");
     let server = axum::serve(listener, app);
