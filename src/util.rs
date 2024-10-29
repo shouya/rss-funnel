@@ -24,19 +24,50 @@ pub fn is_env_set(name: &str) -> bool {
   matches!(val.as_str(), "1" | "t" | "true" | "y" | "yes")
 }
 
-const DEFAULT_PATH_PREFIX: &str = "/";
-static PATH_PREFIX: LazyLock<Box<str>> = LazyLock::new(|| {
-  let prefix = std::env::var("RSS_FUNNEL_PATH_PREFIX")
-    .unwrap_or_else(|_| DEFAULT_PATH_PREFIX.to_owned())
-    .into_boxed_str();
-  assert!(prefix.ends_with("/"));
-  prefix
-});
+mod path_prefix {
+  use std::sync::LazyLock;
 
-pub fn relative_path(path: &str) -> String {
-  debug_assert!(!path.starts_with("/"));
-  format!("{}{path}", *PATH_PREFIX)
+  const DEFAULT_PATH_PREFIX: &str = "/";
+  pub static PATH_PREFIX: LazyLock<Box<str>> = LazyLock::new(|| {
+    let prefix = std::env::var("RSS_FUNNEL_PATH_PREFIX")
+      .ok()
+      .or_else(|| {
+        super::app_base_from_env()
+          .as_ref()
+          .map(|url| url.path().to_owned())
+      })
+      .unwrap_or_else(|| DEFAULT_PATH_PREFIX.to_owned())
+      .into_boxed_str();
+    assert!(prefix.ends_with("/"));
+    prefix
+  });
+
+  pub fn relative_path(path: &str) -> String {
+    debug_assert!(!path.starts_with("/"));
+    format!("{}{path}", *PATH_PREFIX)
+  }
 }
+
+pub use self::path_prefix::relative_path;
+
+mod app_base {
+  use std::sync::LazyLock;
+  use url::Url;
+
+  static APP_BASE_URL: LazyLock<Option<Url>> = LazyLock::new(|| {
+    let var = std::env::var("RSS_FUNNEL_APP_BASE").ok();
+    var.map(|v| {
+      v.parse()
+        .expect("Invalid base url specified in RSS_FUNNEL_APP_BASE")
+    })
+  });
+
+  pub fn app_base_from_env() -> &'static Option<Url> {
+    &APP_BASE_URL
+  }
+}
+
+pub use self::app_base::app_base_from_env;
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
@@ -101,7 +132,7 @@ use std::{
   num::NonZeroUsize,
   sync::{
     atomic::{AtomicUsize, Ordering},
-    LazyLock, RwLock,
+    RwLock,
   },
   time::{Duration, Instant},
 };
