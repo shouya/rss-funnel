@@ -70,8 +70,7 @@ impl ServerConfig {
   }
 
   pub async fn run_without_config(self) -> Result<()> {
-    let config = RootConfig::on_the_fly("/otf");
-    let feed_service = FeedService::try_from(config).await?;
+    let feed_service = FeedService::new_otf().await?;
     let rel_path = relative_path("otf");
     info!(
       "No config detected. Serving automatic on-the-fly endpoint on {rel_path}"
