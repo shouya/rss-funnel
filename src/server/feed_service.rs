@@ -15,6 +15,7 @@ use crate::{cli::RootConfig, ConfigError};
 
 use super::{endpoint::EndpointService, EndpointConfig};
 
+// can be cheaply cloned.
 #[derive(Clone)]
 pub struct FeedService {
   inner: Arc<RwLock<Inner>>,
