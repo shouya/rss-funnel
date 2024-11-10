@@ -20,7 +20,6 @@ use tower_http::compression::CompressionLayer;
 use tracing::{info, warn};
 
 use crate::{
-  cli::RootConfig,
   util::{self, relative_path},
   Result,
 };
