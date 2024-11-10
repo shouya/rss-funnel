@@ -8,7 +8,7 @@ use url::Url;
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 use crate::{feed::Feed, ConfigError, Error, Result};
 
-const IMAGE_PROXY_ROUTE: &str = "/_image";
+const IMAGE_PROXY_ROUTE: &str = "_image";
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,

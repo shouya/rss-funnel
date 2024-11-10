@@ -26,13 +26,16 @@ pub fn is_env_set(name: &str) -> bool {
 
 const DEFAULT_PATH_PREFIX: &str = "/";
 static PATH_PREFIX: LazyLock<Box<str>> = LazyLock::new(|| {
-  std::env::var("RSS_FUNNEL_PATH_PREFIX")
+  let prefix = std::env::var("RSS_FUNNEL_PATH_PREFIX")
     .unwrap_or_else(|_| DEFAULT_PATH_PREFIX.to_owned())
-    .into_boxed_str()
+    .into_boxed_str();
+  assert!(prefix.ends_with("/"));
+  prefix
 });
 
-pub fn path_prefix() -> &'static str {
-  &*PATH_PREFIX
+pub fn relative_path(path: &str) -> String {
+  debug_assert!(!path.starts_with("/"));
+  format!("{}{path}", *PATH_PREFIX)
 }
 
 #[derive(

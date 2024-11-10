@@ -12,12 +12,15 @@ use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 use url::Url;
 
+use crate::util::relative_path;
+
 lazy_static::lazy_static! {
   static ref SIGN_KEY: Box<[u8]> = init_sign_key();
 }
 
 pub fn router() -> Router {
-  info!("handling image proxy: /_image");
+  let image_proxy_path = relative_path("_image");
+  info!("handling image proxy: {image_proxy_path}");
 
   use tower_http::cors::AllowOrigin;
   let cors = CorsLayer::new()

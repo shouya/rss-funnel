@@ -7,6 +7,7 @@ use crate::{
   cli::RootConfig,
   server::{web::sprite, EndpointConfig},
   source::SourceConfig,
+  util::relative_path,
 };
 
 pub fn render_endpoint_list_page(
@@ -59,7 +60,10 @@ fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
   html! {
     li {
       p {
-        a href={"/_/endpoint/" (endpoint.path.trim_start_matches('/'))} {
+        @let normalized_path = endpoint.path.trim_start_matches('/');
+        @let endpoint_path = format!("/_/endpoint/{}", normalized_path);
+        @let endpoint_path = relative_path(&endpoint_path);
+        a href=(endpoint_path) {
           (endpoint.path)
         }
 
@@ -104,7 +108,7 @@ fn short_source_repr(source: &SourceConfig) -> Markup {
     },
     SourceConfig::Simple(url) if url.starts_with("/") => {
       let path = url_path(url.as_str());
-      let path = path.map(|p| format!("/_/{p}"));
+      let path = path.map(|p| relative_path(&format!("_/{p})")));
       html! {
         @if let Some(path) = path {
           span .tag.local {

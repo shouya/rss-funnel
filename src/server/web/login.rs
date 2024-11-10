@@ -9,7 +9,7 @@ use axum_extra::extract::CookieJar;
 use http::request::Parts;
 use maud::{html, PreEscaped, DOCTYPE};
 
-use crate::server::feed_service::FeedService;
+use crate::{server::feed_service::FeedService, util::relative_path};
 
 // Put this in request context
 pub struct Auth;
@@ -79,12 +79,14 @@ impl<S: Send + Sync> FromRequestParts<S> for Auth {
 }
 
 fn redir_login() -> Response {
-  Redirect::to("/_/login?login_required=1").into_response()
+  let login_path = relative_path("_/login?login_required=1");
+  Redirect::to(&login_path).into_response()
 }
 
 pub async fn handle_logout(cookie_jar: CookieJar) -> impl IntoResponse {
   let cookie_jar = cookie_jar.remove("session_id");
-  (cookie_jar, Redirect::to("/_/login?logged_out=1")).into_response()
+  let login_path = relative_path("_/login?logged_out=1");
+  (cookie_jar, Redirect::to(&login_path)).into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -102,9 +104,13 @@ pub async fn handle_login(
   match feed_service.login(&params.username, &params.password).await {
     Some(session_id) => {
       let cookie_jar = cookie_jar.add(("session_id", session_id));
-      (cookie_jar, Redirect::to("/_/endpoints")).into_response()
+      let home_path = relative_path("_/");
+      (cookie_jar, Redirect::to(&home_path)).into_response()
     }
-    _ => Redirect::to("/_/login?bad_auth=1").into_response(),
+    _ => {
+      let login_path = relative_path("_/login?bad_auth=1");
+      Redirect::to(&login_path).into_response()
+    }
   }
 }
 
