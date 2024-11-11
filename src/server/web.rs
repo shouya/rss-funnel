@@ -13,6 +13,8 @@ use http::StatusCode;
 use login::Auth;
 use maud::{html, Markup};
 
+use crate::util::relative_path;
+
 use super::{feed_service::FeedService, EndpointParam};
 
 #[derive(rust_embed::RustEmbed)]
@@ -93,9 +95,11 @@ impl<S> axum::extract::FromRequestParts<S> for AutoReload {
 
 async fn handle_home(auth: Option<Auth>) -> impl IntoResponse {
   if auth.is_some() {
-    Redirect::temporary("/_/endpoints")
+    let endpoints_path = relative_path("_/endpoints");
+    Redirect::temporary(&endpoints_path)
   } else {
-    Redirect::temporary("/_/login")
+    let login_path = relative_path("_/login");
+    Redirect::temporary(&login_path)
   }
 }
 
@@ -147,9 +151,10 @@ fn favicon() -> Markup {
 }
 
 fn sprite(icon: &str) -> Markup {
+  let sprite_path = relative_path("_/sprite.svg");
   html! {
     svg class="icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" {
-      use xlink:href=(format!("/_/sprite.svg#{icon}"));
+      use xlink:href=(format!("{sprite_path}#{icon}"));
     }
   }
 }

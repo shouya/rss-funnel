@@ -7,6 +7,7 @@ use url::Url;
 
 use crate::{
   server::{self, EndpointConfig, ServerConfig},
+  util::relative_path,
   ConfigError, Result,
 };
 
@@ -167,7 +168,8 @@ async fn health_check(health_check_config: HealthCheckConfig) -> Result<()> {
     server = format!("http://{server}");
   }
 
-  let url = Url::parse(&server)?.join("/_health")?;
+  let path = relative_path("_health");
+  let url = Url::parse(&server)?.join(&path)?;
   match reqwest::get(url.clone()).await {
     Ok(res) if res.status().is_success() => {
       eprintln!("{server} is healthy");

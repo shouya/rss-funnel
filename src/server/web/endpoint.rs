@@ -9,6 +9,7 @@ use crate::{
   filter::FilterContext,
   server::{endpoint::EndpointService, web::sprite, EndpointParam},
   source::{FromScratch, Source},
+  util::relative_path,
 };
 
 pub async fn render_endpoint_page(
@@ -51,7 +52,8 @@ pub async fn render_endpoint_page(
     body {
       header .header-bar {
         button .left-button {
-          a href="/_/" { "Back" }
+          @let home_path = relative_path("_/");
+          a href=(home_path) { "Back" }
         }
         h2 { (path) }
         button .button title="Copy Endpoint URL" onclick="copyToClipboard()" {
@@ -108,13 +110,14 @@ fn source_control_fragment(
 ) -> Markup {
   match source {
     Source::Dynamic => html! {
+      @let endpoint_path = relative_path(&format!("_/endpoint/{path}"));
       input
         .hx-included.grow
         type="text"
         name="source"
         placeholder="Source URL"
         value=[param.source().map(|url| url.as_str())]
-        hx-get=(format!("/_/endpoint/{path}"))
+        hx-get=(endpoint_path)
         hx-trigger="keyup changed delay:500ms"
         hx-push-url="true"
         hx-indicator=".loading"
@@ -174,6 +177,7 @@ fn source_template_fragment(
       @match fragment {
         Either::Left(plain) => span style="white-space: nowrap" { (plain) },
         Either::Right((name, Some(placeholder))) => {
+          @let endpoint_path = relative_path(&format!("_/endpoint/{path}"));
           @let value=queries.get(name);
           @let default_value=placeholder.default.as_ref();
           @let value=value.or(default_value);
@@ -184,7 +188,7 @@ fn source_template_fragment(
             placeholder=(name)
             pattern=[validation]
             value=[value]
-            hx-get=(format!("/_/endpoint/{path}"))
+            hx-get=(endpoint_path)
             hx-trigger="keyup changed delay:500ms"
             hx-push-url="true"
             hx-include=".hx-included"
@@ -246,9 +250,10 @@ fn render_config_fragment(
     } @else {
       div {
         header { b { "Filters:" } }
+        @let endpoint_path = relative_path(&format!("_/endpoint/{path}"));
         ul #filter-list .hx-included
           hx-vals="js:{...gatherFilterSkip()}"
-          hx-get=(format!("/_/endpoint/{path}"))
+          hx-get=(endpoint_path)
           hx-trigger="click from:.filter-name"
           hx-push-url="true"
           hx-include=".hx-included"

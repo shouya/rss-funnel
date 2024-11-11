@@ -6,6 +6,8 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use http::request::Parts;
 
+use crate::util::relative_path;
+
 use super::feed_service::FeedService;
 
 pub struct Auth;
@@ -42,7 +44,8 @@ impl<S: Send + Sync> FromRequestParts<S> for Auth {
 }
 
 fn login() -> Response {
-  Redirect::to("/_inspector/login.html?login_required=1").into_response()
+  let login_path = relative_path("_inspector/login.html?login_required=1");
+  Redirect::to(&login_path).into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -59,17 +62,18 @@ pub async fn handle_login(
   match feed_service.login(&params.username, &params.password).await {
     Some(session_id) => {
       let cookie_jar = cookie_jar.add(("session_id", session_id));
-      (cookie_jar, Redirect::to("/_inspector/index.html")).into_response()
+      let home_path = relative_path("_inspector/index.html");
+      (cookie_jar, Redirect::to(&home_path)).into_response()
     }
-    _ => Redirect::to("/_inspector/login.html?bad_auth=1").into_response(),
+    _ => {
+      let login_path = relative_path("_inspector/login.html?bad_auth=1");
+      Redirect::to(&login_path).into_response()
+    }
   }
 }
 
 pub async fn handle_logout(cookie_jar: CookieJar) -> Response {
   let cookie_jar = cookie_jar.remove("session_id");
-  (
-    cookie_jar,
-    Redirect::to("/_inspector/login.html?logged_out=1"),
-  )
-    .into_response()
+  let logout_path = relative_path("_inspector/login.html?logged_out=1");
+  (cookie_jar, Redirect::to(&logout_path)).into_response()
 }

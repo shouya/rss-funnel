@@ -9,13 +9,21 @@ mod web;
 
 use std::{path::Path, sync::Arc};
 
-use axum::{routing::get, Extension, Router};
+use axum::{
+  response::{IntoResponse, Redirect},
+  routing::get,
+  Extension, Router,
+};
 use clap::Parser;
 use http::StatusCode;
 use tower_http::compression::CompressionLayer;
 use tracing::{info, warn};
 
-use crate::Result;
+use crate::{
+  util::{self, relative_path},
+  Result,
+};
+
 pub use endpoint::{EndpointConfig, EndpointParam};
 
 use self::{feed_service::FeedService, watcher::Watcher};
@@ -62,7 +70,10 @@ impl ServerConfig {
 
   pub async fn run_without_config(self) -> Result<()> {
     let feed_service = FeedService::new_otf().await?;
-    info!("serving on-the-fly endpoint on /otf");
+    let rel_path = relative_path("otf");
+    info!(
+      "No config detected. Serving automatic on-the-fly endpoint on {rel_path}"
+    );
     self.serve(feed_service).await
   }
 
@@ -108,27 +119,23 @@ impl ServerConfig {
     self.serve(feed_service).await
   }
 
-  pub async fn serve(self, feed_service: FeedService) -> Result<()> {
-    info!("listening on {}", &self.bind);
-    let listener = tokio::net::TcpListener::bind(&*self.bind).await?;
-
-    let mut app = Router::new();
+  pub fn router(&self, feed_service: FeedService) -> Router {
+    let mut routes = Router::new();
 
     #[cfg(feature = "inspector-ui")]
     if self.inspector_ui {
-      app = app
+      routes = routes
         .nest("/", inspector::router())
         .nest("/_/", web::router())
-        .route(
-          "/",
-          get(|| async { axum::response::Redirect::temporary("/_/") }),
-        );
+        .route("/", get(redirect_to_home));
     } else {
-      app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
+      routes =
+        routes.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
 
     if !cfg!(feature = "inspector-ui") {
-      app = app.route("/", get(|| async { "rss-funnel is up and running!" }));
+      routes =
+        routes.route("/", get(|| async { "rss-funnel is up and running!" }));
     }
 
     let feed_service_router = Router::new()
@@ -138,7 +145,7 @@ impl ServerConfig {
       }))
       .layer(CompressionLayer::new().gzip(true));
 
-    app = app
+    routes = routes
       // deprecated, will be removed on 0.2
       .route("/health", get(|| async { "ok" }))
       .route("/_health", get(|| async { "ok" }))
@@ -146,9 +153,31 @@ impl ServerConfig {
       .merge(feed_service_router)
       .layer(Extension(feed_service));
 
+    routes
+  }
+
+  pub async fn serve(self, feed_service: FeedService) -> Result<()> {
+    info!("listening on {}", &self.bind);
+    let listener = tokio::net::TcpListener::bind(&*self.bind).await?;
+
+    let mut app = Router::new();
+
+    let prefix = util::relative_path("");
+    if prefix == "/" {
+      app = self.router(feed_service);
+    } else {
+      info!("Path prefix set to {prefix}");
+      app = app.nest(&prefix, self.router(feed_service))
+    };
+
     info!("starting server");
     let server = axum::serve(listener, app);
 
     Ok(server.await?)
   }
+}
+
+async fn redirect_to_home() -> impl IntoResponse {
+  let home_path = relative_path("_/");
+  Redirect::temporary(&home_path)
 }

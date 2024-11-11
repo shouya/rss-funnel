@@ -16,6 +16,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum MergeConfig {
   /// Simple merge with default client and no filters
   Simple(MergeSimpleConfig),
