@@ -61,7 +61,7 @@ fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
     li {
       p {
         @let normalized_path = endpoint.path.trim_start_matches('/');
-        @let endpoint_path = format!("/_/endpoint/{}", normalized_path);
+        @let endpoint_path = format!("_/endpoint/{}", normalized_path);
         @let endpoint_path = relative_path(&endpoint_path);
         a href=(endpoint_path) {
           (endpoint.path)
