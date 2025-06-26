@@ -30,6 +30,9 @@ pub struct ClientConfig {
   /// The "accept" header to send with requests
   #[serde(default)]
   pub accept: Option<String>,
+  /// The "accept-language" header to send with requests
+  #[serde(default)]
+  pub accept_language: Option<String>,
   /// The "cookie" header to send with requests (Deprecated, specify "cookie" field instead)
   #[serde(default)]
   pub set_cookie: Option<String>,
@@ -86,6 +89,9 @@ impl ClientConfig {
     let mut header_map = HeaderMap::new();
     if let Some(accept) = &self.accept {
       header_map.append("Accept", accept.try_into()?);
+    }
+    if let Some(accept_language) = &self.accept_language {
+      header_map.append("Accept-Language", accept_language.try_into()?);
     }
 
     if let Some(cookie) = &self.cookie {
