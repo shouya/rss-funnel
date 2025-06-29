@@ -20,6 +20,7 @@ use extension::ExtensionExt;
 
 pub use self::norm::{NormalizedFeed, NormalizedPost};
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Feed {

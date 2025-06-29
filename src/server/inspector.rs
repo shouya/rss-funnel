@@ -49,7 +49,7 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
     path = path.replace("_inspector/dist/", "");
   }
 
-  let mime = path.split('.').last().and_then(|ext| match ext {
+  let mime = path.split('.').next_back().and_then(|ext| match ext {
     "js" => Some([("Content-Type", "application/javascript")]),
     "css" => Some([("Content-Type", "text/css")]),
     "html" => Some([("Content-Type", "text/html")]),

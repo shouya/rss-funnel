@@ -86,7 +86,7 @@ impl Response {
       .headers
       .iter()
       .filter_map(|(k, v)| {
-        if k.to_ascii_lowercase() == "content-type" {
+        if k.eq_ignore_ascii_case("content-type") {
           Some(v)
         } else {
           None

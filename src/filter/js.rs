@@ -15,7 +15,6 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 /// Either define a function `modify_feed` or `modify_post` to modify the feed or posts respectively.
 /// <br><br>
 /// See <a href="https://github.com/shouya/rss-funnel/wiki/JavaScript-API" target="_blank">JavaScript API</a>.
-
 pub struct JsConfig {
   pub code: String,
 }

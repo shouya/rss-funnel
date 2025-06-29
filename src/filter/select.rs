@@ -38,7 +38,7 @@ enum AnyMatchConfig {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default
 )]
 struct MatchConfig {
   /// Regular expression(s) to match
@@ -56,17 +56,6 @@ struct MatchConfig {
   /// Whether to match case sensitively
   #[serde(default)]
   case_sensitive: Option<bool>,
-}
-
-impl Default for MatchConfig {
-  fn default() -> Self {
-    Self {
-      matches: SingleOrVec::empty(),
-      contains: SingleOrVec::empty(),
-      field: Field::default(),
-      case_sensitive: None,
-    }
-  }
 }
 
 impl AnyMatchConfig {
