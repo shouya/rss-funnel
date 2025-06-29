@@ -1,13 +1,16 @@
 {
   "devDependencies": {
-    "@babel/core": "^7.12.0",
-    "@parcel/reporter-bundle-analyzer": "^2.11.0",
-    "@parcel/transformer-less": "2.12.0",
+    "@babel/core": "^7.27.7",
+    "@parcel/reporter-bundle-analyzer": "^2.15.4",
+    "@parcel/transformer-less": "^2.15.4",
     "babel-plugin-prismjs": "^2.1.0",
-    "parcel": "^2.11.0",
+    "parcel": "^2.15.4",
     "process": "^0.11.10"
   },
-  "source": ["src/index.html", "src/login.html"],
+  "source": [
+    "src/index.html",
+    "src/login.html"
+  ],
   "targets": {
     "default": {
       "distDir": "./dist",
@@ -19,15 +22,15 @@
     "build": "rm -rf ./dist/* && parcel build --no-source-maps"
   },
   "dependencies": {
-    "@codemirror/lang-xml": "^6.0.2",
-    "@codemirror/lang-json": "^6.0.1",
-    "@codemirror/language": "^6.10.1",
-    "@codemirror/state": "^6.4.0",
-    "@codemirror/view": "^6.24.0",
-    "codemirror": "^6.0.1",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-xml": "^6.1.0",
+    "@codemirror/language": "^6.11.2",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.0",
+    "codemirror": "^6.0.2",
     "jitbit-html-sanitizer": "^0.2.1",
     "json-schema-view-js": "^2.0.1",
-    "prismjs": "^1.29.0",
+    "prismjs": "^1.30.0",
     "split.js": "^1.6.5"
   }
 }
