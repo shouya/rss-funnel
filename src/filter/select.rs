@@ -38,7 +38,7 @@ enum AnyMatchConfig {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default,
 )]
 struct MatchConfig {
   /// Regular expression(s) to match
