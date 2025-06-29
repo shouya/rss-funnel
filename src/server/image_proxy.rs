@@ -125,7 +125,7 @@ pub enum Error {
 
 impl IntoResponse for Error {
   fn into_response(self) -> http::Response<Body> {
-    use Error::*;
+    use Error::{BadSignature, MissingSignature};
     warn!("{:?}", &self);
 
     match &self {

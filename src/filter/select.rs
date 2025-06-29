@@ -213,14 +213,14 @@ mod test {
 
   #[test]
   fn test_config_keep_only_full() {
-    let config = r#"
+    let config = r"
       keep_only:
         matches:
           - '\d+'
           - '\bfoo\b'
         field: title
         case_sensitive: true
-    "#;
+    ";
 
     let expected = KeepOnlyConfig(AnyMatchConfig::MatchConfig(MatchConfig {
       matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
@@ -234,9 +234,9 @@ mod test {
 
   #[test]
   fn test_config_keep_only_single() {
-    let config = r#"
+    let config = r"
       keep_only: foo
-    "#;
+    ";
 
     let expected = KeepOnlyConfig(AnyMatchConfig::SingleContains("foo".into()));
 
@@ -245,11 +245,11 @@ mod test {
 
   #[test]
   fn test_config_keep_only_multiple() {
-    let config = r#"
+    let config = r"
         keep_only:
             - foo
             - bar
-        "#;
+        ";
 
     let expected = KeepOnlyConfig(AnyMatchConfig::MultipleContains(vec![
       "foo".into(),
@@ -261,14 +261,14 @@ mod test {
 
   #[test]
   fn test_config_discard_full() {
-    let config = r#"
+    let config = r"
       discard:
         matches:
           - '\d+'
           - '\bfoo\b'
         field: title
         case_sensitive: true
-    "#;
+    ";
 
     let expected = DiscardConfig(AnyMatchConfig::MatchConfig(MatchConfig {
       matches: SingleOrVec::Vec(vec![r"\d+".into(), r"\bfoo\b".into()]),
@@ -282,13 +282,13 @@ mod test {
 
   #[tokio::test]
   async fn test_keep_only_filter() {
-    let config = r#"
+    let config = r"
       !endpoint
       path: /feed.xml
       source: fixture:///youtube.xml
       filters:
         - keep_only: ElecTric
-    "#;
+    ";
 
     let mut feed = fetch_endpoint(config, "").await;
     let posts = feed.take_posts();
@@ -298,7 +298,7 @@ mod test {
 
   #[tokio::test]
   async fn test_keep_only_case_sensitive_filter() {
-    let config = r#"
+    let config = r"
       !endpoint
       path: /feed.xml
       source: fixture:///youtube.xml
@@ -306,7 +306,7 @@ mod test {
         - keep_only:
             case_sensitive: true
             contains: ElEcT
-    "#;
+    ";
 
     let mut feed = fetch_endpoint(config, "").await;
     let posts = feed.take_posts();

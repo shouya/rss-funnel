@@ -395,7 +395,7 @@ placeholders:
 mod serialization {
   // this custom deserialize implementation allows us to parse the
   // special value "dynamic" as a SourceConfig::Dynamic.
-  use super::*;
+  use super::{FromScratch, Result, SourceConfig, Templated};
   use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
   impl<'de> Deserialize<'de> for SourceConfig {
@@ -448,7 +448,7 @@ mod serialization {
 
     #[test]
     fn test_deserialize_null() {
-      let json = r#"null"#;
+      let json = r"null";
       let config: SourceConfig = serde_json::from_str(json).unwrap();
       assert_eq!(config, SourceConfig::Dynamic);
     }

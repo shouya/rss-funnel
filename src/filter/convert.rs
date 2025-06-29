@@ -47,13 +47,13 @@ mod tests {
 
   #[tokio::test]
   async fn test_convert_to() -> Result<()> {
-    let config = r#"
+    let config = r"
       !endpoint
       path: /feed.xml
       source: fixture:///minimal_rss_20.xml
       filters:
         - convert_to: atom
-    "#;
+    ";
 
     let feed = fetch_endpoint(config, "").await;
     assert_eq!(feed.format(), FeedFormat::Atom);
@@ -63,7 +63,7 @@ mod tests {
     assert_eq!(feed.title.as_str(), "Test");
     assert_eq!(feed.links[0].href, "http://example.com");
     assert_eq!(
-      feed.subtitle.as_ref().map(|e| e.as_str()),
+      feed.subtitle.as_ref().map(atom_syndication::Text::as_str),
       Some("Test description")
     );
     assert_eq!(feed.entries.len(), 1);
@@ -74,7 +74,7 @@ mod tests {
       vec!["http://example.com/item1"]
     );
     assert_eq!(
-      post.summary.as_ref().map(|s| s.as_str()),
+      post.summary.as_ref().map(atom_syndication::Text::as_str),
       Some("Item 1 description")
     );
     Ok(())
@@ -82,20 +82,20 @@ mod tests {
 
   #[tokio::test]
   async fn test_rss_to_atom_to_rss() {
-    let config_1 = r#"
+    let config_1 = r"
       !endpoint
       path: /feed.xml
       source: fixture:///minimal_rss_20.xml
       filters:
         - convert_to: atom
         - convert_to: rss
-    "#;
-    let config_2 = r#"
+    ";
+    let config_2 = r"
       !endpoint
       path: /feed.xml
       source: fixture:///minimal_rss_20.xml
       filters: []
-    "#;
+    ";
 
     let feed_1 = fetch_endpoint(config_1, "").await;
     let feed_2 = fetch_endpoint(config_2, "").await;
@@ -104,20 +104,20 @@ mod tests {
 
   #[tokio::test]
   async fn test_atom_to_rss_to_atom() {
-    let config_1 = r#"
+    let config_1 = r"
       !endpoint
       path: /feed.xml
       source: fixture:///sample_atom.xml
       filters:
         - convert_to: rss
         - convert_to: atom
-    "#;
-    let config_2 = r#"
+    ";
+    let config_2 = r"
       !endpoint
       path: /feed.xml
       source: fixture:///sample_atom.xml
       filters: []
-    "#;
+    ";
 
     let _feed_1 = fetch_endpoint(config_1, "").await;
     let _feed_2 = fetch_endpoint(config_2, "").await;

@@ -167,8 +167,8 @@ impl ServerConfig {
       app = self.router(feed_service);
     } else {
       info!("Path prefix set to {prefix}");
-      app = app.nest(&prefix, self.router(feed_service))
-    };
+      app = app.nest(&prefix, self.router(feed_service));
+    }
 
     info!("starting server");
     let server = axum::serve(listener, app);

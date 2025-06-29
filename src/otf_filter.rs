@@ -92,14 +92,14 @@ fn parse_single(param: &str) -> Result<FilterConfig, ConfigError> {
   }
 
   let Some((name, value)) = param.split_once('=') else {
-    let message = format!("invalid on-the-fly param: {}", param);
+    let message = format!("invalid on-the-fly param: {param}");
     warn!("{}", message);
     return Err(ConfigError::Message(message));
   };
 
   let Ok(value) = urlencoding::decode(value) else {
     let message =
-      format!("invalid url decoding from on-the-fly param: {}", param);
+      format!("invalid url decoding from on-the-fly param: {param}");
     warn!("{}", message);
     return Err(ConfigError::Message(message));
   };

@@ -133,7 +133,7 @@ impl FilterContext {
   pub fn enable_logging(&mut self) {
     if self.logs.is_none() {
       self.logs = Some(Vec::new());
-    };
+    }
   }
 
   pub fn logs(&self) -> Option<&[String]> {

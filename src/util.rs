@@ -36,12 +36,12 @@ mod path_prefix {
       })
       .unwrap_or_else(|| DEFAULT_PATH_PREFIX.to_owned())
       .into_boxed_str();
-    assert!(prefix.ends_with("/"));
+    assert!(prefix.ends_with('/'));
     prefix
   });
 
   pub fn relative_path(path: &str) -> String {
-    debug_assert!(!path.starts_with("/"));
+    debug_assert!(!path.starts_with('/'));
     format!("{}{path}", *PATH_PREFIX)
   }
 }

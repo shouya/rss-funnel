@@ -86,7 +86,7 @@ pub struct Node<'js> {
 
 impl<'js> Trace<'js> for Node<'js> {
   fn trace<'a>(&self, tracer: Tracer<'a, 'js>) {
-    tracer.mark(&self.dom)
+    tracer.mark(&self.dom);
   }
 }
 
@@ -103,7 +103,10 @@ impl<'js> Node<'js> {
   fn attr(&self, name: String) -> Result<Option<String>, Error> {
     let dom = self.dom.borrow();
     let elem = self.elem(&dom)?;
-    let value = elem.value().attr(&name).map(|s| s.to_string());
+    let value = elem
+      .value()
+      .attr(&name)
+      .map(std::string::ToString::to_string);
     Ok(value)
   }
 

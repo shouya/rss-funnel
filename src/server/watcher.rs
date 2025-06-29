@@ -85,7 +85,7 @@ impl Watcher {
 
     let mut watcher =
       notify::recommended_watcher(event_handler).map_err(|e| {
-        ConfigError::Message(format!("failed to create file watcher: {:?}", e))
+        ConfigError::Message(format!("failed to create file watcher: {e:?}"))
       })?;
 
     // if the file does not exist, simply wait for it to be created
@@ -100,7 +100,7 @@ impl Watcher {
     watcher
       .watch(&self.path, RecursiveMode::NonRecursive)
       .map_err(|e| {
-        ConfigError::Message(format!("failed to watch file: {:?}", e))
+        ConfigError::Message(format!("failed to watch file: {e:?}"))
       })?;
 
     self.watcher.replace(watcher);
@@ -121,7 +121,7 @@ fn debounce<T: Send + 'static>(
         val = rx.recv() => {
           last = val;
         }
-        _ = sleep(duration) => {
+        () = sleep(duration) => {
           if let Some(val) = last.take() {
             debounced_tx.send(val).await.unwrap();
           }

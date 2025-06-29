@@ -184,7 +184,7 @@ impl Client {
       Some("text/html") => Feed::from_html_content(&resp.text()?, source)?,
       Some("application/rss+xml") => Feed::from_rss_content(resp.body())?,
       Some("application/atom+xml") => Feed::from_atom_content(resp.body())?,
-      Some("application/xml") | Some("text/xml") => {
+      Some("application/xml" | "text/xml") => {
         Feed::from_xml_content(resp.body())?
       }
       Some(format) => Err(Error::UnsupportedFeedFormat(format.into()))?,

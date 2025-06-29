@@ -161,7 +161,7 @@ where
       .await
       .unwrap_or_default();
 
-    let query = parts.uri.query().map(|q| q.to_string());
+    let query = parts.uri.query().map(std::string::ToString::to_string);
 
     param.base = Self::get_base(parts);
     param.query = query;
@@ -218,7 +218,7 @@ impl EndpointParam {
 
   fn base_from_host(req: &Parts) -> Option<Url> {
     let host = req.headers.get(HOST)?.to_str().ok()?;
-    let base = format!("http://{}/", host);
+    let base = format!("http://{host}/");
     let base = base.parse().ok()?;
     Some(base)
   }

@@ -84,7 +84,7 @@ where
       .flat_map(|children| {
         children
           .values()
-          .flat_map(|exts| exts.iter().flat_map(|ext| ext.tags()))
+          .flat_map(|exts| exts.iter().flat_map(ExtensionExt::tags))
       })
       .collect()
   }
@@ -95,7 +95,7 @@ where
       .flat_map(|children| {
         children
           .values_mut()
-          .flat_map(|exts| exts.iter_mut().flat_map(|ext| ext.tags_mut()))
+          .flat_map(|exts| exts.iter_mut().flat_map(ExtensionExt::tags_mut))
       })
       .collect()
   }

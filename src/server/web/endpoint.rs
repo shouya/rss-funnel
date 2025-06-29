@@ -116,7 +116,7 @@ fn source_control_fragment(
         type="text"
         name="source"
         placeholder="Source URL"
-        value=[param.source().map(|url| url.as_str())]
+        value=[param.source().map(url::Url::as_str)]
         hx-get=(endpoint_path)
         hx-trigger="keyup changed delay:500ms"
         hx-push-url="true"
@@ -226,9 +226,9 @@ fn render_config_fragment(
   let config = endpoint.config();
   let filter_enabled = |i| {
     if let Some(f) = param.filter_skip() {
-      f.allows_filter(i) as u8
+      u8::from(f.allows_filter(i))
     } else {
-      true as u8
+      u8::from(true)
     }
   };
 

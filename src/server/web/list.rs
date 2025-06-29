@@ -61,7 +61,7 @@ fn endpoint_list_entry_fragment(endpoint: &EndpointConfig) -> Markup {
     li {
       p {
         @let normalized_path = endpoint.path.trim_start_matches('/');
-        @let endpoint_path = format!("_/endpoint/{}", normalized_path);
+        @let endpoint_path = format!("_/endpoint/{normalized_path}");
         @let endpoint_path = relative_path(&endpoint_path);
         a href=(endpoint_path) {
           (endpoint.path)
@@ -90,7 +90,7 @@ fn url_host(url: impl TryInto<Url>) -> Option<String> {
     return None;
   };
 
-  url.host_str().map(|s| s.to_owned())
+  url.host_str().map(std::borrow::ToOwned::to_owned)
 }
 
 fn url_path(url: impl TryInto<Url>) -> Option<String> {
@@ -106,7 +106,7 @@ fn short_source_repr(source: &SourceConfig) -> Markup {
     SourceConfig::Dynamic => html! {
       span .tag.dynamic { "dynamic" }
     },
-    SourceConfig::Simple(url) if url.starts_with("/") => {
+    SourceConfig::Simple(url) if url.starts_with('/') => {
       let path = url_path(url.as_str());
       let path = path.map(|p| relative_path(&format!("_/{p})")));
       html! {

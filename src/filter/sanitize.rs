@@ -36,10 +36,10 @@ pub struct SanitizeOpConfig {
 impl SanitizeOpConfig {
   fn into_op(self) -> Result<SanitizeOp, ConfigError> {
     // must ensure that only one of the options is Some
-    let num_selected = self.remove.is_some() as u8
-      + self.remove_regex.is_some() as u8
-      + self.replace.is_some() as u8
-      + self.replace_regex.is_some() as u8;
+    let num_selected = u8::from(self.remove.is_some())
+      + u8::from(self.remove_regex.is_some())
+      + u8::from(self.replace.is_some())
+      + u8::from(self.replace_regex.is_some());
     if num_selected != 1 {
       let message = format!(
         "Exactly one of {}, {}, {}, {} must be specified for `sanitize' filter",

@@ -49,7 +49,7 @@ pub struct JsFilter {
   runtime: Runtime,
 }
 
-const MODIFY_POSTS_CODE: &str = r#"
+const MODIFY_POSTS_CODE: &str = r"
   async function modify_posts(feed) {
     const posts = feed.items || feed.entries || [];
     if (modify_post[Symbol.toStringTag] === 'AsyncFunction') {
@@ -74,7 +74,7 @@ const MODIFY_POSTS_CODE: &str = r#"
       return posts.map(modify_post_with_exception_handled);
     }
   }
-"#;
+";
 
 #[async_trait::async_trait]
 impl FeedFilterConfig for JsConfig {

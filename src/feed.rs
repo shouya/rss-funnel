@@ -159,7 +159,7 @@ impl Feed {
 
         feed.write_with_config(&mut buffer, conf)?;
       }
-    };
+    }
 
     let s = String::from_utf8_lossy(&buffer).into_owned();
     Ok(s)
@@ -264,7 +264,7 @@ impl Feed {
       Feed::Atom(feed) => {
         feed.entries.push(post_preview.into_atom_entry());
       }
-    };
+    }
   }
 }
 
@@ -294,7 +294,7 @@ impl TryFrom<Feed> for atom_syndication::Feed {
 
 impl From<&FromScratch> for Feed {
   fn from(config: &FromScratch) -> Self {
-    use FeedFormat::*;
+    use FeedFormat::{Atom, Rss};
     match config.format {
       Rss => {
         let mut channel = rss::Channel {
@@ -558,7 +558,7 @@ impl Post {
         item.guid = Some(rss::Guid {
           value: value.into(),
           ..Default::default()
-        })
+        });
       }
       (Post::Atom(item), PostField::Title) => item.title.value = value.into(),
       (Post::Atom(item), PostField::Link) => match item.links.get_mut(0) {
@@ -729,7 +729,7 @@ fn fix_escaping_in_extension_attr(feed: &mut atom_syndication::Feed) {
   // atom_syndication unescapes the html entities in the extension attributes, but it doesn't
   // escape them back when serializing the feed, so we need to do it ourselves
   for entry in &mut feed.entries {
-    for (_ns, elems) in entry.extensions.iter_mut() {
+    for elems in entry.extensions.values_mut() {
       for (_ns2, exts) in elems.iter_mut() {
         for ext in exts {
           if let Some(url) = ext.attrs.get_mut("url") {

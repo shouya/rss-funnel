@@ -87,14 +87,14 @@ impl FeedFilterConfig for MergeConfig {
     let sources = source
       .into_vec()
       .into_iter()
-      .map(|s| s.try_into())
+      .map(std::convert::TryInto::try_into)
       .collect::<Result<_, _>>()?;
     let parallelism = parallelism.unwrap_or(20);
 
     Ok(Merge {
       client,
-      sources,
       parallelism,
+      sources,
       filters,
     })
   }
@@ -158,12 +158,10 @@ fn post_from_error(
 ) -> NormalizedPost {
   let source_url = source.full_url(ctx).map(|u| u.to_string());
   let title = match source_url.as_ref() {
-    Some(url) => format!("Error fetching source: {}", url),
+    Some(url) => format!("Error fetching source: {url}"),
     None => "Error: Failed fetching source".to_owned(),
   };
-  let source_desc = source_url
-    .clone()
-    .unwrap_or_else(|| format!("{:?}", source));
+  let source_desc = source_url.clone().unwrap_or_else(|| format!("{source:?}"));
 
   let body = format!(
     "<p><b>Source:</b><br>{source_desc}</p><p><b>Error:</b><br>{error}</p>"
@@ -245,7 +243,7 @@ mod test {
 
   #[tokio::test]
   async fn test_parallelism() {
-    let config = r#"
+    let config = r"
       !endpoint
       path: /feed.xml
       source: fixture:///youtube.xml
@@ -253,7 +251,7 @@ mod test {
       - merge:
         - fixture:///youtube.xml
         - fixture:///youtube.xml
-    "#;
+    ";
 
     let mut feed = fetch_endpoint(config, "").await;
     let posts = feed.take_posts();

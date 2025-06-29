@@ -21,7 +21,7 @@ use super::{FeedFilter, FeedFilterConfig, FilterContext};
 /// Remove elements from the post's body parsed as HTML. Specify the list of CSS
 /// selectors for elements to remove.<br><br>
 ///
-///   - remove_element:<br>
+///   - `remove_element`:<br>
 ///       - img[src$=".gif"]<br>
 ///       - span.ads
 #[doc(alias = "remove_element")]
@@ -40,7 +40,7 @@ pub struct RemoveElement {
 // can't define FromStr for Selector due to Rust's orphan rule
 fn parse_selector(selector: &str) -> Result<Selector, ConfigError> {
   Selector::parse(selector)
-    .map_err(|e| ConfigError::BadSelector(format!("{}: {}", selector, e)))
+    .map_err(|e| ConfigError::BadSelector(format!("{selector}: {e}")))
 }
 
 #[async_trait::async_trait]
@@ -95,7 +95,7 @@ impl FeedFilter for RemoveElement {
     for post in &mut posts {
       post.modify_bodies(|body| {
         self.filter_body(body);
-      })
+      });
     }
 
     feed.set_posts(posts);
@@ -211,21 +211,21 @@ pub struct SplitConfig {
   title_selector: String,
   /// The CSS selector for the &lt;a&gt element. The "href" attribute
   /// of the selected elements will be used. Defaults to the same as
-  /// title_selector. If specified, it must select the same number of
-  /// elements as title_selector.
+  /// `title_selector`. If specified, it must select the same number of
+  /// elements as `title_selector`.
   link_selector: Option<String>,
   /// The CSS selector for the body elements. The innerHTML of
   /// the selected elements will be used. If specified, it must select
-  /// the same number of elements as title_selector.
+  /// the same number of elements as `title_selector`.
   #[deprecated(note = "Use `body_selector` instead")]
   description_selector: Option<String>,
   /// The CSS selector for the body elements. The innerHTML of
   /// the selected elements will be used. If specified, it must select
-  /// the same number of elements as title_selector.
+  /// the same number of elements as `title_selector`.
   body_selector: Option<String>,
   /// The CSS selector for the author elements. The textContent of the
   /// selected elements will be used. If specified, it must select the
-  /// same number of elements as title_selector.
+  /// same number of elements as `title_selector`.
   author_selector: Option<String>,
   /// The CSS selector for the elements with the publication date.
   /// rss-funnel uses heuristics to find the publication date from the
@@ -305,7 +305,7 @@ impl Split {
       .map(|e| {
         e.value()
           .attr("href")
-          .map(|s| s.to_string())
+          .map(std::string::ToString::to_string)
           .map(|link| Self::expand_link(base_link, &link))
           .ok_or_else(|| {
             Error::Message("Selector error: link has no href".into())
@@ -357,7 +357,7 @@ impl Split {
 
   fn prepare_template(&self, post: &Post) -> Post {
     let mut template_post = post.clone();
-    template_post.modify_bodies(|body| body.clear());
+    template_post.modify_bodies(std::string::String::clear);
 
     if self.author_selector.is_some() {
       if let Some(author) = template_post.author_mut() {

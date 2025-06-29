@@ -64,12 +64,13 @@ impl Response {
     let content_type = url
       .query_pairs()
       .find(|(k, _)| k == "content_type")
-      .map(|(_, v)| v.to_string())
-      .unwrap_or_else(|| "text/xml; charset=utf-8".into());
+      .map_or_else(|| "text/xml; charset=utf-8".into(), |(_, v)| v.to_string());
 
-    if !path.exists() {
-      panic!("fixture file does not exist: {}", path.display());
-    }
+    assert!(
+      path.exists(),
+      "fixture file does not exist: {}",
+      path.display()
+    );
 
     let mut headers = HeaderMap::new();
     headers.insert(

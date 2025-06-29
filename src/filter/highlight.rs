@@ -84,6 +84,7 @@ impl TextSegment {
         let new_node = Node::Text(Text { text: text.into() });
         node.insert_after(new_node).id()
       }
+      #[allow(clippy::uninlined_format_args)]
       Self::Highlight(text) => {
         // HACK: scraper doesn't provide a way to constructor an Element. So
         // we have to parse it from a string.
@@ -119,9 +120,9 @@ impl Highlight {
       .collect::<Result<Vec<Regex>, _>>()?;
 
     Ok(Self {
-      patterns,
-      regexset,
       bg_color,
+      regexset,
+      patterns,
     })
   }
 
@@ -158,7 +159,7 @@ impl Highlight {
     match node.value() {
       Node::Text(text) => text.text.clear(),
       _ => return,
-    };
+    }
 
     let mut next_node_id = node.id();
     for segment in segments {
@@ -271,13 +272,13 @@ mod test {
   #[test]
   fn test_parse_config() {
     assert_filter_parse(
-      r#"
+      r"
 highlight:
   keywords:
     - foo
     - bar
   bg_color: '#ffff00'
-    "#,
+    ",
       HighlightConfig {
         keywords: KeywordsOrPatterns::Keywords {
           keywords: vec!["foo".into(), "bar".into()],
@@ -288,12 +289,12 @@ highlight:
     );
 
     assert_filter_parse(
-      r#"
+      r"
 highlight:
   patterns:
     - '\bfoo\b'
   bg_color: '#ffff00'
-"#,
+",
       HighlightConfig {
         keywords: KeywordsOrPatterns::Patterns {
           patterns: vec![r"\bfoo\b".into()],

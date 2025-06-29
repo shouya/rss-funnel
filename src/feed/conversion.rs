@@ -216,7 +216,9 @@ impl From<W<rss::Item>> for atom_syndication::Entry {
 
     let mut entry = Entry::default();
 
-    entry.title = item.title.map_or_else(Text::default, |t| t.into());
+    entry.title = item
+      .title
+      .map_or_else(Text::default, std::convert::Into::into);
     entry.id = item
       .guid
       .map(|g| g.value)
@@ -248,7 +250,7 @@ impl From<W<rss::Item>> for atom_syndication::Entry {
       entry.links.push(atom_link);
     }
 
-    entry.summary = item.description.map(|d| d.into());
+    entry.summary = item.description.map(std::convert::Into::into);
 
     if let Some(content) = item.content {
       let mut atom_content = Content::default();

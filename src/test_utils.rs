@@ -47,7 +47,7 @@ pub async fn fetch_endpoint(config: &str, query: &str) -> Feed {
     .expect("failed to create service")
     .with_client(dummy_client());
 
-  let http_req = Request::get(format!("/endpoint?{}", query))
+  let http_req = Request::get(format!("/endpoint?{query}"))
     .body(axum::body::Body::empty())
     .expect("failed to build request");
 

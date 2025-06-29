@@ -106,8 +106,8 @@ impl FeedService {
     let mut buffer = [0u8; 32];
     OsRng.fill_bytes(&mut buffer);
     let mut session_id = String::with_capacity(32 * 2);
-    for byte in buffer.iter() {
-      session_id.push_str(&format!("{:02x}", byte));
+    for byte in &buffer {
+      session_id.push_str(&format!("{byte:02x}"));
     }
 
     let mut inner = self.inner.write().await;
@@ -152,7 +152,7 @@ impl FeedService {
           inner.config_error = Some(e);
           return false;
         }
-      };
+      }
     }
 
     inner.root_config = Arc::new(feed_defn);
@@ -191,11 +191,11 @@ async fn load_endpoint(
 ) -> Result<EndpointService, ConfigError> {
   match inner.endpoints.remove(path) {
     Some(endpoint) => {
-      if !endpoint.config_changed(&config.config) {
-        Ok(endpoint)
-      } else {
+      if endpoint.config_changed(&config.config) {
         info!("endpoint updated, reloading: {}", path);
         endpoint.update(config.config).await
+      } else {
+        Ok(endpoint)
       }
     }
     None => config.build().await,

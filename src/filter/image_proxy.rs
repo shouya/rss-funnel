@@ -157,7 +157,7 @@ impl FeedFilter for ImageProxy {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
-    for post in posts.iter_mut() {
+    for post in &mut posts {
       for body in post.bodies_mut() {
         if let Some(new_body) = rewrite_html(ctx, &self.config, body) {
           *body = new_body;
@@ -221,7 +221,7 @@ fn rewrite_img_elem(
 ) -> Result<()> {
   lazy_static::lazy_static! {
     static ref URL_REGEX: regex::Regex =
-      regex::Regex::new(r#"https?://[^\s]+\b"#).unwrap();
+      regex::Regex::new(r"https?://[^\s]+\b").unwrap();
   }
 
   let new_src = el
@@ -242,12 +242,12 @@ fn rewrite_img_elem(
     .get_attribute("srcset")
     .map(|srcset| {
       let sources: Vec<&str> =
-        srcset.trim().split(',').map(|s| s.trim()).collect();
+        srcset.trim().split(',').map(str::trim).collect();
       let mut new_sources: Vec<String> = Vec::new();
       for source in sources {
         let source = source.trim();
         let split = source.split_once(' ');
-        let url = split.map(|(a, _b)| a).unwrap_or(source);
+        let url = split.map_or(source, |(a, _b)| a);
         let url = Url::parse(url).ok().filter(matches_domain);
         let remaining = split.map(|(_a, b)| b);
 

@@ -76,7 +76,7 @@ impl Response {
   fn content_type(&self) -> Option<String> {
     if let Some(content_type) = self.headers.get("content-type") {
       return Some(content_type.to_string());
-    };
+    }
 
     if let Some(content_type) = self.headers.get("Content-Type") {
       return Some(content_type.to_string());

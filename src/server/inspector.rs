@@ -83,7 +83,7 @@ async fn config_handler(
   _auth: Auth,
 ) -> impl IntoResponse {
   let json = json!({
-    "config_error": feed_service.with_error(|e| e.to_string()).await,
+    "config_error": feed_service.with_error(std::string::ToString::to_string).await,
     "root_config": feed_service.root_config().await,
   });
   Json(json)
@@ -105,7 +105,7 @@ async fn filter_schema_handler(
   let mut schemas = HashMap::new();
   for filter in params.filters.split(',') {
     let Some(schema) = FilterConfig::schema_for(filter) else {
-      return Err(BadRequest(format!("unknown filter: {}", filter)));
+      return Err(BadRequest(format!("unknown filter: {filter}")));
     };
     schemas.insert(filter.to_string(), schema);
   }

@@ -55,7 +55,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Auth {
     let feed_service: Extension<FeedService> =
       Extension::from_request_parts(parts, state)
         .await
-        .map_err(|e| e.into_response())?;
+        .map_err(axum::response::IntoResponse::into_response)?;
 
     if !feed_service.requires_auth().await {
       return Ok(Auth);
@@ -63,7 +63,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Auth {
 
     let cookie_jar = CookieJar::from_request_parts(parts, state)
       .await
-      .map_err(|e| e.into_response())?;
+      .map_err(axum::response::IntoResponse::into_response)?;
 
     let session_id = cookie_jar
       .get("session_id")
@@ -101,16 +101,15 @@ pub async fn handle_login(
   Form(params): Form<HandleLoginParams>,
 ) -> Response {
   let cookie_jar = cookie_jar.remove("session_id");
-  match feed_service.login(&params.username, &params.password).await {
-    Some(session_id) => {
-      let cookie_jar = cookie_jar.add(("session_id", session_id));
-      let home_path = relative_path("_/");
-      (cookie_jar, Redirect::to(&home_path)).into_response()
-    }
-    _ => {
-      let login_path = relative_path("_/login?bad_auth=1");
-      Redirect::to(&login_path).into_response()
-    }
+  if let Some(session_id) =
+    feed_service.login(&params.username, &params.password).await
+  {
+    let cookie_jar = cookie_jar.add(("session_id", session_id));
+    let home_path = relative_path("_/");
+    (cookie_jar, Redirect::to(&home_path)).into_response()
+  } else {
+    let login_path = relative_path("_/login?bad_auth=1");
+    Redirect::to(&login_path).into_response()
   }
 }
 

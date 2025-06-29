@@ -48,7 +48,7 @@ impl FeedFilter for Magnet {
   ) -> Result<Feed, Error> {
     let mut posts = feed.take_posts();
 
-    for post in posts.iter_mut() {
+    for post in &mut posts {
       let bodies = post.bodies();
       let link: Option<String> = bodies
         .iter()
@@ -85,13 +85,13 @@ fn existing_magnet_link(post: &Post) -> Option<&str> {
       .enclosure()
       .into_iter()
       .filter(|e| e.mime_type() == "application/x-bittorrent")
-      .map(|e| e.url())
+      .map(rss::Enclosure::url)
       .next(),
     Post::Atom(p) => p
       .links()
       .iter()
       .filter(|l| l.href().starts_with("magnet:"))
-      .map(|l| l.href())
+      .map(atom_syndication::Link::href)
       .next(),
   }
 }
@@ -106,7 +106,7 @@ fn set_magnet_link(post: &mut Post, link: String, override_: bool) {
       let enclosure = Enclosure {
         url: link,
         mime_type: "application/x-bittorrent".to_string(),
-        length: "".to_string(),
+        length: String::new(),
       };
       p.set_enclosure(enclosure);
     }
@@ -136,12 +136,12 @@ fn find_magnet_links(text: &str, config: &MagnetConfig) -> Vec<String> {
       if config.info_hash {
         let info_hash = m.name("info_hash").unwrap().as_str();
         if info_hash.len() == 40 {
-          format!("magnet:?xt=urn:btih:{}", info_hash)
+          format!("magnet:?xt=urn:btih:{info_hash}")
         } else if info_hash.len() == 68 {
-          format!("magnet:?xt=urn:btmh:{}", info_hash)
+          format!("magnet:?xt=urn:btmh:{info_hash}")
         } else {
-          warn!("Bad length for info hash: {}", info_hash);
-          format!("magnet:?xt=urn:btih:{}", info_hash)
+          warn!("Bad length for info hash: {info_hash}");
+          format!("magnet:?xt=urn:btih:{info_hash}")
         }
       } else {
         m.name("full").unwrap().as_str().to_string()

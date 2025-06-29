@@ -52,8 +52,10 @@ pub fn html_body(html: &str) -> String {
   Html::parse_document(html)
     .select(&Selector::parse("body").unwrap())
     .next()
-    .map(|body| body.inner_html().trim().to_string())
-    .unwrap_or_else(|| html.to_string())
+    .map_or_else(
+      || html.to_string(),
+      |body| body.inner_html().trim().to_string(),
+    )
 }
 
 /// Get the root node ID of a fragment.
@@ -76,7 +78,7 @@ pub fn fragment_root_node_id(mut node: NodeRef<'_, scraper::Node>) -> NodeId {
 mod test {
   #[test]
   fn test_html_body() {
-    let html = r#"
+    let html = r"
       <html>
         <head>
           <title>Test</title>
@@ -85,9 +87,9 @@ mod test {
           <p>Test</p>
         </body>
       </html>
-    "#;
+    ";
 
-    let expected = r#"<p>Test</p>"#;
+    let expected = r"<p>Test</p>";
 
     assert_eq!(super::html_body(html), expected);
   }

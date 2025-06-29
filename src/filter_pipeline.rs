@@ -76,18 +76,15 @@ impl FilterPipeline {
     for filter_config in config.filters {
       configs.push(filter_config.clone());
 
-      match inner.take(&filter_config) {
-        Some((filter, cache)) => {
-          filters.push(filter);
-          // preserve the cache if the filter is unchanged
-          caches.push(cache);
-        }
-        None => {
-          info!("building filter: {}", filter_config.name());
-          let filter = filter_config.build().await?;
-          filters.push(filter);
-          caches.push(FilterCache::new());
-        }
+      if let Some((filter, cache)) = inner.take(&filter_config) {
+        filters.push(filter);
+        // preserve the cache if the filter is unchanged
+        caches.push(cache);
+      } else {
+        info!("building filter: {}", filter_config.name());
+        let filter = filter_config.build().await?;
+        filters.push(filter);
+        caches.push(FilterCache::new());
       }
     }
 

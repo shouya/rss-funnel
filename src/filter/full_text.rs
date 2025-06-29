@@ -63,12 +63,12 @@ impl FeedFilterConfig for FullTextConfig {
     };
 
     Ok(FullTextFilter {
-      simplify,
       client,
       parallelism,
       append_mode,
-      keep_guid,
       keep_element,
+      simplify,
+      keep_guid,
     })
   }
 }
@@ -81,8 +81,7 @@ impl FullTextFilter {
 
     if content_type.essence_str() != "text/html" {
       return Err(Error::Message(format!(
-        "unexpected content type: {}",
-        content_type
+        "unexpected content type: {content_type}",
       )));
     }
 
@@ -112,11 +111,12 @@ impl FullTextFilter {
         body.push_str(&text);
       } else {
         body.replace_range(.., &text);
-      };
+      }
     });
 
     if !self.keep_guid {
-      if let Some(mut guid) = post.guid().map(|v| v.to_string()) {
+      if let Some(mut guid) = post.guid().map(std::string::ToString::to_string)
+      {
         guid.push_str("-full");
         post.set_guid(guid);
       }
@@ -130,9 +130,9 @@ impl FullTextFilter {
     // append the error message to the body instead of failing
     // completely.
     match self.try_fetch_full_post(&mut post).await {
-      Ok(_) => Ok(post),
+      Ok(()) => Ok(post),
       Err(e) => {
-        let message = format!("\n<br>\n<br>\nerror fetching full text: {}", e);
+        let message = format!("\n<br>\n<br>\nerror fetching full text: {e}");
         post.modify_bodies(|body| {
           body.push_str(&message);
         });
@@ -187,7 +187,7 @@ fn strip_post_content(
   }
 
   if let Some(k) = keep_element.as_ref() {
-    k.filter_body(&mut text)
+    k.filter_body(&mut text);
   }
 
   text

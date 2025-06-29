@@ -47,7 +47,7 @@ where
 
     let value = serde_json::from_str(&json).map_err(|e| {
       let type_name = std::any::type_name::<T>();
-      let message = format!("{}: {}", e, json);
+      let message = format!("{e}: {json}");
       rquickjs::Error::new_from_js_message("json", type_name, message)
     })?;
     Ok(Self(value))
@@ -93,7 +93,7 @@ impl Runtime {
         let val = value.into_js(&ctx).unwrap();
         ctx.globals().set(key, val).unwrap();
       })
-      .await
+      .await;
   }
 
   pub async fn eval<V>(&self, code: &str) -> Result<V, JsError>
@@ -105,7 +105,7 @@ impl Runtime {
     self
       .context
       .with(|ctx: Ctx<'_>| -> Result<V, _> {
-        let res = ctx.eval(code.clone()).map_err(|e| e.into());
+        let res = ctx.eval(code.clone()).map_err(std::convert::Into::into);
         handle_exception_with_source(&ctx, &code, res)
       })
       .await
@@ -135,7 +135,7 @@ impl Runtime {
     let retval = async_with!(self.context => |ctx| {
       let value: Result<Function<'_>, _> = ctx.globals().get(name);
       let Ok(fun) = value else {
-        return Err(JsError::Message(format!("function {} not found", name)));
+        return Err(JsError::Message(format!("function {name} not found")));
       };
 
       let is_async: bool = ctx.eval(format!("{name}[Symbol.toStringTag] === 'AsyncFunction'"))?;
@@ -152,7 +152,7 @@ impl Runtime {
       };
 
       // catch any exceptions raised by the function
-      handle_exception(&ctx, val.map_err(|e| e.into()))
+      handle_exception(&ctx, val.map_err(std::convert::Into::into))
     }) .await;
 
     // sometimes exceptions can raise after promise is resolved, those
@@ -241,7 +241,7 @@ impl RemoteLoader {
       panic!("cache_file_name assumes cache_dir is set");
     };
 
-    let file_name = format!("{}.{}", digest, ext);
+    let file_name = format!("{digest}.{ext}");
     cache_dir.join(file_name)
   }
 
@@ -249,7 +249,7 @@ impl RemoteLoader {
     let err = rquickjs::Error::new_loading(name);
     if !self.name_valid(name) {
       return Err(err);
-    };
+    }
 
     if let Some(script) = self.try_load_cache(name) {
       return Ok(script);
@@ -282,8 +282,8 @@ impl RemoteLoader {
     let source = client
       .get(name)
       .send()
-      .and_then(|r| r.error_for_status())
-      .and_then(|r| r.text())
+      .and_then(reqwest::blocking::Response::error_for_status)
+      .and_then(reqwest::blocking::Response::text)
       .map_err(|_| rquickjs::Error::new_loading(name))?;
 
     Ok(source)
@@ -295,7 +295,7 @@ impl Loader for RemoteLoader {
     let err = rquickjs::Error::new_loading(name);
     if !self.name_valid(name) {
       return Err(err);
-    };
+    }
 
     let source = self.try_load(name)?;
     Ok(ModuleData::source(name, source))
@@ -313,7 +313,7 @@ fn uri_to_hash(uri: PathBuf) -> String {
     .to_string_lossy()
     .chars()
     .skip(5)
-    .filter(|c| c.is_ascii_alphanumeric())
+    .filter(char::is_ascii_alphanumeric)
     .take(30)
     .collect::<String>();
 
@@ -361,7 +361,7 @@ impl std::fmt::Display for Exception {
       (self.source.as_deref(), self.line, self.column)
     {
       for (i, text) in source.lines().enumerate() {
-        writeln!(f, "{}", text)?;
+        writeln!(f, "{text}")?;
         if line == (i + 1) as i32 {
           for _ in 0..column {
             f.write_str("-")?;

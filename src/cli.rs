@@ -66,7 +66,7 @@ struct TestConfig {
 impl TestConfig {
   fn to_endpoint_param(&self) -> server::EndpointParam {
     server::EndpointParam::new(
-      self.source.as_ref().cloned(),
+      self.source.clone(),
       self.filter_skip,
       self.limit_posts,
       self.base.clone(),
