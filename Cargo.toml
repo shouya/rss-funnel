@@ -20,6 +20,9 @@ inspector-ui = ["dep:rust-embed"]
 # https://github.com/DelSkayn/rquickjs/tree/master/sys/src/bindings
 bindgen = ["rquickjs/bindgen"]
 
+# run test with this feature enabled to skip any network requests
+_test-offline = []
+
 [dependencies]
 # Async runtime, utility and helper crates
 async-trait = "0.1.77"

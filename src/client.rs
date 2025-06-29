@@ -264,8 +264,10 @@ mod tests {
     assert_eq!(actual.body(), expected.body());
   }
 
+  #[cfg(not(feature = "_test-offline"))]
   const YT_SCISHOW_FEED_URL: &str = "https://www.youtube.com/feeds/videos.xml?channel_id=UCZYTClx2T1of7BRZ86-8fow";
 
+  #[cfg(not(feature = "_test-offline"))]
   #[tokio::test]
   async fn test_client() {
     let client =
