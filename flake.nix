@@ -4,16 +4,22 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    fenix.url = "github:nix-community/fenix";
     crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, ... }:
+  outputs = { self, nixpkgs, fenix, crane, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (pkgs) lib stdenv;
 
-        craneLib = crane.mkLib pkgs;
+        fenixPkgs = fenix.packages.${system};
+        toolchain = fenixPkgs.fromToolchainFile {
+          file = ./rust-toolchain.toml;
+          sha256 = "sha256-2eWc3xVTKqg5wKSHGwt1XoM/kUBC6y3MWfKg74Zn+fY=";
+        };
+        craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
         src = lib.fileset.toSource {
           root = ./.;
           fileset = lib.fileset.unions [
@@ -38,6 +44,7 @@
           nativeBuildInputs = [ pkgs.nodejs pnpmPkg.configHook ];
           pnpmDeps = pnpmPkg.fetchDeps {
             inherit (final) pname version src;
+            fetcherVersion = 2;
             hash = "sha256-puyd8AbeMBsTw/Ua5yQMATI0bwum4hnK5advXI2Y10k=";
           };
 
@@ -77,8 +84,8 @@
 
         devShells.default = craneLib.devShell {
           checks = self.checks.${system};
-          packages = with pkgs; [
-            rust-analyzer
+          packages = [
+            fenixPkgs.rust-analyzer
             pnpmPkg
           ];
         };
