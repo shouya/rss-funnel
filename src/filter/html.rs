@@ -359,11 +359,10 @@ impl Split {
     let mut template_post = post.clone();
     template_post.modify_bodies(std::string::String::clear);
 
-    if self.author_selector.is_some() {
-      if let Some(author) = template_post.author_mut() {
+    if self.author_selector.is_some()
+      && let Some(author) = template_post.author_mut() {
         author.clear();
       }
-    }
     template_post
   }
 

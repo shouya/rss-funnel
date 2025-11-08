@@ -15,10 +15,10 @@ pub struct TagRefMut<'a> {
 }
 
 pub trait ExtensionExt {
-  fn tags(&self) -> Vec<TagRef>;
-  fn tags_mut(&mut self) -> Vec<TagRefMut>;
+  fn tags(&self) -> Vec<TagRef<'_>>;
+  fn tags_mut(&mut self) -> Vec<TagRefMut<'_>>;
 
-  fn tags_mut_with_names(&mut self, names: &[&str]) -> Vec<TagRefMut> {
+  fn tags_mut_with_names(&mut self, names: &[&str]) -> Vec<TagRefMut<'_>> {
     self
       .tags_mut()
       .into_iter()
@@ -26,7 +26,7 @@ pub trait ExtensionExt {
       .collect()
   }
 
-  fn tags_with_names(&self, names: &[&str]) -> Vec<TagRef> {
+  fn tags_with_names(&self, names: &[&str]) -> Vec<TagRef<'_>> {
     self
       .tags()
       .into_iter()
@@ -38,7 +38,7 @@ pub trait ExtensionExt {
 macro_rules! impl_extension_ext {
   ($ty:ty) => {
     impl ExtensionExt for $ty {
-      fn tags(&self) -> Vec<TagRef> {
+      fn tags(&self) -> Vec<TagRef<'_>> {
         let tag = TagRef {
           name: &self.name,
           attrs: &self.attrs,
@@ -52,7 +52,7 @@ macro_rules! impl_extension_ext {
         tags
       }
 
-      fn tags_mut(&mut self) -> Vec<TagRefMut> {
+      fn tags_mut(&mut self) -> Vec<TagRefMut<'_>> {
         let tag = TagRefMut {
           name: &mut self.name,
           attrs: &mut self.attrs,
@@ -78,7 +78,7 @@ impl<T> ExtensionExt for BTreeMap<String, BTreeMap<String, Vec<T>>>
 where
   T: ExtensionExt,
 {
-  fn tags(&self) -> Vec<TagRef> {
+  fn tags(&self) -> Vec<TagRef<'_>> {
     self
       .values()
       .flat_map(|children| {
@@ -89,7 +89,7 @@ where
       .collect()
   }
 
-  fn tags_mut(&mut self) -> Vec<TagRefMut> {
+  fn tags_mut(&mut self) -> Vec<TagRefMut<'_>> {
     self
       .values_mut()
       .flat_map(|children| {

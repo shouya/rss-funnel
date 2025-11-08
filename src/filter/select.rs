@@ -113,11 +113,13 @@ impl MatchConfig {
   JsonSchema, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash,
 )]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 enum Field {
   Title,
   Body,
   #[deprecated(note = "use `body` instead")]
   Content,
+  #[default]
   Any,
 }
 
@@ -132,11 +134,6 @@ impl Field {
   }
 }
 
-impl Default for Field {
-  fn default() -> Self {
-    Self::Any
-  }
-}
 
 #[derive(Clone, Copy, Debug)]
 enum Action {

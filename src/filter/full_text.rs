@@ -114,13 +114,12 @@ impl FullTextFilter {
       }
     });
 
-    if !self.keep_guid {
-      if let Some(mut guid) = post.guid().map(std::string::ToString::to_string)
+    if !self.keep_guid
+      && let Some(mut guid) = post.guid().map(std::string::ToString::to_string)
       {
         guid.push_str("-full");
         post.set_guid(guid);
       }
-    }
 
     Ok(())
   }
