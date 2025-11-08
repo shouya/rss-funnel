@@ -1,6 +1,6 @@
 use base64::prelude::{BASE64_STANDARD, Engine as _};
 use rquickjs::{
-  Class, Ctx,
+  Class, Ctx, JsLifetime,
   class::Trace,
   function::{Async, Func},
 };
@@ -25,7 +25,7 @@ pub(super) fn register_builtin(ctx: &Ctx) -> Result<(), rquickjs::Error> {
   Ok(())
 }
 
-#[derive(Trace)]
+#[derive(Trace, JsLifetime)]
 #[rquickjs::class]
 pub(super) struct Console {
   aggregated_logs: Vec<String>,
@@ -80,7 +80,7 @@ fn string_repr(value: rquickjs::Value<'_>) -> Result<String, rquickjs::Error> {
   Ok("unknown value".to_owned())
 }
 
-#[derive(Trace)]
+#[derive(Trace, JsLifetime)]
 #[rquickjs::class]
 struct Util {}
 

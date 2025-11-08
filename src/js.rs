@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use rquickjs::loader::{
   BuiltinLoader, BuiltinResolver, FileResolver, Loader, Resolver, ScriptLoader,
 };
-use rquickjs::module::ModuleData;
+use rquickjs::module::Module;
 use rquickjs::prelude::IntoArgs;
 use rquickjs::promise::Promise;
 use rquickjs::{
@@ -143,8 +143,8 @@ impl Runtime {
       // treat the function's return value differently depending on
       // whether it's async
       let val = if is_async {
-        match fun.call::<_, Promise<_>>(args) {
-          Ok(promise) => V::from_js(&ctx, promise.await?),
+        match fun.call::<_, Promise>(args) {
+          Ok(promise) => V::from_js(&ctx, promise.into_future().await?),
           Err(e) => Err(e),
         }
       } else {
@@ -291,14 +291,14 @@ impl RemoteLoader {
 }
 
 impl Loader for RemoteLoader {
-  fn load(&mut self, _ctx: &Ctx, name: &str) -> rquickjs::Result<ModuleData> {
+  fn load<'js>(&mut self, ctx: &Ctx<'js>, name: &str) -> rquickjs::Result<Module<'js>> {
     let err = rquickjs::Error::new_loading(name);
     if !self.name_valid(name) {
       return Err(err);
     }
 
     let source = self.try_load(name)?;
-    Ok(ModuleData::source(name, source))
+    Module::declare(ctx.clone(), name, source)
   }
 }
 
@@ -324,11 +324,6 @@ fn uri_to_hash(uri: PathBuf) -> String {
 #[derive(Clone, Debug)]
 pub struct Exception {
   pub message: Option<String>,
-  pub file: Option<String>,
-  pub line: Option<i32>,
-  pub column: Option<i32>,
-  // captured but unused yet
-  #[allow(dead_code)]
   pub stack: Option<String>,
   pub source: Option<String>,
 }
@@ -337,9 +332,6 @@ impl From<&rquickjs::Exception<'_>> for Exception {
   fn from(value: &rquickjs::Exception<'_>) -> Self {
     Self {
       message: value.message(),
-      file: value.file(),
-      line: value.line(),
-      column: value.column(),
       stack: value.stack(),
       source: None,
     }
@@ -350,26 +342,10 @@ impl std::fmt::Display for Exception {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(
       f,
-      "{}\n{}:{}:{}\n",
+      "{}\n{}\n",
       self.message.as_deref().unwrap_or(""),
-      self.file.as_deref().unwrap_or(""),
-      self.line.unwrap_or(0),
-      self.column.unwrap_or(0),
+      self.stack.as_deref().unwrap_or(""),
     )?;
-
-    if let (Some(source), Some(line), Some(column)) =
-      (self.source.as_deref(), self.line, self.column)
-    {
-      for (i, text) in source.lines().enumerate() {
-        writeln!(f, "{text}")?;
-        if line == (i + 1) as i32 {
-          for _ in 0..column {
-            f.write_str("-")?;
-          }
-          f.write_str("^\n")?;
-        }
-      }
-    }
 
     Ok(())
   }

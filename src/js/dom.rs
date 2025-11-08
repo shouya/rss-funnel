@@ -1,7 +1,7 @@
 use ego_tree::{NodeId, NodeMut, NodeRef};
 use html5ever::{LocalName, QualName, namespace_url, ns};
 use rquickjs::{
-  Class, Ctx, Error, Exception, Object,
+  Class, Ctx, Error, Exception, JsLifetime, Object,
   class::{Trace, Tracer},
   convert::FromIteratorJs,
   prelude::This,
@@ -11,7 +11,7 @@ use scraper::ElementRef;
 use crate::{Result, util::fragment_root_node_id};
 
 #[rquickjs::class]
-#[derive(Clone)]
+#[derive(Clone, JsLifetime)]
 pub struct DOM {
   html: scraper::Html,
   fragment: bool,
@@ -78,6 +78,7 @@ impl DOM {
   }
 }
 
+#[derive(JsLifetime)]
 #[rquickjs::class]
 pub struct Node<'js> {
   dom: Class<'js, DOM>,

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rquickjs::{Ctx, Exception, class::Trace, function::Opt};
+use rquickjs::{Ctx, Exception, JsLifetime, class::Trace, function::Opt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -43,7 +43,7 @@ impl Default for RequestParams {
   }
 }
 
-#[derive(Trace, Serialize, Debug)]
+#[derive(Trace, Serialize, Debug, JsLifetime)]
 #[rquickjs::class]
 pub(super) struct Response {
   #[qjs(get)]
