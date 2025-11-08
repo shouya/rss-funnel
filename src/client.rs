@@ -11,14 +11,6 @@ use crate::{ConfigError, Error, Result, feed::Feed};
 
 use self::cache::{Response, ResponseCache};
 
-#[cfg(test)]
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct HttpFixture {
-  url: String,
-  content_type: String,
-  content: String,
-}
-
 #[serde_with::skip_serializing_none]
 #[derive(
   JsonSchema, Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, Hash,

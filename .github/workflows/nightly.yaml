@@ -21,10 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Install Cross
         run: cargo install cross --git https://github.com/cross-rs/cross

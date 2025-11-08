@@ -33,7 +33,7 @@ inspector-assets:
 	cd inspector && pnpm install && pnpm build
 
 target/x86_64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
-	cargo build --release --target x86_64-unknown-linux-musl
+	cross build --release --target x86_64-unknown-linux-musl
 
 target/aarch64-unknown-linux-musl/release/$(APP_NAME): $(SOURCES) inspector-assets
 # https://github.com/cross-rs/cross/issues/724
