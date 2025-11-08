@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "title": "Example News",
+    "home": "https://example.com",
+    "description": "Latest stories"
+  },
+  "items": [
+    {
+      "id": 101,
+      "title": "Hello World",
+      "url": "https://example.com/hello",
+      "summary": "Short blurb",
+      "html": "<p>Full <b>HTML</b> content</p>",
+      "author": { "name": "Alice" },
+      "tags": ["intro", "general"],
+      "enclosure": { "url": "https://cdn.example.com/a.mp3", "type": "audio/mpeg" },
+      "published_at": "2024-08-06T12:34:56Z"
+    },
+    {
+      "id": 102,
+      "title": "Second Story",
+      "url": "https://example.com/second",
+      "summary": "Another blurb",
+      "html": "<p>More content</p>",
+      "author": { "name": "Bob" },
+      "tags": ["updates"],
+      "published_at": "Tue, 06 Aug 2024 14:00:00 +0000"
+    }
+  ]
+}

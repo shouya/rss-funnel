@@ -1,7 +1,9 @@
+mod date;
 mod html;
 
 use url::Url;
 
+pub use self::date::parse_date;
 pub use self::html::{convert_relative_url, fragment_root_node_id, html_body};
 
 pub const USER_AGENT: &str =

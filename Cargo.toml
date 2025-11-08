@@ -76,6 +76,7 @@ base64 = "0.22.0"
 rquickjs = { version = "0.5.1", features = ["loader", "parallel", "macro", "futures", "exports", "either"] }
 serde_json = "1.0.114" # for data transfer with the JS runtime
 either = "1.10.0" # used for returning sum types from the JS runtime
+jsonpath_lib = "0.3.0"
 
 # Web client (blocking and async both used, blocking used in the JS runtime)
 reqwest = { version = "0.12.2", default-features = false, features = ["blocking", "trust-dns", "socks", "http2", "rustls-tls", "stream"] }
@@ -93,6 +94,7 @@ tracing-subscriber = "0.3.18"
 maud = { version = "0.26.0", features = ["axum"] }
 ammonia = "4.0.0"
 serde_with = "3.9.0"
+perfect-derive = "0.1.5"
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }

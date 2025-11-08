@@ -4,6 +4,7 @@ pub(crate) mod highlight;
 pub(crate) mod html;
 pub(crate) mod image_proxy;
 pub(crate) mod js;
+pub(crate) mod json_to_feed;
 pub(crate) mod limit;
 pub(crate) mod magnet;
 pub(crate) mod merge;
@@ -199,6 +200,7 @@ macro_rules! define_filters {
     paste::paste! {
       #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
       #[serde(rename_all = "snake_case")]
+      #[allow(clippy::large_enum_variant)]
       pub enum FilterConfig {
         $(
            #[doc = "# " $variant:snake "\n\n" $desc "\n"]
@@ -327,6 +329,7 @@ define_filters!(
   KeepOnly => select::KeepOnlyConfig, "Keep only posts matching a condition";
   Discard => select::DiscardConfig, "Discard posts matching a condition";
   Highlight => highlight::HighlightConfig, "Highlight text or pattern";
+  JsonToFeed => json_to_feed::JsonToFeedConfig, "Build posts from JSON data";
   Merge => merge::MergeConfig, "Merge extra feed into the main feed";
   Note => note::NoteFilterConfig, "Add non-functional comment";
   ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
