@@ -120,6 +120,21 @@ pub enum Error {
   #[error("Can't infer app base, please refer to https://github.com/shouya/rss-funnel/wiki/App-base")]
   BaseUrlNotInferred,
 
+  #[error("JSONPath error: {0}")]
+  JsonPath(#[from] jsonpath_lib::JsonPathError),
+
+  #[error("Failed to deserialize JSON: {0}")]
+  JsonDeserialization(#[from] serde_json::Error),
+
+  #[error("Missing expected field: {0}")]
+  MissingField(&'static str),
+
+  #[error("Invalid field: {value_repr}, expected {expected}")]
+  InvalidField {
+    value_repr: String,
+    expected: &'static str,
+  },
+
   #[error("{0}")]
   Message(String),
 }

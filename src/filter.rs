@@ -200,6 +200,7 @@ macro_rules! define_filters {
     paste::paste! {
       #[derive(JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
       #[serde(rename_all = "snake_case")]
+      #[allow(clippy::large_enum_variant)]
       pub enum FilterConfig {
         $(
            #[doc = "# " $variant:snake "\n\n" $desc "\n"]

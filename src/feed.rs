@@ -527,6 +527,22 @@ impl Post {
       self.first_body_mut().unwrap()
     }
   }
+
+  pub fn into_format(self, format: FeedFormat) -> Self {
+    use conversion::W;
+
+    match (self, format) {
+      (Post::Rss(item), FeedFormat::Atom) => {
+        let entry: atom_syndication::Entry = W(item).into();
+        Post::Atom(entry)
+      }
+      (Post::Atom(item), FeedFormat::Rss) => {
+        let rss_item: rss::Item = W(item).into();
+        Post::Rss(rss_item)
+      }
+      (original_self, _) => original_self,
+    }
+  }
 }
 
 impl Post {

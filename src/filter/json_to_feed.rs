@@ -1,16 +1,17 @@
-use std::collections::HashSet;
 use std::time::Duration;
 
-use chrono::{DateTime, FixedOffset, NaiveDateTime, TimeZone, Utc};
+use jsonpath_lib::{Compiled as CompiledJsonPath, JsonPathError};
+use perfect_derive::perfect_derive;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
-use crate::feed::{Feed, Post};
+use crate::feed::{Feed, FeedFormat, Post};
 use crate::filter::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{ConfigError, Error, Result};
+use crate::source::Source;
+use crate::{util, ConfigError, Error, Result};
 
 const DEFAULT_CACHE_TTL_SECS: u64 = 5 * 60;
 
@@ -25,61 +26,71 @@ pub struct JsonToFeedConfig {
   pub items: String,
   /// Field mapping for each JSON item.
   #[serde(default)]
-  pub map: FieldMap,
+  pub map: ConfigFieldMap,
   /// Optional feed metadata mapping sourced from the same JSON document.
   #[serde(default)]
-  pub feed: FeedMap,
-  /// Extra chrono date formats to try in addition to RFC 3339 and RFC 2822.
-  #[serde(default)]
-  pub date_formats: Vec<String>,
+  pub feed: ConfigFeedMetaMap,
   /// Optional HTTP client configuration for fetching the JSON source.
   #[serde(default)]
   pub client: Option<ClientConfig>,
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq, Hash,
+  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 #[serde(default)]
-pub struct FieldMap {
-  pub title: Option<String>,
-  pub link: Option<String>,
-  pub guid: Option<String>,
-  pub description: Option<String>,
-  pub content_html: Option<String>,
-  pub author: Option<String>,
-  pub categories: Option<String>,
-  pub pub_date: Option<DateField>,
-  pub enclosure_url: Option<String>,
-  pub enclosure_type: Option<String>,
-  pub enclosure_length: Option<String>,
+#[perfect_derive(Default)]
+pub struct FieldMap<T> {
+  pub title: Option<T>,
+  pub link: Option<T>,
+  pub guid: Option<T>,
+  pub description: Option<T>,
+  pub content_html: Option<T>,
+  pub author: Option<T>,
+  pub categories: Option<T>,
+  pub pub_date: Option<T>,
+  pub enclosure_url: Option<T>,
+  pub enclosure_type: Option<T>,
+  pub enclosure_length: Option<T>,
 }
 
-#[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq, Hash,
-)]
-#[serde(default)]
-pub struct FeedMap {
-  pub title: Option<String>,
-  pub link: Option<String>,
-  pub description: Option<String>,
+#[derive(Clone, Debug)]
+enum ParsedField {
+  Const(String),
+  JsonPath(CompiledJsonPath),
 }
+
+#[derive(Clone, Debug)]
+enum FieldValue<'a> {
+  Const(String),
+  Single(&'a serde_json::Value),
+  Multi(Vec<&'a serde_json::Value>),
+}
+
+pub type ConfigFieldMap = FieldMap<String>;
+type ParsedFieldMap = FieldMap<ParsedField>;
+type FieldValues<'a> = FieldMap<FieldValue<'a>>;
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
-pub struct DateField {
-  pub path: String,
-  #[serde(default)]
-  pub parse: Vec<String>,
+#[serde(default)]
+#[perfect_derive(Default)]
+pub struct FeedMetaMap<T> {
+  pub title: Option<T>,
+  pub link: Option<T>,
+  pub description: Option<T>,
 }
 
+type ConfigFeedMetaMap = FeedMetaMap<String>;
+type ParsedFeedMetaMap = FeedMetaMap<ParsedField>;
+type FeedMetaValues<'a> = FeedMetaMap<FieldValue<'a>>;
+
 pub struct JsonToFeedFilter {
-  url: Option<Url>,
-  items_path: String,
-  map: FieldMap,
-  feed_map: FeedMap,
-  date_formats: Vec<String>,
+  source: Source,
+  items_path: CompiledJsonPath,
+  item_map: ParsedFieldMap,
+  feed_meta_map: ParsedFeedMetaMap,
   client: Client,
 }
 
@@ -93,21 +104,27 @@ impl FeedFilterConfig for JsonToFeedConfig {
       items,
       map,
       feed,
-      date_formats,
       client,
     } = self;
 
-    let parsed_url = url.map(|u| Url::parse(&u)).transpose()?;
+    let source = match url.map(|u| Url::parse(&u)).transpose()? {
+      Some(url) => Source::AbsoluteUrl(url),
+      None => Source::Dynamic,
+    };
     let client_cfg = client.unwrap_or_default();
     let client =
       client_cfg.build(Duration::from_secs(DEFAULT_CACHE_TTL_SECS))?;
 
+    let items_path =
+      CompiledJsonPath::compile(&items).map_err(ConfigError::Message)?;
+    let item_map = map.parse()?;
+    let feed_meta_map = feed.parse()?;
+
     Ok(JsonToFeedFilter {
-      url: parsed_url,
-      items_path: items,
-      map,
-      feed_map: feed,
-      date_formats,
+      source,
+      items_path,
+      item_map,
+      feed_meta_map,
       client,
     })
   }
@@ -116,84 +133,29 @@ impl FeedFilterConfig for JsonToFeedConfig {
 #[async_trait::async_trait]
 impl FeedFilter for JsonToFeedFilter {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
-    let url = if let Some(url) = &self.url {
-      url.clone()
-    } else if let Some(source) = ctx.source() {
-      source.clone()
-    } else {
-      return Err(Error::Message(
-        "json_to_feed: the filter needs a URL (set `url` or provide a source \
-         URL)"
-          .into(),
-      ));
-    };
-
+    let url = self
+      .source
+      .full_url(ctx)
+      .ok_or(Error::DynamicSourceUnspecified)?;
     let response = self.client.get(&url).await?.error_for_status()?;
     let body = response.text()?;
-    let root: Value = serde_json::from_str(&body).map_err(|err| {
-      Error::Message(format!("json_to_feed: JSON parse error: {err}"))
-    })?;
+    let root: Value =
+      serde_json::from_str(&body).map_err(Error::JsonDeserialization)?;
 
-    apply_feed_metadata(&mut feed, &self.feed_map, &root)?;
+    let feed_meta = self.feed_meta_map.select(&root)?;
+    feed_meta.apply(&mut feed)?;
 
-    let items =
-      jsonpath_lib::select(&root, &self.items_path).map_err(|err| {
-        Error::Message(format!(
-          "json_to_feed: failed to apply items JSONPath `{}`: {err}",
-          self.items_path
-        ))
-      })?;
-
+    let items = self.items_path.select(&root).map_err(Error::JsonPath)?;
     let mut posts = Vec::with_capacity(items.len());
-    let mut seen_guids = HashSet::new();
 
     for item in items {
-      let title = select_string(item, self.map.title.as_deref())?;
-      let link = select_string(item, self.map.link.as_deref())?;
-      let guid = select_string(item, self.map.guid.as_deref())?;
-      let description = select_string(item, self.map.description.as_deref())?;
-      let content_html = select_string(item, self.map.content_html.as_deref())?;
-      let author = select_string(item, self.map.author.as_deref())?;
-      let categories = select_strings(item, self.map.categories.as_deref())?;
-      let enclosure_url =
-        select_string(item, self.map.enclosure_url.as_deref())?;
-      let enclosure_type =
-        select_string(item, self.map.enclosure_type.as_deref())?;
-      let enclosure_length =
-        select_string(item, self.map.enclosure_length.as_deref())?;
-      let published =
-        parse_published(item, self.map.pub_date.as_ref(), &self.date_formats)?;
+      let fields = self.item_map.select(item)?;
+      let post = match &feed {
+        Feed::Rss(_) => fields.build_rss_post()?,
+        Feed::Atom(_) => fields.build_atom_post()?,
+      };
 
-      let mut guid = guid
-        .or_else(|| link.clone())
-        .unwrap_or_else(|| make_guid(item));
-      ensure_unique_guid(&mut guid, &mut seen_guids);
-
-      posts.push(match &feed {
-        Feed::Rss(_) => Post::Rss(build_rss_item(
-          title.clone(),
-          link.clone(),
-          guid.clone(),
-          description.clone(),
-          content_html.clone(),
-          author.clone(),
-          categories.clone(),
-          published,
-          enclosure_url.clone(),
-          enclosure_type.clone(),
-          enclosure_length.clone(),
-        )),
-        Feed::Atom(_) => Post::Atom(build_atom_entry(
-          title.clone(),
-          link.clone(),
-          guid.clone(),
-          description.clone(),
-          content_html.clone(),
-          author.clone(),
-          categories.clone(),
-          published,
-        )),
-      });
+      posts.push(post);
     }
 
     feed.set_posts(posts);
@@ -201,270 +163,280 @@ impl FeedFilter for JsonToFeedFilter {
   }
 }
 
-fn apply_feed_metadata(
-  feed: &mut Feed,
-  map: &FeedMap,
-  root: &Value,
-) -> Result<(), Error> {
-  if let Some(title_path) = map.title.as_deref() {
-    if let Some(title) = select_string(root, Some(title_path))? {
-      match feed {
-        Feed::Rss(channel) => channel.title = title,
-        Feed::Atom(atom) => atom.title = atom_syndication::Text::plain(title),
-      }
+impl ConfigFieldMap {
+  fn parse(self) -> Result<ParsedFieldMap, ConfigError> {
+    let field_map = ParsedFieldMap {
+      title: self.title.map(parse_field).transpose()?,
+      link: self.link.map(parse_field).transpose()?,
+      guid: self.guid.map(parse_field).transpose()?,
+      description: self.description.map(parse_field).transpose()?,
+      content_html: self.content_html.map(parse_field).transpose()?,
+      author: self.author.map(parse_field).transpose()?,
+      categories: self.categories.map(parse_field).transpose()?,
+      pub_date: self.pub_date.map(parse_field).transpose()?,
+      enclosure_url: self.enclosure_url.map(parse_field).transpose()?,
+      enclosure_type: self.enclosure_type.map(parse_field).transpose()?,
+      enclosure_length: self.enclosure_length.map(parse_field).transpose()?,
+    };
+
+    Ok(field_map)
+  }
+}
+
+impl ParsedFieldMap {
+  fn select<'a>(&'a self, root: &'a Value) -> Result<FieldValues<'a>, Error> {
+    // TODO: add context to the errors
+    let field_values = FieldValues {
+      title: select_field(root, &self.title, false)?,
+      link: select_field(root, &self.link, false)?,
+      guid: select_field(root, &self.guid, true)?,
+      description: select_field(root, &self.description, true)?,
+      content_html: select_field(root, &self.content_html, true)?,
+      author: select_field(root, &self.author, true)?,
+      categories: select_field(root, &self.categories, true)?,
+      pub_date: select_field(root, &self.pub_date, true)?,
+      enclosure_url: select_field(root, &self.enclosure_url, true)?,
+      enclosure_type: select_field(root, &self.enclosure_type, true)?,
+      enclosure_length: select_field(root, &self.enclosure_length, true)?,
+    };
+
+    Ok(field_values)
+  }
+}
+
+impl FieldValue<'_> {
+  fn to_string(&self) -> Result<String> {
+    match self {
+      FieldValue::Const(s) => Ok(s.clone()),
+
+      FieldValue::Single(Value::String(s)) => Ok(s.trim().to_string()),
+      FieldValue::Single(Value::Number(n)) => Ok(n.to_string()),
+      FieldValue::Single(Value::Bool(b)) => Ok(b.to_string()),
+
+      FieldValue::Single(other) => Err(Error::InvalidField {
+        value_repr: other.to_string(),
+        expected: "string",
+      }),
+
+      FieldValue::Multi(_) => Err(Error::InvalidField {
+        value_repr: "(multiple values selected)".to_owned(),
+        expected: "single string",
+      }),
     }
   }
 
-  if let Some(link_path) = map.link.as_deref() {
-    if let Some(link) = select_string(root, Some(link_path))? {
-      match feed {
-        Feed::Rss(channel) => channel.link = link,
-        Feed::Atom(atom) => {
-          if let Some(first) = atom.links.first_mut() {
-            first.href = link.clone();
-          } else {
-            atom.links.push(atom_syndication::Link {
-              href: link,
-              ..Default::default()
-            });
-          }
+  fn to_strings(&self) -> Result<Vec<String>> {
+    match self {
+      FieldValue::Const(s) => Ok(vec![s.clone()]),
+      FieldValue::Multi(values) => Ok(
+        values
+          .iter()
+          .map(|v| FieldValue::Single(v).to_string())
+          .collect::<Result<Vec<_>>>()?,
+      ),
+      FieldValue::Single(Value::Array(arr)) => Ok(
+        arr
+          .iter()
+          .map(|v| FieldValue::Single(v).to_string())
+          .collect::<Result<Vec<_>>>()?,
+      ),
+      FieldValue::Single(other) => {
+        Ok(FieldValue::Single(other).to_string().map(|s| vec![s])?)
+      }
+    }
+  }
+}
+
+macro_rules! get_field {
+  (required; $self:ident . $field:ident) => {
+    // returns String
+    $self
+      .$field
+      .as_ref()
+      .map(|v| v.to_string())
+      .unwrap_or(Err(Error::MissingField(stringify!($field))))?
+  };
+  (optional; $self:ident . $field:ident) => {
+    // returns Option<String>
+    $self.$field.as_ref().and_then(|v| v.to_string().ok())
+  };
+  (multi required; $self:ident . $field:ident) => {
+    // returns Vec<String>
+    $self
+      .$field
+      .as_ref()
+      .map(|v| v.to_strings())
+      .unwrap_or(Err(Error::MissingField(stringify!($field))))?
+  };
+  (multi optional; $self:ident . $field:ident) => {
+    // returns Option<Vec<String>>
+    $self.$field.as_ref().and_then(|v| v.to_strings().ok())
+  };
+}
+
+impl FieldValues<'_> {
+  fn build_rss_post(&self) -> Result<Post> {
+    let mut item = rss::Item::default();
+
+    let title = get_field!(required; self.title);
+    item.set_title(Some(title));
+    let link = get_field!(required; self.link);
+    item.set_link(Some(link.clone()));
+    let author = get_field!(optional; self.author);
+    item.set_author(author);
+    let description = get_field!(optional; self.description);
+    item.set_description(description);
+    let content = get_field!(optional; self.content_html);
+    item.set_content(content);
+
+    if let Some(pub_date) =
+      get_field!(optional; self.pub_date).and_then(util::parse_date)
+    {
+      item.set_pub_date(pub_date.to_rfc2822());
+    };
+
+    let guid = if let Some(guid) = get_field!(optional; self.guid) {
+      rss::Guid {
+        permalink: guid == link,
+        value: guid,
+      }
+    } else {
+      rss::Guid {
+        value: link,
+        permalink: true,
+      }
+    };
+    item.set_guid(Some(guid));
+
+    if let Some(categories) = get_field!(multi optional; self.categories) {
+      item.categories = categories
+        .into_iter()
+        .map(|name| rss::Category { name, domain: None })
+        .collect();
+    };
+
+    if let Some(url) = get_field!(optional; self.enclosure_url) {
+      let mime_type = get_field!(optional; self.enclosure_type)
+        .unwrap_or_else(|| "application/octet-stream".to_owned());
+      let length = get_field!(optional; self.enclosure_length)
+        .unwrap_or_else(|| "0".into());
+      item.enclosure = Some(rss::Enclosure {
+        url,
+        mime_type,
+        length,
+      });
+    }
+
+    Ok(Post::Rss(item))
+  }
+
+  fn build_atom_post(&self) -> Result<Post> {
+    self
+      .build_rss_post()
+      .map(|post| post.into_format(FeedFormat::Atom))
+  }
+}
+
+impl ConfigFeedMetaMap {
+  fn parse(self) -> Result<ParsedFeedMetaMap, ConfigError> {
+    let feed_map = ParsedFeedMetaMap {
+      title: self.title.map(parse_field).transpose()?,
+      link: self.link.map(parse_field).transpose()?,
+      description: self.description.map(parse_field).transpose()?,
+    };
+
+    Ok(feed_map)
+  }
+}
+
+impl ParsedFeedMetaMap {
+  fn select<'a>(&self, root: &'a Value) -> Result<FeedMetaValues<'a>> {
+    let meta = FeedMetaMap {
+      title: select_field(root, &self.title, false)?,
+      link: select_field(root, &self.link, false)?,
+      description: select_field(root, &self.description, true)?,
+    };
+
+    Ok(meta)
+  }
+}
+
+impl FeedMetaValues<'_> {
+  fn apply(&self, feed: &mut Feed) -> Result<(), Error> {
+    let title = get_field!(required; self.title);
+    match feed {
+      Feed::Rss(channel) => channel.title = title,
+      Feed::Atom(atom) => atom.title = atom_syndication::Text::plain(title),
+    }
+
+    let link = get_field!(required; self.link);
+    match feed {
+      Feed::Rss(channel) => channel.link = link,
+      Feed::Atom(atom) => {
+        if let Some(first) = atom.links.first_mut() {
+          first.href = link.clone();
+        } else {
+          atom.links.push(atom_syndication::Link {
+            href: link,
+            ..Default::default()
+          });
         }
       }
     }
-  }
 
-  if let Some(desc_path) = map.description.as_deref() {
-    if let Some(description) = select_string(root, Some(desc_path))? {
+    if let Some(description) = get_field!(optional; self.description) {
       match feed {
-        Feed::Rss(channel) => channel.description = description,
+        Feed::Rss(channel) => {
+          channel.description = description;
+        }
         Feed::Atom(atom) => {
           atom.subtitle = Some(atom_syndication::Text::plain(description));
         }
       }
     }
-  }
 
-  Ok(())
-}
-
-fn select_string(
-  root: &Value,
-  path: Option<&str>,
-) -> Result<Option<String>, Error> {
-  let Some(path) = path else { return Ok(None) };
-  let values = jsonpath_lib::select(root, path).map_err(|err| {
-    Error::Message(format!("json_to_feed: JSONPath `{path}` failed: {err}"))
-  })?;
-  Ok(values.into_iter().find_map(value_to_string))
-}
-
-fn select_strings(
-  root: &Value,
-  path: Option<&str>,
-) -> Result<Vec<String>, Error> {
-  let Some(path) = path else { return Ok(vec![]) };
-  let values = jsonpath_lib::select(root, path).map_err(|err| {
-    Error::Message(format!("json_to_feed: JSONPath `{path}` failed: {err}"))
-  })?;
-  Ok(
-    values
-      .into_iter()
-      .filter_map(value_to_string)
-      .filter(|value| !value.is_empty())
-      .collect(),
-  )
-}
-
-fn value_to_string(value: &Value) -> Option<String> {
-  match value {
-    Value::String(s) => {
-      let trimmed = s.trim();
-      if trimmed.is_empty() {
-        None
-      } else {
-        Some(trimmed.to_owned())
-      }
-    }
-    Value::Number(n) => Some(n.to_string()),
-    Value::Bool(b) => Some(b.to_string()),
-    _ => None,
+    Ok(())
   }
 }
 
-fn parse_published(
-  item: &Value,
-  field: Option<&DateField>,
-  global_formats: &[String],
-) -> Result<Option<DateTime<FixedOffset>>, Error> {
-  let Some(field) = field else { return Ok(None) };
-  let Some(raw_value) = select_string(item, Some(&field.path))? else {
+fn parse_field(mut str: String) -> Result<ParsedField, ConfigError> {
+  if str.starts_with("\\$") {
+    str.remove(0);
+    Ok(ParsedField::Const(str))
+  } else if str.starts_with('$') {
+    CompiledJsonPath::compile(&str)
+      .map(ParsedField::JsonPath)
+      .map_err(ConfigError::Message)
+  } else {
+    Ok(ParsedField::Const(str))
+  }
+}
+
+fn select_field<'a>(
+  root: &'a Value,
+  field: &Option<ParsedField>,
+  optional: bool,
+) -> Result<Option<FieldValue<'a>>> {
+  let Some(field) = field else {
     return Ok(None);
   };
 
-  if raw_value.is_empty() {
-    return Ok(None);
+  match (field, optional) {
+    (ParsedField::Const(s), _) => Ok(Some(FieldValue::Const(s.clone()))),
+    (ParsedField::JsonPath(compiled), true) => match compiled.select(root) {
+      Ok(vals) if vals.len() == 1 => Ok(Some(FieldValue::Single(vals[0]))),
+      Ok(vals) if vals.len() > 1 => Ok(Some(FieldValue::Multi(vals))),
+      Ok(_vals) => Ok(None), // empty vals
+      Err(JsonPathError::EmptyPath | JsonPathError::EmptyValue) => Ok(None),
+      Err(err) => Err(err)?,
+    },
+    (ParsedField::JsonPath(compiled), false) => match compiled.select(root) {
+      Ok(vals) if vals.len() == 1 => Ok(Some(FieldValue::Single(vals[0]))),
+      Ok(vals) if vals.len() > 1 => Ok(Some(FieldValue::Multi(vals))),
+      Ok(_vals) => Err(JsonPathError::EmptyValue)?, // empty vals
+      Err(err) => Err(err)?,
+    },
   }
-
-  if let Ok(parsed) = DateTime::parse_from_rfc3339(&raw_value) {
-    return Ok(Some(parsed));
-  }
-  if let Ok(parsed) = DateTime::parse_from_rfc2822(&raw_value) {
-    return Ok(Some(parsed));
-  }
-
-  for fmt in field.parse.iter().chain(global_formats.iter()) {
-    if let Ok(parsed) = DateTime::parse_from_str(&raw_value, fmt) {
-      return Ok(Some(parsed));
-    }
-
-    if let Ok(parsed) = NaiveDateTime::parse_from_str(&raw_value, fmt) {
-      let offset = FixedOffset::east_opt(0).unwrap();
-      return Ok(Some(offset.from_local_datetime(&parsed).unwrap()));
-    }
-  }
-
-  Ok(None)
-}
-
-fn make_guid(item: &Value) -> String {
-  let json = serde_json::to_vec(item).unwrap_or_default();
-  blake3::hash(&json).to_hex().to_string()
-}
-
-fn ensure_unique_guid(guid: &mut String, seen: &mut HashSet<String>) {
-  if seen.insert(guid.clone()) {
-    return;
-  }
-
-  let mut counter = 1usize;
-  loop {
-    let candidate = format!("{guid}#{counter}");
-    if seen.insert(candidate.clone()) {
-      *guid = candidate;
-      break;
-    }
-    counter += 1;
-  }
-}
-
-fn build_rss_item(
-  title: Option<String>,
-  link: Option<String>,
-  guid: String,
-  description: Option<String>,
-  content_html: Option<String>,
-  author: Option<String>,
-  categories: Vec<String>,
-  published: Option<DateTime<FixedOffset>>,
-  enclosure_url: Option<String>,
-  enclosure_type: Option<String>,
-  enclosure_length: Option<String>,
-) -> rss::Item {
-  let mut item = rss::Item::default();
-  item.set_title(title);
-  item.set_link(link.clone());
-  item.set_author(author);
-  item.set_description(description);
-  item.content = content_html;
-  if let Some(date) = published {
-    item.set_pub_date(date.to_rfc2822());
-  }
-
-  if let Some(link) = link {
-    let permalink = link == guid;
-    item.set_guid(Some(rss::Guid {
-      value: guid,
-      permalink,
-    }));
-  } else {
-    item.set_guid(Some(rss::Guid {
-      value: guid,
-      permalink: false,
-    }));
-  }
-
-  if !categories.is_empty() {
-    item.categories = categories
-      .into_iter()
-      .map(|name| {
-        let mut category = rss::Category::default();
-        category.set_name(name);
-        category
-      })
-      .collect();
-  }
-
-  if let Some(url) = enclosure_url {
-    let mime_type =
-      enclosure_type.unwrap_or_else(|| "application/octet-stream".into());
-    let length = enclosure_length.unwrap_or_else(|| "0".into());
-    item.enclosure = Some(rss::Enclosure {
-      url,
-      mime_type,
-      length,
-    });
-  }
-
-  item
-}
-
-fn build_atom_entry(
-  title: Option<String>,
-  link: Option<String>,
-  guid: String,
-  description: Option<String>,
-  content_html: Option<String>,
-  author: Option<String>,
-  categories: Vec<String>,
-  published: Option<DateTime<FixedOffset>>,
-) -> atom_syndication::Entry {
-  let mut entry = atom_syndication::Entry::default();
-  entry.set_title(atom_syndication::Text::html(title.unwrap_or_default()));
-  entry.set_id(guid);
-
-  if let Some(link) = link {
-    entry.set_links(vec![atom_syndication::Link {
-      href: link,
-      ..Default::default()
-    }]);
-  }
-
-  let published = published.unwrap_or_else(|| Utc::now().fixed_offset());
-  entry.set_updated(published);
-  entry.set_published(Some(published));
-
-  if let Some(description) = description {
-    entry.set_summary(Some(atom_syndication::Text::html(description)));
-  }
-
-  if let Some(content) = content_html {
-    let mut atom_content = atom_syndication::Content::default();
-    atom_content.set_value(Some(content));
-    atom_content.set_content_type(Some("html".into()));
-    entry.set_content(Some(atom_content));
-  }
-
-  if let Some(author) = author {
-    entry.set_authors(vec![atom_syndication::Person {
-      name: author,
-      ..Default::default()
-    }]);
-  }
-
-  if !categories.is_empty() {
-    entry.set_categories(
-      categories
-        .into_iter()
-        .map(|term| {
-          let mut category = atom_syndication::Category::default();
-          category.set_term(term);
-          category
-        })
-        .collect::<Vec<_>>(),
-    );
-  }
-
-  entry
 }
 
 #[cfg(test)]
@@ -491,8 +463,7 @@ map:
   content_html: "$.html"
   author: "$.author.name"
   categories: "$.tags[*]"
-  pub_date:
-    path: "$.published_at"
+  pub_date: "$.published_at"
   enclosure_url: "$.enclosure.url"
   enclosure_type: "$.enclosure.type"
 "#;
