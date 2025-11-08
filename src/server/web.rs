@@ -5,17 +5,18 @@ mod login;
 use std::{borrow::Cow, convert::Infallible};
 
 use axum::{
+  Extension, Router,
   extract::Path,
   response::{IntoResponse, Redirect, Response},
-  routing, Extension, Router,
+  routing,
 };
 use http::StatusCode;
 use login::Auth;
-use maud::{html, Markup};
+use maud::{Markup, html};
 
 use crate::util::relative_path;
 
-use super::{feed_service::FeedService, EndpointParam};
+use super::{EndpointParam, feed_service::FeedService};
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "static/"]

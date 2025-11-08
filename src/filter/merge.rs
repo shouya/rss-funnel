@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use futures::{stream, StreamExt};
+use futures::{StreamExt, stream};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +8,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::{Feed, NormalizedPost};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{SimpleSourceConfig, Source};
-use crate::{util::SingleOrVec, ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result, util::SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

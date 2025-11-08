@@ -1,13 +1,13 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use either::Either;
-use maud::{html, Markup, PreEscaped, DOCTYPE};
+use maud::{DOCTYPE, Markup, PreEscaped, html};
 use url::Url;
 
 use crate::{
   feed::{Feed, NormalizedPost, Post},
   filter::FilterContext,
-  server::{endpoint::EndpointService, web::sprite, EndpointParam},
+  server::{EndpointParam, endpoint::EndpointService, web::sprite},
   source::{FromScratch, Source},
   util::relative_path,
 };
@@ -454,5 +454,5 @@ fn santize_html(html: &str, base: Option<Url>) -> String {
 
 fn rand_id() -> String {
   use rand::Rng as _;
-  rand::thread_rng().gen::<u64>().to_string()
+  rand::rng().random::<u64>().to_string()
 }

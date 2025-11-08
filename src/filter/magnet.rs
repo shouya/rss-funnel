@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::{
-  feed::{Feed, Post},
   ConfigError, Error,
+  feed::{Feed, Post},
 };
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::Result;
-use crate::{feed::Feed, ConfigError};
+use crate::{ConfigError, feed::Feed};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

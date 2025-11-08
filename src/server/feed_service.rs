@@ -1,19 +1,19 @@
 use std::{collections::HashMap, ops::DerefMut, path::PathBuf, sync::Arc};
 
 use axum::{
+  Extension,
   extract::{Path, Request},
   response::{IntoResponse, Response},
-  Extension,
 };
 use http::StatusCode;
-use rand::{rngs::OsRng, RngCore};
+use rand::{TryRngCore as _, rngs::OsRng};
 use tokio::sync::RwLock;
 use tower::Service;
 use tracing::info;
 
-use crate::{cli::RootConfig, ConfigError};
+use crate::{ConfigError, cli::RootConfig};
 
-use super::{endpoint::EndpointService, EndpointConfig};
+use super::{EndpointConfig, endpoint::EndpointService};
 
 // can be cheaply cloned.
 #[derive(Clone)]
@@ -104,7 +104,9 @@ impl FeedService {
     drop(inner);
 
     let mut buffer = [0u8; 32];
-    OsRng.fill_bytes(&mut buffer);
+    OsRng
+      .try_fill_bytes(&mut buffer)
+      .expect("Failed to generate session id.");
     let mut session_id = String::with_capacity(32 * 2);
     for byte in &buffer {
       session_id.push_str(&format!("{byte:02x}"));

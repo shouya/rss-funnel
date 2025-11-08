@@ -2,7 +2,7 @@
 name = "rss-funnel"
 description = "A composable feed processing pipeline"
 version = "0.1.4"
-edition = "2021"
+edition = "2024"
 license-file = "LICENSE"
 readme = "README.org"
 repository = "https://github.com/shouya/rss-funnel"
@@ -59,7 +59,7 @@ chrono = "0.4.34"
 # webui (inspector) support
 rust-embed = { version = "8.3.0", features = ["include-exclude"], optional = true }
 schemars = { git = "https://github.com/shouya/schemars", features = ["url", "preserve_order"] }
-rand = "0.8.5" # for generating session_id
+rand = "0.9.2" # for generating session_id
 
 # HTML manipulation in the feeds
 scraper = "0.19.0"

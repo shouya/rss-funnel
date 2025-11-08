@@ -9,7 +9,7 @@ const RELATIVE_URL_PROPERTIES: [(&str, &str); 3] = [
 
 /// Convert relative URLs in an HTML document to absolute URLs.
 pub fn convert_relative_url(html: &mut Html, base_url: &str) {
-  use html5ever::{namespace_url, ns, LocalName, QualName};
+  use html5ever::{LocalName, QualName, namespace_url, ns};
   lazy_static::lazy_static! {
     static ref SELECTORS: Vec<(Selector, &'static str)> = {
       RELATIVE_URL_PROPERTIES

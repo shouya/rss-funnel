@@ -7,11 +7,11 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
+  ConfigError, Error, Result,
   client::Client,
   feed::{Feed, FeedFormat},
   filter::FilterContext,
   server::EndpointParam,
-  ConfigError, Error, Result,
 };
 
 lazy_static::lazy_static! {
@@ -396,7 +396,7 @@ mod serialization {
   // this custom deserialize implementation allows us to parse the
   // special value "dynamic" as a SourceConfig::Dynamic.
   use super::{FromScratch, Result, SourceConfig, Templated};
-  use serde::{de::Deserializer, ser::Serializer, Deserialize, Serialize};
+  use serde::{Deserialize, Serialize, de::Deserializer, ser::Serializer};
 
   impl<'de> Deserialize<'de> for SourceConfig {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

@@ -1,7 +1,7 @@
 use crate::{
+  Result,
   feed::{Feed, NormalizedFeed, NormalizedPost, Post},
   util::TimedLruCache,
-  Result,
 };
 use futures::Future;
 use std::time::Duration;

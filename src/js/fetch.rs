@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rquickjs::{class::Trace, function::Opt, Ctx, Exception};
+use rquickjs::{Ctx, Exception, class::Trace, function::Opt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -139,8 +139,8 @@ pub(super) async fn fetch(
 
 #[cfg(test)]
 mod tests {
-  use crate::test_utils::fetch_endpoint;
   use crate::Result;
+  use crate::test_utils::fetch_endpoint;
 
   #[tokio::test]
   async fn test_fetch() -> Result<()> {

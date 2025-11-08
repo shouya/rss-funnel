@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
 use axum::{
+  Extension, Form,
   extract::FromRequestParts,
   response::{IntoResponse, Redirect, Response},
-  Extension, Form,
 };
 use axum_extra::extract::CookieJar;
 use http::request::Parts;
-use maud::{html, PreEscaped, DOCTYPE};
+use maud::{DOCTYPE, PreEscaped, html};
 
 use crate::{server::feed_service::FeedService, util::relative_path};
 

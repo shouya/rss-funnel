@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{feed::Feed, ConfigError, Result};
+use crate::{ConfigError, Result, feed::Feed};
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,

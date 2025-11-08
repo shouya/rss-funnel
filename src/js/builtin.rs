@@ -1,11 +1,11 @@
-use base64::prelude::{Engine as _, BASE64_STANDARD};
+use base64::prelude::{BASE64_STANDARD, Engine as _};
 use rquickjs::{
+  Class, Ctx,
   class::Trace,
   function::{Async, Func},
-  Class, Ctx,
 };
 
-use super::dom::{Node, DOM};
+use super::dom::{DOM, Node};
 use super::fetch::fetch;
 use crate::Result;
 

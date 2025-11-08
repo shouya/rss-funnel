@@ -56,8 +56,8 @@ impl Watcher {
 
   async fn setup(&mut self) -> Result<()> {
     use notify::{
-      event::{ModifyKind, RemoveKind},
       Event, EventKind, RecursiveMode, Watcher,
+      event::{ModifyKind, RemoveKind},
     };
 
     let tx = self.tx.clone();

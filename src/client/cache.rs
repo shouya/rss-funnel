@@ -4,7 +4,7 @@ use mime::Mime;
 use reqwest::header::HeaderMap;
 use url::Url;
 
-use crate::{util::TimedLruCache, Error, Result};
+use crate::{Error, Result, util::TimedLruCache};
 
 pub type ResponseCache = TimedLruCache<Url, Response>;
 

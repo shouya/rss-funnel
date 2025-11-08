@@ -1,14 +1,14 @@
 use ego_tree::{NodeId, NodeMut, NodeRef};
-use html5ever::{namespace_url, ns, LocalName, QualName};
+use html5ever::{LocalName, QualName, namespace_url, ns};
 use rquickjs::{
+  Class, Ctx, Error, Exception, Object,
   class::{Trace, Tracer},
   convert::FromIteratorJs,
   prelude::This,
-  Class, Ctx, Error, Exception, Object,
 };
 use scraper::ElementRef;
 
-use crate::{util::fragment_root_node_id, Result};
+use crate::{Result, util::fragment_root_node_id};
 
 #[rquickjs::class]
 #[derive(Clone)]

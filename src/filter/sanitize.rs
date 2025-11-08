@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::Result;
-use crate::{feed::Feed, ConfigError};
+use crate::{ConfigError, feed::Feed};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 

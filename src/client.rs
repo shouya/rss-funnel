@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{feed::Feed, ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result, feed::Feed};
 
 use self::cache::{Response, ResponseCache};
 

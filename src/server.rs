@@ -10,9 +10,9 @@ mod web;
 use std::{path::Path, sync::Arc};
 
 use axum::{
+  Extension, Router,
   response::{IntoResponse, Redirect},
   routing::get,
-  Extension, Router,
 };
 use clap::Parser;
 use http::StatusCode;
@@ -20,8 +20,8 @@ use tower_http::compression::CompressionLayer;
 use tracing::{info, warn};
 
 use crate::{
-  util::{self, relative_path},
   Result,
+  util::{self, relative_path},
 };
 
 pub use endpoint::{EndpointConfig, EndpointParam};

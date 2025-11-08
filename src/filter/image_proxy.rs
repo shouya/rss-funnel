@@ -6,7 +6,7 @@ use tracing::warn;
 use url::Url;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{feed::Feed, ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result, feed::Feed};
 
 const IMAGE_PROXY_ROUTE: &str = "_image";
 
@@ -80,7 +80,7 @@ impl JsonSchema for ProxySettings {
   }
 
   fn json_schema(
-    gen: &mut schemars::gen::SchemaGenerator,
+    generator: &mut schemars::r#gen::SchemaGenerator,
   ) -> schemars::schema::Schema {
     use schemars::schema::{
       InstanceType, Metadata, Schema, SchemaObject, SingleOrVec,
@@ -92,7 +92,7 @@ impl JsonSchema for ProxySettings {
       description: Some("Settings for an external image proxy.".to_owned()),
       ..Metadata::default()
     };
-    let variant1_inner = ExternalProxySettings::json_schema(gen);
+    let variant1_inner = ExternalProxySettings::json_schema(generator);
     let mut variant1 = SchemaObject {
       instance_type: Some(SingleOrVec::Single(Box::new(InstanceType::Object))),
       metadata: Some(Box::new(variant1_metadata)),
@@ -106,7 +106,7 @@ impl JsonSchema for ProxySettings {
       vec!["external".to_string()].into_iter().collect();
     let variant1: Schema = variant1.into();
 
-    let variant2 = crate::server::image_proxy::Config::json_schema(gen);
+    let variant2 = crate::server::image_proxy::Config::json_schema(generator);
     let subschema = SubschemaValidation {
       any_of: Some(vec![variant1, variant2]),
       ..Default::default()
@@ -180,13 +180,13 @@ fn rewrite_html(
   html: &str,
 ) -> Option<String> {
   use glob_match::glob_match;
-  use lol_html::{element, RewriteStrSettings};
+  use lol_html::{RewriteStrSettings, element};
 
   let selector = config.selector();
   let matches_domain = |url: &Url| match (&config.domains, url.domain()) {
     (None, _) => true,
     (_, None) => false,
-    (Some(ref domains), Some(domain)) => {
+    (Some(domains), Some(domain)) => {
       domains.iter().any(|pat| glob_match(pat, domain))
     }
   };

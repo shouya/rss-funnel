@@ -107,7 +107,9 @@ pub enum Error {
   #[error("Source URL unspecified for dynamic source")]
   DynamicSourceUnspecified,
 
-  #[error("Source parameter {placeholder} failed to match validation: {validation} (input: {input})")]
+  #[error(
+    "Source parameter {placeholder} failed to match validation: {validation} (input: {input})"
+  )]
   SourceTemplateValidation {
     placeholder: String,
     validation: String,
@@ -117,7 +119,9 @@ pub enum Error {
   #[error("Source template placeholder unspecified: {0}")]
   MissingSourceTemplatePlaceholder(String),
 
-  #[error("Can't infer app base, please refer to https://github.com/shouya/rss-funnel/wiki/App-base")]
+  #[error(
+    "Can't infer app base, please refer to https://github.com/shouya/rss-funnel/wiki/App-base"
+  )]
   BaseUrlNotInferred,
 
   #[error("JSONPath error: {0}")]

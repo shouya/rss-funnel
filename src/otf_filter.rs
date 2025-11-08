@@ -3,10 +3,10 @@ use std::str::FromStr;
 use tracing::warn;
 
 use crate::{
+  ConfigError, Error,
   feed::Feed,
   filter::{FilterConfig, FilterContext},
   filter_pipeline::{FilterPipeline, FilterPipelineConfig},
-  ConfigError, Error,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

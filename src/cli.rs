@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
+  ConfigError, Result,
   server::{self, EndpointConfig, ServerConfig},
   util::relative_path,
-  ConfigError, Result,
 };
 
 #[derive(Parser)]

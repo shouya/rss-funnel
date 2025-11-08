@@ -1,7 +1,7 @@
 use std::{hash::Hash, sync::Arc};
 
 use axum::{
-  body::Body, extract::Query, response::IntoResponse, Extension, Router,
+  Extension, Router, body::Body, extract::Query, response::IntoResponse,
 };
 use http::HeaderValue;
 use schemars::JsonSchema;
@@ -209,7 +209,7 @@ impl JsonSchema for Referer {
   }
 
   fn json_schema(
-    _gen: &mut schemars::gen::SchemaGenerator,
+    _gen: &mut schemars::r#gen::SchemaGenerator,
   ) -> schemars::schema::Schema {
     use schemars::schema::{
       InstanceType, Metadata, SchemaObject, SingleOrVec, SubschemaValidation,
@@ -315,7 +315,7 @@ impl JsonSchema for UserAgent {
   }
 
   fn json_schema(
-    _gen: &mut schemars::gen::SchemaGenerator,
+    _gen: &mut schemars::r#gen::SchemaGenerator,
   ) -> schemars::schema::Schema {
     use schemars::schema::{
       InstanceType, Metadata, SchemaObject, SingleOrVec, SubschemaValidation,

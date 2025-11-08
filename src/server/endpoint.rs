@@ -6,10 +6,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use axum::RequestExt;
 use axum::body::Body;
 use axum::extract::{FromRequestParts, Query};
 use axum::response::IntoResponse;
-use axum::RequestExt;
 use http::header::HOST;
 use http::request::Parts;
 use schemars::JsonSchema;

@@ -11,7 +11,7 @@ use crate::client::{Client, ClientConfig};
 use crate::feed::{Feed, FeedFormat, Post};
 use crate::filter::{FeedFilter, FeedFilterConfig, FilterContext};
 use crate::source::Source;
-use crate::{util, ConfigError, Error, Result};
+use crate::{ConfigError, Error, Result, util};
 
 const DEFAULT_CACHE_TTL_SECS: u64 = 5 * 60;
 

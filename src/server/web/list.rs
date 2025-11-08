@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use maud::{html, Markup, PreEscaped, DOCTYPE};
+use maud::{DOCTYPE, Markup, PreEscaped, html};
 use url::Url;
 
 use crate::{
   cli::RootConfig,
-  server::{web::sprite, EndpointConfig},
+  server::{EndpointConfig, web::sprite},
   source::SourceConfig,
   util::relative_path,
 };

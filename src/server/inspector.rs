@@ -1,22 +1,22 @@
 use std::collections::HashMap;
 
+use axum::Json;
 use axum::extract::Query;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use axum::{
-  routing::{get, post},
   Extension, Router,
+  routing::{get, post},
 };
 use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
 use serde_json::json;
 
-use crate::filter::FilterConfig;
 use crate::Error;
+use crate::filter::FilterConfig;
 
-use super::auth::{handle_login, handle_logout, Auth};
-use super::feed_service::FeedService;
 use super::EndpointParam;
+use super::auth::{Auth, handle_login, handle_logout};
+use super::feed_service::FeedService;
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "inspector/dist/"]

@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
 
 #[cfg(unix)]
 async fn signal_handler() -> Result<()> {
-  use tokio::signal::unix::{signal, SignalKind};
+  use tokio::signal::unix::{SignalKind, signal};
   use tracing::info;
 
   let mut sigint = signal(SignalKind::interrupt())?;

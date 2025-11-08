@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::{stream, StreamExt};
+use futures::{StreamExt, stream};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

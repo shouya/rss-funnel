@@ -4,10 +4,10 @@ use tokio::sync::Mutex;
 use tracing::info;
 
 use crate::{
+  ConfigError, Result,
   feed::Feed,
   filter::{BoxedFilter, FeedFilter, FilterConfig, FilterContext},
   filter_cache::FilterCache,
-  ConfigError, Result,
 };
 
 #[derive(

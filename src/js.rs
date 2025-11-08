@@ -12,7 +12,7 @@ use rquickjs::module::ModuleData;
 use rquickjs::prelude::IntoArgs;
 use rquickjs::promise::Promise;
 use rquickjs::{
-  async_with, AsyncContext, Class, Ctx, FromJs, Function, IntoJs, Value,
+  AsyncContext, Class, Ctx, FromJs, Function, IntoJs, Value, async_with,
 };
 use url::Url;
 

@@ -18,11 +18,11 @@ use std::sync::Arc;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
+use serde_with::{StringWithSeparator, formats::CommaSeparator, serde_as};
 use url::Url;
 
 use crate::{
-  feed::Feed, filter_cache::CacheGranularity, ConfigError, Error, Result,
+  ConfigError, Error, Result, feed::Feed, filter_cache::CacheGranularity,
 };
 
 #[serde_as]
@@ -282,7 +282,7 @@ macro_rules! define_filters {
       }
 
       pub fn schema_for_all() -> HashMap<String, schemars::schema::RootSchema> {
-        let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+        let settings = schemars::r#gen::SchemaSettings::draft07().with(|s| {
           s.option_nullable = true;
           s.option_add_null_type = false;
           s.inline_subschemas = true;
@@ -299,15 +299,15 @@ macro_rules! define_filters {
       }
 
       pub fn schema_for(filter: &str) -> Option<schemars::schema::RootSchema> {
-        let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
+        let settings = schemars::r#gen::SchemaSettings::draft07().with(|s| {
           s.option_nullable = true;
           s.option_add_null_type = false;
           s.inline_subschemas = true;
         });
-        let gen = settings.into_generator();
+        let generator = settings.into_generator();
         match filter {
           $(paste::paste! { stringify!([<$variant:snake>]) } => {
-            Some(gen.into_root_schema_for::<$config>())
+            Some(generator.into_root_schema_for::<$config>())
           })*
           _ => None,
         }

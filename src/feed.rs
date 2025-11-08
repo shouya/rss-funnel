@@ -11,10 +11,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
-use crate::source::FromScratch;
-use crate::util::{convert_relative_url, html_body};
 use crate::Error;
 use crate::Result;
+use crate::source::FromScratch;
+use crate::util::{convert_relative_url, html_body};
 
 use extension::ExtensionExt;
 

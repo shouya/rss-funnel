@@ -2,8 +2,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  feed::{Feed, FeedFormat},
   ConfigError, Result,
+  feed::{Feed, FeedFormat},
 };
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
@@ -42,8 +42,8 @@ impl FeedFilter for ConvertTo {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::test_utils::fetch_endpoint;
   use crate::Result;
+  use crate::test_utils::fetch_endpoint;
 
   #[tokio::test]
   async fn test_convert_to() -> Result<()> {

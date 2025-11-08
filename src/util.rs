@@ -139,8 +139,8 @@ mod cache {
     hash::Hash,
     num::NonZeroUsize,
     sync::{
-      atomic::{AtomicUsize, Ordering},
       RwLock,
+      atomic::{AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
   };
