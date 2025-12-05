@@ -11,7 +11,7 @@ use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
 use serde_json::json;
 
-use crate::Error;
+use crate::error::{EndpointNotFound, into_http};
 use crate::filter::FilterConfig;
 
 use super::EndpointParam;
@@ -126,8 +126,8 @@ async fn preview_handler(
   let path = params.endpoint.trim_start_matches('/');
   let endpoint_service = feed_service.get_endpoint(path).await;
   let Some(endpoint_service) = endpoint_service else {
-    let e = Error::EndpointNotFound(params.endpoint);
-    return Err(PreviewError(e));
+    let e = EndpointNotFound(params.endpoint);
+    return Err(PreviewError(e.into()));
   };
 
   let feed = endpoint_service.run(endpoint_param).await?;
@@ -157,13 +157,13 @@ impl<E: ToString> IntoResponse for BadRequest<E> {
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
-struct PreviewError(#[from] Error);
+struct PreviewError(#[from] anyhow::Error);
 
 impl IntoResponse for PreviewError {
   fn into_response(self) -> Response {
-    let body = self.0.to_string();
+    let (status, body) = into_http(self.0);
     http::Response::builder()
-      .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+      .status(status)
       .body(body.into())
       .unwrap()
   }

@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  ConfigError, Result,
+  error::Result,
   feed::{Feed, FeedFormat},
 };
 
@@ -25,7 +25,7 @@ pub struct ConvertTo {
 impl FeedFilterConfig for ConvertToConfig {
   type Filter = ConvertTo;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(ConvertTo {
       format: self.format,
     })

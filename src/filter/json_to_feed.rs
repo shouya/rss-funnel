@@ -8,10 +8,11 @@ use serde_json::Value;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
+use crate::error::{DynamicSourceUnspecified, Result};
 use crate::feed::{Feed, FeedFormat, Post};
 use crate::filter::{FeedFilter, FeedFilterConfig, FilterContext};
 use crate::source::Source;
-use crate::{ConfigError, Error, Result, util};
+use crate::util;
 
 const DEFAULT_CACHE_TTL_SECS: u64 = 5 * 60;
 
@@ -98,7 +99,7 @@ pub struct JsonToFeedFilter {
 impl FeedFilterConfig for JsonToFeedConfig {
   type Filter = JsonToFeedFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let JsonToFeedConfig {
       url,
       items,
@@ -116,7 +117,7 @@ impl FeedFilterConfig for JsonToFeedConfig {
       client_cfg.build(Duration::from_secs(DEFAULT_CACHE_TTL_SECS))?;
 
     let items_path =
-      CompiledJsonPath::compile(&items).map_err(ConfigError::Message)?;
+      CompiledJsonPath::compile(&items).map_err(|e| anyhow::anyhow!("{e}"))?;
     let item_map = map.parse()?;
     let feed_meta_map = feed.parse()?;
 
@@ -133,19 +134,15 @@ impl FeedFilterConfig for JsonToFeedConfig {
 #[async_trait::async_trait]
 impl FeedFilter for JsonToFeedFilter {
   async fn run(&self, ctx: &mut FilterContext, mut feed: Feed) -> Result<Feed> {
-    let url = self
-      .source
-      .full_url(ctx)
-      .ok_or(Error::DynamicSourceUnspecified)?;
+    let url = self.source.full_url(ctx).ok_or(DynamicSourceUnspecified)?;
     let response = self.client.get(&url).await?.error_for_status()?;
     let body = response.text()?;
-    let root: Value =
-      serde_json::from_str(&body).map_err(Error::JsonDeserialization)?;
+    let root: Value = serde_json::from_str(&body)?;
 
     let feed_meta = self.feed_meta_map.select(&root)?;
     feed_meta.apply(&mut feed)?;
 
-    let items = self.items_path.select(&root).map_err(Error::JsonPath)?;
+    let items = self.items_path.select(&root)?;
     let mut posts = Vec::with_capacity(items.len());
 
     for item in items {
@@ -164,7 +161,7 @@ impl FeedFilter for JsonToFeedFilter {
 }
 
 impl ConfigFieldMap {
-  fn parse(self) -> Result<ParsedFieldMap, ConfigError> {
+  fn parse(self) -> Result<ParsedFieldMap> {
     let field_map = ParsedFieldMap {
       title: self.title.map(parse_field).transpose()?,
       link: self.link.map(parse_field).transpose()?,
@@ -184,7 +181,7 @@ impl ConfigFieldMap {
 }
 
 impl ParsedFieldMap {
-  fn select<'a>(&'a self, root: &'a Value) -> Result<FieldValues<'a>, Error> {
+  fn select<'a>(&'a self, root: &'a Value) -> Result<FieldValues<'a>> {
     // TODO: add context to the errors
     let field_values = FieldValues {
       title: select_field(root, &self.title, false)?,
@@ -213,15 +210,15 @@ impl FieldValue<'_> {
       FieldValue::Single(Value::Number(n)) => Ok(n.to_string()),
       FieldValue::Single(Value::Bool(b)) => Ok(b.to_string()),
 
-      FieldValue::Single(other) => Err(Error::InvalidField {
-        value_repr: other.to_string(),
-        expected: "string",
-      }),
+      FieldValue::Single(other) => {
+        anyhow::bail!("invalid field: {other}, expected string")
+      }
 
-      FieldValue::Multi(_) => Err(Error::InvalidField {
-        value_repr: "(multiple values selected)".to_owned(),
-        expected: "single string",
-      }),
+      FieldValue::Multi(_) => {
+        anyhow::bail!(
+          "invalid field: (multiple values selected), expected single string"
+        )
+      }
     }
   }
 
@@ -254,7 +251,9 @@ macro_rules! get_field {
       .$field
       .as_ref()
       .map(|v| v.to_string())
-      .unwrap_or(Err(Error::MissingField(stringify!($field))))?
+      .unwrap_or_else(|| {
+        anyhow::bail!(concat!("missing field: ", stringify!($field)))
+      })?
   };
   (optional; $self:ident . $field:ident) => {
     // returns Option<String>
@@ -266,7 +265,9 @@ macro_rules! get_field {
       .$field
       .as_ref()
       .map(|v| v.to_strings())
-      .unwrap_or(Err(Error::MissingField(stringify!($field))))?
+      .unwrap_or_else(|| {
+        anyhow::bail!(concat!("missing field: ", stringify!($field)))
+      })?
   };
   (multi optional; $self:ident . $field:ident) => {
     // returns Option<Vec<String>>
@@ -338,7 +339,7 @@ impl FieldValues<'_> {
 }
 
 impl ConfigFeedMetaMap {
-  fn parse(self) -> Result<ParsedFeedMetaMap, ConfigError> {
+  fn parse(self) -> Result<ParsedFeedMetaMap> {
     let feed_map = ParsedFeedMetaMap {
       title: self.title.map(parse_field).transpose()?,
       link: self.link.map(parse_field).transpose()?,
@@ -362,7 +363,7 @@ impl ParsedFeedMetaMap {
 }
 
 impl FeedMetaValues<'_> {
-  fn apply(&self, feed: &mut Feed) -> Result<(), Error> {
+  fn apply(&self, feed: &mut Feed) -> Result<()> {
     let title = get_field!(required; self.title);
     match feed {
       Feed::Rss(channel) => channel.title = title,
@@ -399,14 +400,14 @@ impl FeedMetaValues<'_> {
   }
 }
 
-fn parse_field(mut str: String) -> Result<ParsedField, ConfigError> {
+fn parse_field(mut str: String) -> Result<ParsedField> {
   if str.starts_with("\\$") {
     str.remove(0);
     Ok(ParsedField::Const(str))
   } else if str.starts_with('$') {
     CompiledJsonPath::compile(&str)
       .map(ParsedField::JsonPath)
-      .map_err(ConfigError::Message)
+      .map_err(|e| anyhow::anyhow!("{e}"))
   } else {
     Ok(ParsedField::Const(str))
   }

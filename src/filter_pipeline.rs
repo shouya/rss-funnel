@@ -1,10 +1,11 @@
+use anyhow::Context;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tracing::info;
 
 use crate::{
-  ConfigError, Result,
+  error::{InFilter, InFilterConfig, Result},
   feed::Feed,
   filter::{BoxedFilter, FeedFilter, FilterConfig, FilterContext},
   filter_cache::FilterCache,
@@ -35,7 +36,7 @@ struct Inner {
 }
 
 impl FilterPipelineConfig {
-  pub async fn build(self) -> Result<FilterPipeline, ConfigError> {
+  pub async fn build(self) -> Result<FilterPipeline> {
     let mut filters = vec![];
     let mut caches = vec![];
     let configs = self.filters.clone();
@@ -64,16 +65,13 @@ impl FilterPipeline {
     self.inner.lock().await.run(context, feed).await
   }
 
-  pub async fn update(
-    &self,
-    config: FilterPipelineConfig,
-  ) -> Result<(), ConfigError> {
+  pub async fn update(&self, config: FilterPipelineConfig) -> Result<()> {
     let mut inner = self.inner.lock().await;
     let mut filters = vec![];
     let mut configs = vec![];
     let mut caches = vec![];
 
-    for filter_config in config.filters {
+    for (i, filter_config) in config.filters.into_iter().enumerate() {
       configs.push(filter_config.clone());
 
       if let Some((filter, cache)) = inner.take(&filter_config) {
@@ -81,8 +79,12 @@ impl FilterPipeline {
         // preserve the cache if the filter is unchanged
         caches.push(cache);
       } else {
+        let name = filter_config.name();
         info!("building filter: {}", filter_config.name());
-        let filter = filter_config.build().await?;
+        let filter = filter_config
+          .build()
+          .await
+          .with_context(|| InFilterConfig(i, name))?;
         filters.push(filter);
         caches.push(FilterCache::new());
       }
@@ -133,7 +135,10 @@ impl Inner {
   ) -> Result<Feed> {
     for (i, filter) in self.filters.iter().enumerate() {
       if context.allows_filter(i) {
-        feed = self.step(i, filter, context, feed).await?;
+        feed = self
+          .step(i, filter, context, feed)
+          .await
+          .context(InFilter(i))?;
       }
     }
 

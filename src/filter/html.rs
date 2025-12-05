@@ -12,9 +12,9 @@ use schemars::JsonSchema;
 use scraper::{ElementRef, Html, Selector};
 use serde::{Deserialize, Serialize};
 
+use crate::error::Result;
+use crate::feed::Feed;
 use crate::feed::Post;
-use crate::{ConfigError, feed::Feed};
-use crate::{Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -38,16 +38,16 @@ pub struct RemoveElement {
 }
 
 // can't define FromStr for Selector due to Rust's orphan rule
-fn parse_selector(selector: &str) -> Result<Selector, ConfigError> {
+fn parse_selector(selector: &str) -> Result<Selector> {
   Selector::parse(selector)
-    .map_err(|e| ConfigError::BadSelector(format!("{selector}: {e}")))
+    .map_err(|e| anyhow::anyhow!("bad selector: {selector}: {e}"))
 }
 
 #[async_trait::async_trait]
 impl FeedFilterConfig for RemoveElementConfig {
   type Filter = RemoveElement;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let mut selectors = vec![];
     for selector in self.selectors {
       let parsed = parse_selector(&selector)?;
@@ -136,7 +136,7 @@ impl FeedFilterConfig for KeepElementConfig {
   // TODO: decide whether we want to support iteratively narrowed
   // selector. Multiple selectors here may create more confusion than
   // being useful.
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let selectors = vec![parse_selector(&self.selector)?];
     Ok(KeepElement { selectors })
   }
@@ -245,14 +245,13 @@ pub struct Split {
 impl FeedFilterConfig for SplitConfig {
   type Filter = Split;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
-    let parse_selector_opt =
-      |s: &Option<String>| -> Result<Option<Selector>, ConfigError> {
-        match s {
-          Some(s) => Ok(Some(parse_selector(s)?)),
-          None => Ok(None),
-        }
-      };
+  async fn build(self) -> Result<Self::Filter> {
+    let parse_selector_opt = |s: &Option<String>| -> Result<Option<Selector>> {
+      match s {
+        Some(s) => Ok(Some(parse_selector(s)?)),
+        None => Ok(None),
+      }
+    };
 
     let title_selector = parse_selector(&self.title_selector)?;
     let link_selector = parse_selector_opt(&self.link_selector)?;
@@ -307,9 +306,7 @@ impl Split {
           .attr("href")
           .map(std::string::ToString::to_string)
           .map(|link| Self::expand_link(base_link, &link))
-          .ok_or_else(|| {
-            Error::Message("Selector error: link has no href".into())
-          })
+          .ok_or_else(|| anyhow::anyhow!("Selector error: link has no href"))
       })
       .collect::<Result<Vec<_>>>()?;
 
@@ -360,9 +357,10 @@ impl Split {
     template_post.modify_bodies(std::string::String::clear);
 
     if self.author_selector.is_some()
-      && let Some(author) = template_post.author_mut() {
-        author.clear();
-      }
+      && let Some(author) = template_post.author_mut()
+    {
+      author.clear();
+    }
     template_post
   }
 
@@ -403,12 +401,11 @@ impl Split {
     let titles = self.select_title(&doc)?;
     let links = self.select_link(post.link_or_err()?, &doc)?;
     if titles.len() != links.len() {
-      let msg = format!(
+      anyhow::bail!(
         "Selector error: title ({}) and link ({}) count mismatch",
         titles.len(),
         links.len()
       );
-      return Err(Error::Message(msg));
     }
 
     let n = titles.len();
@@ -420,7 +417,7 @@ impl Split {
       || titles.len() != authors.len()
       || titles.len() != pub_dates.len()
     {
-      let msg = format!(
+      anyhow::bail!(
         "Selector error: title ({}), link ({}), body ({}), author ({}), and date ({}) count mismatch",
         titles.len(),
         links.len(),
@@ -428,7 +425,6 @@ impl Split {
         authors.len(),
         pub_dates.len()
       );
-      return Err(Error::Message(msg));
     }
 
     let iter = itertools::multizip((titles, links, bodies, authors, pub_dates));

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use std::borrow::Cow;
 
-use crate::{ConfigError, Result, feed::Feed, util::SingleOrVec};
+use crate::{error::Result, feed::Feed, util::SingleOrVec};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -88,16 +88,15 @@ impl MatchConfig {
     out
   }
 
-  fn regex_set(&self) -> Result<RegexSet, ConfigError> {
+  fn regex_set(&self) -> Result<RegexSet> {
     let case_sensitive = self.case_sensitive.unwrap_or(false);
     let regex_set = RegexSetBuilder::new(self.regexes())
       .case_insensitive(!case_sensitive)
-      .build()
-      .map_err(ConfigError::from)?;
+      .build()?;
     Ok(regex_set)
   }
 
-  fn into_select(self, action: Action) -> Result<Select, ConfigError> {
+  fn into_select(self, action: Action) -> Result<Select> {
     let needle = self.regex_set()?;
     let field = self.field;
 
@@ -134,7 +133,6 @@ impl Field {
   }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 enum Action {
   Include,
@@ -145,7 +143,7 @@ enum Action {
 impl FeedFilterConfig for KeepOnlyConfig {
   type Filter = Select;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     self.0.into_match_config().into_select(Action::Include)
   }
 }
@@ -154,7 +152,7 @@ impl FeedFilterConfig for KeepOnlyConfig {
 impl FeedFilterConfig for DiscardConfig {
   type Filter = Select;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     self.0.into_match_config().into_select(Action::Exclude)
   }
 }

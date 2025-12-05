@@ -5,6 +5,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
+use anyhow::Context;
 use async_trait::async_trait;
 use axum::RequestExt;
 use axum::body::Body;
@@ -19,12 +20,12 @@ use tower::Service;
 use url::Url;
 
 use crate::client::{Client, ClientConfig};
+use crate::error::{InEndpoint, InSource, Result, into_http};
 use crate::feed::Feed;
 use crate::filter::{FilterContext, FilterSkip};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::otf_filter::{OnTheFlyFilter, OnTheFlyFilterQuery};
 use crate::source::{Source, SourceConfig};
-use crate::{ConfigError, Error, Result};
 
 type Request = http::Request<Body>;
 type Response = http::Response<Body>;
@@ -33,7 +34,7 @@ type Response = http::Response<Body>;
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
 )]
 pub struct EndpointConfig {
-  pub path: String,
+  pub path: Arc<str>,
   pub note: Option<String>,
   #[serde(flatten)]
   pub config: EndpointServiceConfig,
@@ -42,7 +43,7 @@ pub struct EndpointConfig {
 impl EndpointConfig {
   pub fn default_on_the_fly(path: &str) -> Self {
     Self {
-      path: path.to_string(),
+      path: Arc::from(path),
       note: Some("Default On-the-fly filter endpoint".to_string()),
       config: EndpointServiceConfig {
         source: SourceConfig::Dynamic,
@@ -58,12 +59,14 @@ impl EndpointConfig {
   }
 
   #[cfg(test)]
-  pub fn parse_yaml(yaml: &str) -> Result<Self, ConfigError> {
+  pub fn parse_yaml(yaml: &str) -> Result<Self> {
     Ok(serde_yaml::from_str(yaml)?)
   }
 
-  pub async fn build(self) -> Result<EndpointService, ConfigError> {
-    EndpointService::from_config(self.config).await
+  pub async fn build(self) -> Result<EndpointService> {
+    EndpointService::from_config(self.config, self.path.clone())
+      .await
+      .context(InEndpoint(self.path))
   }
 
   pub(crate) fn source(&self) -> &SourceConfig {
@@ -95,6 +98,7 @@ pub struct EndpointServiceConfig {
 // request.
 #[derive(Clone)]
 pub struct EndpointService {
+  path: Arc<str>,
   // used for detecting changes in the config for partial update
   config: EndpointServiceConfig,
   source: Source,
@@ -264,17 +268,20 @@ impl EndpointService {
   async fn handle(self, mut req: Request) -> Result<Response, Response> {
     // infallible
     let param: EndpointParam = req.extract_parts().await.unwrap();
+    let path = self.path.clone();
     let feed = self
       .run(param)
       .await
-      .map_err(|e| e.into_http().into_response())?;
+      .context(InEndpoint(path))
+      .map_err(|e| into_http(e).into_response())?;
     let resp = feed.into_response();
     Ok(resp)
   }
 
   pub async fn from_config(
     config: EndpointServiceConfig,
-  ) -> Result<Self, ConfigError> {
+    path: Arc<str>,
+  ) -> Result<Self> {
     let cloned_config = config.clone();
     let filters = config.filters.build().await?;
 
@@ -288,6 +295,7 @@ impl EndpointService {
     };
 
     Ok(Self {
+      path,
       config: cloned_config,
       source,
       on_the_fly_filter,
@@ -301,11 +309,12 @@ impl EndpointService {
     context: &mut FilterContext,
     param: EndpointParam,
   ) -> Result<Feed> {
+    use anyhow::Context;
     let feed = self
       .source
       .fetch_feed(context, Some(&self.client))
       .await
-      .map_err(|e| Error::FetchSource(Box::new(e)))?;
+      .context(InSource(self.source))?;
     let mut feed = self.filters.run(context, feed).await?;
 
     if let (Some(on_the_fly_filter), Some(query)) =
@@ -313,7 +322,10 @@ impl EndpointService {
     {
       let query = OnTheFlyFilterQuery::from_uri_query(&query);
       let mut lock = on_the_fly_filter.lock().await;
-      feed = lock.run(query, context, feed).await?;
+      feed = lock
+        .run(query, context, feed)
+        .await
+        .context("error running otf filters")?;
     }
 
     if let Some(limit) = param.limit_posts {
@@ -335,10 +347,7 @@ impl EndpointService {
     self.config != *config
   }
 
-  pub async fn update(
-    mut self,
-    config: EndpointServiceConfig,
-  ) -> Result<Self, ConfigError> {
+  pub async fn update(mut self, config: EndpointServiceConfig) -> Result<Self> {
     let cloned_config = config.clone();
     if self.config.client != config.client {
       let default_cache_ttl = Duration::from_secs(15 * 60);

@@ -95,6 +95,7 @@ maud = { version = "0.26.0", features = ["axum"] }
 ammonia = "4.0.0"
 serde_with = "3.9.0"
 perfect-derive = "0.1.5"
+anyhow = { version = "1.0.100", features = ["backtrace"] }
 
 [patch.crates-io]
 ego-tree = { git = "https://github.com/shouya/ego-tree.git" }

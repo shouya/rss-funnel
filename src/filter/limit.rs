@@ -4,7 +4,7 @@ use chrono::Utc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{ConfigError, Error, feed::Feed};
+use crate::{error::Result, feed::Feed};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -43,7 +43,7 @@ pub struct Limit {
 impl FeedFilterConfig for LimitConfig {
   type Filter = Limit;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(Limit { config: self })
   }
 }
@@ -54,7 +54,7 @@ impl FeedFilter for Limit {
     &self,
     _ctx: &mut FilterContext,
     mut feed: Feed,
-  ) -> Result<Feed, Error> {
+  ) -> Result<Feed> {
     match &self.config {
       LimitConfig::Count(LimitByCount(count)) => {
         let mut posts = feed.take_posts();

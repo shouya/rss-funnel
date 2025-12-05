@@ -9,7 +9,7 @@ use tokio::{
 };
 use tracing::{error, warn};
 
-use crate::{ConfigError, Result};
+use crate::Result;
 
 pub struct Watcher {
   path: PathBuf,
@@ -83,10 +83,8 @@ impl Watcher {
       }
     };
 
-    let mut watcher =
-      notify::recommended_watcher(event_handler).map_err(|e| {
-        ConfigError::Message(format!("failed to create file watcher: {e:?}"))
-      })?;
+    let mut watcher = notify::recommended_watcher(event_handler)
+      .map_err(|e| anyhow::anyhow!("failed to create file watcher: {e:?}"))?;
 
     // if the file does not exist, simply wait for it to be created
     while !self.path.exists() {
@@ -99,9 +97,7 @@ impl Watcher {
 
     watcher
       .watch(&self.path, RecursiveMode::NonRecursive)
-      .map_err(|e| {
-        ConfigError::Message(format!("failed to watch file: {e:?}"))
-      })?;
+      .map_err(|e| anyhow::anyhow!("failed to watch file: {e:?}"))?;
 
     self.watcher.replace(watcher);
 

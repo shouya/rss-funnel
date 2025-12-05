@@ -1,164 +1,84 @@
 use http::StatusCode;
 
-// pub type DateTime = time::OffsetDateTime;
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+pub use anyhow::Result;
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct ConfigError(#[from] pub anyhow::Error);
 
 #[derive(Debug, thiserror::Error)]
 pub enum JsError {
   #[error("{0}")]
   Message(String),
 
-  #[error("Exception: {0}")]
+  #[error("JS exception: {0}")]
   Exception(crate::js::Exception),
 
-  #[error("{0}")]
+  #[error(transparent)]
   Error(#[from] rquickjs::Error),
 }
 
+pub type JsResult<T> = std::result::Result<T, JsError>;
+
 #[derive(Debug, thiserror::Error)]
-pub enum ConfigError {
-  #[error("Bad selector: {0}")]
-  BadSelector(String),
+#[error("Error in endpoint {0}")]
+pub struct InEndpoint<T: AsRef<str>>(pub T);
 
-  #[error("YAML parse error: {0}")]
-  Yaml(#[from] serde_yaml::Error),
+#[derive(Debug, thiserror::Error)]
+#[error("error in filter config for {1} ({0}th place)")]
+pub struct InFilterConfig<T: AsRef<str>>(pub usize, pub T);
 
-  #[error("Regex error: {0}")]
-  Regex(#[from] regex::Error),
+#[derive(Debug, thiserror::Error)]
+#[error("error running {}th filter", self.0 + 1)]
+pub struct InFilter(pub usize);
 
-  #[error("Invalid URL {0}")]
-  InvalidUrl(#[from] url::ParseError),
+#[derive(Debug, thiserror::Error)]
+#[error("error fetching source: {0}")]
+pub struct InSource<T>(pub T);
 
-  #[error("IO error: {0}")]
-  Io(#[from] std::io::Error),
+// Marker types for HTTP status code mapping
+#[derive(Debug, thiserror::Error)]
+#[error("HTTP status error {0} (url: {1})")]
+pub struct HttpStatusError(pub reqwest::StatusCode, pub url::Url);
 
-  #[error("Reqwest client error: {0}")]
-  Reqwest(#[from] reqwest::Error),
-
-  #[error("Js runtime initialization error: {0}")]
-  Js(#[from] JsError),
-
-  #[error("Client config error - bad header value: {0}")]
-  ClientHeader(#[from] reqwest::header::InvalidHeaderValue),
-
-  #[error("Duplicate endpoint: {0}")]
-  DuplicateEndpoint(String),
-
-  #[error("Bad source template: {0}")]
-  BadSourceTemplate(String),
-
-  #[error("{0}")]
-  Message(String),
+#[derive(Debug, thiserror::Error)]
+#[error(
+  "source parameter {placeholder} failed to match validation: {validation} (input: {input})"
+)]
+pub struct SourceTemplateValidation {
+  pub placeholder: String,
+  pub validation: String,
+  pub input: String,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
-  #[error("IO error: {0}")]
-  Io(#[from] std::io::Error),
+#[error("source template placeholder unspecified: {0}")]
+pub struct MissingSourceTemplatePlaceholder(pub String);
 
-  #[error("HTTP error: {0}")]
-  Http(#[from] http::Error),
+#[derive(Debug, thiserror::Error)]
+#[error("source URL unspecified for dynamic source")]
+pub struct DynamicSourceUnspecified;
 
-  #[error("Axum error: {0}")]
-  Axum(#[from] axum::Error),
+#[derive(Debug, thiserror::Error)]
+#[error(
+  "Can't infer app base, please refer to https://github.com/shouya/rss-funnel/wiki/App-base"
+)]
+pub struct BaseUrlNotInferred;
 
-  #[error("RSS feed error: {0}")]
-  Rss(#[from] rss::Error),
+#[derive(Debug, thiserror::Error)]
+#[error("Endpoint not found: {0}")]
+pub struct EndpointNotFound(pub String);
 
-  #[error("Atom feed error: {0}")]
-  Atom(#[from] atom_syndication::Error),
-
-  #[error("Invalid URL: {0}")]
-  InvalidUrl(#[from] url::ParseError),
-
-  #[error("Feed parsing error: {0}")]
-  FeedParse(&'static str),
-
-  #[error("Feed merge error: {0}")]
-  FeedMerge(&'static str),
-
-  #[error("Reqwest client error: {0}")]
-  Reqwest(#[from] reqwest::Error),
-
-  #[error("HTTP status error {0} (url: {1})")]
-  HttpStatus(reqwest::StatusCode, url::Url),
-
-  #[error("Js runtime error: {0}")]
-  Js(#[from] JsError),
-
-  #[error("Failed to extract webpage: {0}")]
-  Readability(#[from] readability::error::Error),
-
-  #[error("Config error: {0}")]
-  Config(#[from] ConfigError),
-
-  #[error("Tokio task join error: {0}")]
-  Join(#[from] tokio::task::JoinError),
-
-  #[error("Endpoint not found: {0}")]
-  EndpointNotFound(String),
-
-  #[error("Unsupported feed format: {0}")]
-  UnsupportedFeedFormat(String),
-
-  #[error("Failed fetching source: {0}")]
-  FetchSource(Box<Error>),
-
-  #[error("Source URL unspecified for dynamic source")]
-  DynamicSourceUnspecified,
-
-  #[error(
-    "Source parameter {placeholder} failed to match validation: {validation} (input: {input})"
-  )]
-  SourceTemplateValidation {
-    placeholder: String,
-    validation: String,
-    input: String,
-  },
-
-  #[error("Source template placeholder unspecified: {0}")]
-  MissingSourceTemplatePlaceholder(String),
-
-  #[error(
-    "Can't infer app base, please refer to https://github.com/shouya/rss-funnel/wiki/App-base"
-  )]
-  BaseUrlNotInferred,
-
-  #[error("JSONPath error: {0}")]
-  JsonPath(#[from] jsonpath_lib::JsonPathError),
-
-  #[error("Failed to deserialize JSON: {0}")]
-  JsonDeserialization(#[from] serde_json::Error),
-
-  #[error("Missing expected field: {0}")]
-  MissingField(&'static str),
-
-  #[error("Invalid field: {value_repr}, expected {expected}")]
-  InvalidField {
-    value_repr: String,
-    expected: &'static str,
-  },
-
-  #[error("{0}")]
-  Message(String),
-}
-
-impl Error {
-  pub fn into_http(self) -> (StatusCode, String) {
-    match self {
-      Error::FetchSource(e) => {
-        let (status, body) = e.into_http();
-        (status, format!("Error fetching source: {body}"))
-      }
-      Error::HttpStatus(status, url) => {
-        let body = format!("Error requesting {url}: {status}");
-        (StatusCode::BAD_GATEWAY, body)
-      }
-      Error::SourceTemplateValidation { .. }
-      | Error::MissingSourceTemplatePlaceholder(_) => {
-        (StatusCode::BAD_REQUEST, format!("{self}"))
-      }
-      _ => (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")),
+pub fn into_http(e: anyhow::Error) -> (StatusCode, String) {
+  for cause in e.chain() {
+    if cause.downcast_ref::<SourceTemplateValidation>().is_some()
+      || cause
+        .downcast_ref::<MissingSourceTemplatePlaceholder>()
+        .is_some()
+    {
+      return (StatusCode::BAD_REQUEST, format!("{e:?}"));
     }
   }
+
+  (StatusCode::INTERNAL_SERVER_ERROR, format!("{e:?}"))
 }

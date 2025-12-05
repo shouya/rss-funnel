@@ -22,7 +22,9 @@ use serde_with::{StringWithSeparator, formats::CommaSeparator, serde_as};
 use url::Url;
 
 use crate::{
-  ConfigError, Error, Result, feed::Feed, filter_cache::CacheGranularity,
+  error::{BaseUrlNotInferred, Result},
+  feed::Feed,
+  filter_cache::CacheGranularity,
 };
 
 #[serde_as]
@@ -98,7 +100,7 @@ impl FilterContext {
   }
 
   pub fn base_expected(&self) -> Result<&Url> {
-    self.base().ok_or_else(|| Error::BaseUrlNotInferred)
+    self.base().ok_or_else(|| BaseUrlNotInferred.into())
   }
 
   pub fn extra_queries(&self) -> &HashMap<String, String> {
@@ -173,7 +175,7 @@ pub trait FeedFilter {
 pub trait FeedFilterConfig {
   type Filter: FeedFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError>;
+  async fn build(self) -> Result<Self::Filter>;
 }
 
 #[derive(Clone)]
@@ -223,18 +225,18 @@ macro_rules! define_filters {
       }
 
       #[cfg(test)]
-      pub fn parse_yaml(input: &str) -> Result<Self, ConfigError> {
+      pub fn parse_yaml(input: &str) -> Result<Self> {
         #[derive(Deserialize)]
         struct Dummy {
           #[serde(flatten)]
           config: FilterConfig
         }
 
-        let dummy: Dummy = serde_yaml::from_str(input).map_err(ConfigError::from)?;
+        let dummy: Dummy = serde_yaml::from_str(input)?;
         Ok(dummy.config)
       }
 
-      pub fn parse_yaml_value(key: &str, value: serde_yaml::Value) -> Result<Self, ConfigError> {
+      pub fn parse_yaml_value(key: &str, value: serde_yaml::Value) -> Result<Self> {
         #[derive(Deserialize)]
         struct Dummy {
           #[serde(flatten)]
@@ -251,11 +253,11 @@ macro_rules! define_filters {
           value: Value::Mapping(mapping),
         }));
 
-        let dummy: Dummy = serde_yaml::from_value(yaml_value).map_err(ConfigError::from)?;
+        let dummy: Dummy = serde_yaml::from_value(yaml_value)?;
         Ok(dummy.config)
       }
 
-      pub async fn build(self) -> Result<BoxedFilter, ConfigError> {
+      pub async fn build(self) -> Result<BoxedFilter> {
         match self {
           $(FilterConfig::$variant(config) => {
             let filter = config.build().await?;
@@ -264,7 +266,7 @@ macro_rules! define_filters {
         }
       }
 
-      pub fn to_yaml(&self) -> Result<String, ConfigError> {
+      pub fn to_yaml(&self) -> Result<String> {
         Ok(serde_yaml::to_string(self)?)
       }
 
@@ -335,5 +337,5 @@ define_filters!(
   ConvertTo => convert::ConvertToConfig, "Convert feed to another format";
   Limit => limit::LimitConfig, "Limit the number of posts";
   Magnet => magnet::MagnetConfig, "Find magnet links in posts";
-  ImageProxy => image_proxy::Config, "Find magnet links in posts";
+  ImageProxy => image_proxy::Config, "Rewrite image src to use proxy";
 );

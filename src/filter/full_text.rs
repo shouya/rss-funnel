@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::client::{self, Client};
+use crate::error::Result;
 use crate::feed::{Feed, Post};
 use crate::util::convert_relative_url;
-use crate::{ConfigError, Error, Result};
 
 use super::html::{KeepElement, KeepElementConfig};
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
@@ -48,7 +48,7 @@ pub struct FullTextFilter {
 impl FeedFilterConfig for FullTextConfig {
   type Filter = FullTextFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     // default cache ttl is 12 hours
     let default_cache_ttl = Duration::from_secs(12 * 60 * 60);
     let conf_client = self.client.unwrap_or_default();
@@ -80,9 +80,7 @@ impl FullTextFilter {
     let content_type = resp.content_type().unwrap_or(mime::TEXT_HTML);
 
     if content_type.essence_str() != "text/html" {
-      return Err(Error::Message(format!(
-        "unexpected content type: {content_type}",
-      )));
+      anyhow::bail!("unexpected content type: {content_type}");
     }
 
     let resp = resp.error_for_status()?;
@@ -116,10 +114,10 @@ impl FullTextFilter {
 
     if !self.keep_guid
       && let Some(mut guid) = post.guid().map(std::string::ToString::to_string)
-      {
-        guid.push_str("-full");
-        post.set_guid(guid);
-      }
+    {
+      guid.push_str("-full");
+      post.set_guid(guid);
+    }
 
     Ok(())
   }

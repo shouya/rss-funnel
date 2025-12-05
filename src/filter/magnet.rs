@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::{
-  ConfigError, Error,
+  error::Result,
   feed::{Feed, Post},
 };
 
@@ -34,7 +34,7 @@ pub struct Magnet {
 impl FeedFilterConfig for MagnetConfig {
   type Filter = Magnet;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(Magnet { config: self })
   }
 }
@@ -45,7 +45,7 @@ impl FeedFilter for Magnet {
     &self,
     _ctx: &mut FilterContext,
     mut feed: Feed,
-  ) -> Result<Feed, Error> {
+  ) -> Result<Feed> {
     let mut posts = feed.take_posts();
 
     for post in &mut posts {

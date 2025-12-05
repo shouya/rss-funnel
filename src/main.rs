@@ -17,7 +17,7 @@ mod test_utils;
 
 use clap::Parser;
 
-use crate::error::{ConfigError, Error, Result};
+use crate::error::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {

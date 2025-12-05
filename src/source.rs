@@ -7,8 +7,11 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-  ConfigError, Error, Result,
   client::Client,
+  error::{
+    DynamicSourceUnspecified, MissingSourceTemplatePlaceholder, Result,
+    SourceTemplateValidation,
+  },
   feed::{Feed, FeedFormat},
   filter::FilterContext,
   server::EndpointParam,
@@ -81,18 +84,21 @@ impl Templated {
       let value = params
         .get(name)
         .or(placeholder.default.as_ref())
-        .ok_or(Error::MissingSourceTemplatePlaceholder(name.clone()))?
+        .ok_or_else(|| MissingSourceTemplatePlaceholder(name.clone()))?
         .clone();
 
       if let Some(validation) = &placeholder.validation {
         // already validated, so unwrap is safe
         let re = Regex::new(validation).unwrap();
         if !re.is_match(&value) {
-          return Err(Error::SourceTemplateValidation {
-            placeholder: name.clone(),
-            validation: validation.clone(),
-            input: value,
-          });
+          return Err(
+            SourceTemplateValidation {
+              placeholder: name.clone(),
+              validation: validation.clone(),
+              input: value,
+            }
+            .into(),
+          );
         }
       }
 
@@ -100,9 +106,7 @@ impl Templated {
       url = url.replace(&format!("${{{name}}}"), &encoded_value);
     }
 
-    SourceConfig::Simple(url)
-      .try_into()
-      .map_err(|e: ConfigError| e.into())
+    SourceConfig::Simple(url).try_into()
   }
 
   // https://foo.bar/${name}/baz -> https://foo.bar
@@ -137,13 +141,27 @@ impl Templated {
 }
 
 #[derive(
-  JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
+  JsonSchema,
+  Serialize,
+  Deserialize,
+  Clone,
+  Debug,
+  PartialEq,
+  Eq,
+  Hash,
+  thiserror::Error,
 )]
+// borrowing thiserror::Error's convenient macro to impl Display
 pub enum Source {
+  #[error("dynamic")]
   Dynamic,
+  #[error("{0}")]
   AbsoluteUrl(Url),
+  #[error("{0}")]
   RelativeUrl(String),
+  #[error("{0:?}")]
   Templated(Templated),
+  #[error("{0:?}")]
   FromScratch(FromScratch),
 }
 
@@ -168,7 +186,7 @@ impl From<Url> for Source {
 }
 
 impl TryFrom<SimpleSourceConfig> for Source {
-  type Error = ConfigError;
+  type Error = anyhow::Error;
 
   fn try_from(config: SimpleSourceConfig) -> Result<Self, Self::Error> {
     SourceConfig::Simple(config.0).try_into()
@@ -176,7 +194,7 @@ impl TryFrom<SimpleSourceConfig> for Source {
 }
 
 impl TryFrom<SourceConfig> for Source {
-  type Error = ConfigError;
+  type Error = anyhow::Error;
 
   fn try_from(config: SourceConfig) -> Result<Self, Self::Error> {
     match config {
@@ -197,20 +215,16 @@ impl TryFrom<SourceConfig> for Source {
   }
 }
 
-fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
+fn validate_placeholders(config: &Templated) -> Result<()> {
   // Validation: placeholders must not be empty
   if config.placeholders.is_empty() {
-    return Err(ConfigError::BadSourceTemplate(
-      "placeholders must not be empty for templated source".into(),
-    ));
+    anyhow::bail!("placeholders must not be empty for templated source");
   }
 
   // Validation: all placeholders must present in template
   for name in config.placeholders.keys() {
     if !config.template.contains(&format!("${{{name}}}")) {
-      return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder ${{{name}}} is not present in template",
-      )));
+      anyhow::bail!("placeholder ${{{name}}} is not present in template");
     }
   }
 
@@ -219,9 +233,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
   for cap in VAR_RE.captures_iter(&config.template) {
     let name = &cap["name"];
     if !config.placeholders.contains_key(name) {
-      return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder ${{{name}}} is not defined",
-      )));
+      anyhow::bail!("placeholder ${{{name}}} is not defined");
     }
   }
 
@@ -229,9 +241,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
   const RESERVED_PARAMS: &[&str] = EndpointParam::all_fields();
   for name in config.placeholders.keys() {
     if RESERVED_PARAMS.contains(&name.as_str()) {
-      return Err(ConfigError::BadSourceTemplate(format!(
-        "placeholder `{name}` is a reserved word",
-      )));
+      anyhow::bail!("placeholder `{name}` is a reserved word");
     }
   }
 
@@ -239,9 +249,7 @@ fn validate_placeholders(config: &Templated) -> Result<(), ConfigError> {
   for (name, placeholder) in &config.placeholders {
     if let Some(validation) = &placeholder.validation {
       Regex::new(validation).map_err(|e| {
-        ConfigError::BadSourceTemplate(format!(
-          "invalid regex for placeholder ${{{name}}}: {e}",
-        ))
+        anyhow::anyhow!("invalid regex for placeholder ${{{name}}}: {e}")
       })?;
     }
   }
@@ -255,11 +263,11 @@ impl Source {
     context: &FilterContext,
     client: Option<&Client>,
   ) -> Result<Feed> {
-    let client = client.ok_or_else(|| Error::Message("client not set".into()));
+    let client = client.ok_or_else(|| anyhow::anyhow!("client not set"));
 
     match self {
       Source::Dynamic => {
-        let url = context.source().ok_or(Error::DynamicSourceUnspecified)?;
+        let url = context.source().ok_or(DynamicSourceUnspecified)?;
         client?.fetch_feed(url).await
       }
       Source::AbsoluteUrl(url) => client?.fetch_feed(url).await,

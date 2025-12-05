@@ -3,7 +3,7 @@ use std::str::FromStr;
 use tracing::warn;
 
 use crate::{
-  ConfigError, Error,
+  error::Result,
   feed::Feed,
   filter::{FilterConfig, FilterContext},
   filter_pipeline::{FilterPipeline, FilterPipelineConfig},
@@ -48,7 +48,7 @@ impl OnTheFlyFilter {
   async fn update(
     &mut self,
     query: OnTheFlyFilterQuery,
-  ) -> Result<&FilterPipeline, ConfigError> {
+  ) -> Result<&FilterPipeline> {
     if self.cache.as_ref().is_some_and(|c| c.query == query) {
       return Ok(&self.cache.as_ref().unwrap().pipeline);
     }
@@ -66,7 +66,7 @@ impl OnTheFlyFilter {
     query: OnTheFlyFilterQuery,
     context: &mut FilterContext,
     feed: Feed,
-  ) -> Result<Feed, Error> {
+  ) -> Result<Feed> {
     let pipeline = self.update(query).await?;
     pipeline.run(context, feed).await
   }
@@ -74,7 +74,7 @@ impl OnTheFlyFilter {
 
 fn parse_pipeline_config(
   query: &OnTheFlyFilterQuery,
-) -> Result<FilterPipelineConfig, ConfigError> {
+) -> Result<FilterPipelineConfig> {
   let configs = query
     .query
     .iter()
@@ -83,7 +83,7 @@ fn parse_pipeline_config(
   Ok(FilterPipelineConfig::from(configs))
 }
 
-fn parse_single(param: &str) -> Result<FilterConfig, ConfigError> {
+fn parse_single(param: &str) -> Result<FilterConfig> {
   use serde_yaml::{Mapping, Number, Value};
   if !param.contains('=') || param.ends_with('=') {
     let param = param.strip_suffix('=').unwrap_or(param);
@@ -94,14 +94,14 @@ fn parse_single(param: &str) -> Result<FilterConfig, ConfigError> {
   let Some((name, value)) = param.split_once('=') else {
     let message = format!("invalid on-the-fly param: {param}");
     warn!("{}", message);
-    return Err(ConfigError::Message(message));
+    anyhow::bail!("{message}");
   };
 
   let Ok(value) = urlencoding::decode(value) else {
     let message =
       format!("invalid url decoding from on-the-fly param: {param}");
     warn!("{}", message);
-    return Err(ConfigError::Message(message));
+    anyhow::bail!("{message}");
   };
 
   // try parse value as number if possible

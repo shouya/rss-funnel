@@ -2,9 +2,9 @@ use either::Either;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::error::Result;
 use crate::feed::{Feed, Post};
 use crate::js::{AsJson, Runtime};
-use crate::{ConfigError, Error, Result};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -80,7 +80,7 @@ const MODIFY_POSTS_CODE: &str = r"
 impl FeedFilterConfig for JsConfig {
   type Filter = JsFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let runtime = Runtime::new().await?;
     let () = runtime.eval(&self.code).await?;
     let () = runtime.eval(MODIFY_POSTS_CODE).await?;
@@ -93,7 +93,7 @@ impl FeedFilterConfig for JsConfig {
 impl FeedFilterConfig for ModifyPostConfig {
   type Filter = JsFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let code = format!(
       "async function modify_post(feed, post) {{
         const retval = await (async function(){{ {} }})();
@@ -110,7 +110,7 @@ impl FeedFilterConfig for ModifyPostConfig {
 impl FeedFilterConfig for ModifyFeedConfig {
   type Filter = JsFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let code = format!(
       "async function modify_feed(feed) {{
          await (async function(){{ {}; }})();
@@ -135,9 +135,7 @@ impl JsFilter {
 
     match self.runtime.call_fn("modify_feed", args).await? {
       Left(Undefined) => {
-        return Err(Error::Message(
-          "modify_feed must return the modified feed".into(),
-        ));
+        anyhow::bail!("modify_feed must return the modified feed");
       }
       Right(AsJson(updated_feed)) => {
         *feed = updated_feed;
@@ -164,9 +162,7 @@ impl JsFilter {
         // returning null means the post should be removed
       }
       Left(Right(Undefined)) => {
-        return Err(Error::Message(
-          "modify_post must return the modified post or null".into(),
-        ));
+        anyhow::bail!("modify_post must return the modified post or null");
       }
       Right(returned_posts) => {
         posts = returned_posts;

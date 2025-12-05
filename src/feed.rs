@@ -11,8 +11,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
-use crate::Error;
-use crate::Result;
+use crate::error::Result;
 use crate::source::FromScratch;
 use crate::util::{convert_relative_url, html_body};
 
@@ -227,10 +226,10 @@ impl Feed {
         feed.entries.extend(other.entries);
       }
       (Feed::Rss(_), _) => {
-        return Err(Error::FeedMerge("cannot merge atom into rss"));
+        anyhow::bail!("cannot merge atom into rss");
       }
       (Feed::Atom(_), _) => {
-        return Err(Error::FeedMerge("cannot merge rss into atom"));
+        anyhow::bail!("cannot merge rss into atom");
       }
     }
 
@@ -688,7 +687,7 @@ macro_rules! impl_post_accessors {
         pub fn [<$key _or_err>](&self) -> Result<&str> {
           match self.$key() {
             Some(value) => Ok(value),
-            None => Err(Error::FeedParse(concat!("missing ", stringify!($key)))),
+            None => anyhow::bail!(concat!("missing ", stringify!($key))),
           }
         }
 
