@@ -10,6 +10,7 @@ use axum::{
 use http::{StatusCode, Uri};
 use schemars::schema::RootSchema;
 use serde_json::json;
+use tracing::info;
 
 use crate::error::{EndpointNotFound, into_http};
 use crate::filter::FilterConfig;
@@ -78,10 +79,20 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
   }
 }
 
+#[derive(serde::Deserialize)]
+struct ConfigHandlerParams {
+  reload: Option<String>,
+}
 async fn config_handler(
   Extension(feed_service): Extension<FeedService>,
+  Query(params): Query<ConfigHandlerParams>,
   _auth: Auth,
 ) -> impl IntoResponse {
+  if params.reload.is_some() {
+    info!("manual config reload requested");
+    feed_service.reload().await;
+  }
+
   let json = json!({
     "config_error": feed_service.with_error(std::string::ToString::to_string).await,
     "root_config": feed_service.root_config().await,

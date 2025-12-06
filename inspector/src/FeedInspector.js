@@ -30,14 +30,14 @@ export class FeedInspector {
 
     window.debug = this;
 
-    await this.reload_config();
+    await this.load_config();
 
     await Promise.all([this.load_endpoints(), this.setup_param()]);
   }
 
-  async reload_config() {
+  async load_config(reload = false) {
     const [resp, filter_schema] = await Promise.all([
-      fetch("/_inspector/config"),
+      fetch("/_inspector/config" + (reload ? '?reload=1' : '')),
       fetch("/_inspector/filter_schema?filters=all"),
     ]);
 
@@ -90,7 +90,7 @@ export class FeedInspector {
 
   async setup_reload_config_handler() {
     $("#reload-config-button").addEventListener("click", () => {
-      this.reload_config();
+      this.load_config(true);
     });
   }
 

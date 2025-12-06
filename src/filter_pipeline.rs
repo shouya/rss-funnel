@@ -1,8 +1,8 @@
 use anyhow::Context;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
-use tracing::info;
+use tokio::sync::RwLock;
+use tracing::{debug, info};
 
 use crate::{
   error::{InFilter, InFilterConfig, Result},
@@ -16,116 +16,133 @@ use crate::{
 )]
 #[serde(transparent)]
 pub struct FilterPipelineConfig {
-  pub filters: Vec<FilterConfig>,
+  pub filter_configs: Vec<FilterConfig>,
 }
 
 impl From<Vec<FilterConfig>> for FilterPipelineConfig {
-  fn from(filters: Vec<FilterConfig>) -> Self {
-    Self { filters }
+  fn from(filter_configs: Vec<FilterConfig>) -> Self {
+    Self { filter_configs }
+  }
+}
+
+impl FilterPipelineConfig {
+  pub fn is_empty(&self) -> bool {
+    self.filter_configs.is_empty()
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &FilterConfig> {
+    self.filter_configs.iter()
   }
 }
 
 pub struct FilterPipeline {
-  inner: Mutex<Inner>,
+  inner: RwLock<FilterPipelineInner>,
 }
 
-struct Inner {
-  filters: Vec<BoxedFilter>,
-  configs: Vec<FilterConfig>,
-  caches: Vec<FilterCache>,
+struct FilterPipelineInner {
+  filters: Vec<CachedFilter>,
 }
 
-impl FilterPipelineConfig {
-  pub async fn build(self) -> Result<FilterPipeline> {
-    let mut filters = vec![];
-    let mut caches = vec![];
-    let configs = self.filters.clone();
+struct CachedFilter {
+  position: usize,
+  filter: BoxedFilter,
+  config: FilterConfig,
+  cache: FilterCache,
+}
 
-    for filter_config in self.filters {
-      let filter = filter_config.build().await?;
-      filters.push(filter);
-      caches.push(FilterCache::new());
-    }
+impl CachedFilter {
+  async fn from_config(config: FilterConfig, position: usize) -> Result<Self> {
+    let filter = config
+      .clone()
+      .build()
+      .await
+      .with_context(|| InFilterConfig(position, config.name().to_string()))?;
+    let cache = FilterCache::new();
 
-    let inner = Mutex::new(Inner {
-      filters,
-      configs,
-      caches,
-    });
-    Ok(FilterPipeline { inner })
+    Ok(Self {
+      position,
+      filter,
+      config,
+      cache,
+    })
+  }
+
+  async fn run(&self, context: &mut FilterContext, feed: Feed) -> Result<Feed> {
+    self
+      .cache
+      .run(feed, self.filter.cache_granularity(), |feed| {
+        self.filter.run(context, feed)
+      })
+      .await
+      .context(InFilter(self.position))
+  }
+}
+
+impl From<Vec<CachedFilter>> for FilterPipelineInner {
+  fn from(filters: Vec<CachedFilter>) -> Self {
+    Self { filters }
   }
 }
 
 impl FilterPipeline {
+  pub async fn from_config(config: FilterPipelineConfig) -> Result<Self> {
+    let inner = FilterPipelineInner::from_config(config).await?;
+    Ok(Self {
+      inner: RwLock::new(inner),
+    })
+  }
+
   pub async fn run(
     &self,
     context: &mut FilterContext,
     feed: Feed,
   ) -> Result<Feed> {
-    self.inner.lock().await.run(context, feed).await
+    let inner = self.inner.read().await;
+    inner.run(context, feed).await
   }
 
   pub async fn update(&self, config: FilterPipelineConfig) -> Result<()> {
-    let mut inner = self.inner.lock().await;
-    let mut filters = vec![];
-    let mut configs = vec![];
-    let mut caches = vec![];
+    let mut inner = self.inner.write().await;
 
-    for (i, filter_config) in config.filters.into_iter().enumerate() {
-      configs.push(filter_config.clone());
-
-      if let Some((filter, cache)) = inner.take(&filter_config) {
-        filters.push(filter);
-        // preserve the cache if the filter is unchanged
-        caches.push(cache);
-      } else {
-        let name = filter_config.name();
-        info!("building filter: {}", filter_config.name());
-        let filter = filter_config
-          .build()
-          .await
-          .with_context(|| InFilterConfig(i, name))?;
-        filters.push(filter);
-        caches.push(FilterCache::new());
-      }
+    for (i, filter_config) in config.filter_configs.into_iter().enumerate() {
+      inner.replace_or_build(i, filter_config).await?;
     }
 
-    *inner = Inner {
-      filters,
-      configs,
-      caches,
-    };
     Ok(())
   }
 }
 
-impl Inner {
-  fn take(
-    &mut self,
-    config: &FilterConfig,
-  ) -> Option<(BoxedFilter, FilterCache)> {
-    let index = self.configs.iter().position(|c| c == config)?;
-    let filter = self.filters.remove(index);
-    let cache = self.caches.remove(index);
-    self.configs.remove(index);
-    Some((filter, cache))
+impl FilterPipelineInner {
+  async fn from_config(config: FilterPipelineConfig) -> Result<Self> {
+    let mut filters = Vec::new();
+
+    for (i, filter_config) in config.filter_configs.into_iter().enumerate() {
+      let filter = CachedFilter::from_config(filter_config, i).await?;
+      filters.push(filter);
+    }
+
+    Ok(Self { filters })
   }
 
-  async fn step(
-    &self,
-    index: usize,
-    filter: &BoxedFilter,
-    context: &mut FilterContext,
-    feed: Feed,
-  ) -> Result<Feed> {
-    if let Some(cache) = self.caches.get(index) {
-      let granularity = filter.cache_granularity();
-      cache
-        .run(feed, granularity, |feed| filter.run(context, feed))
-        .await
-    } else {
-      filter.run(context, feed).await
+  async fn replace_or_build(
+    &mut self,
+    position: usize,
+    config: FilterConfig,
+  ) -> Result<()> {
+    if self.filters.get(position).map(|x| &x.config) == Some(&config) {
+      debug!("using cached filter: {}", config.name());
+      return Ok(());
     }
+
+    info!("rebuilding filter: {}", config.name());
+    let filter = CachedFilter::from_config(config, position).await?;
+
+    if self.filters.len() >= position {
+      self.filters.truncate(position);
+    }
+
+    self.filters.push(filter);
+    Ok(())
   }
 
   async fn run(
@@ -133,13 +150,12 @@ impl Inner {
     context: &mut FilterContext,
     mut feed: Feed,
   ) -> Result<Feed> {
-    for (i, filter) in self.filters.iter().enumerate() {
-      if context.allows_filter(i) {
-        feed = self
-          .step(i, filter, context, feed)
-          .await
-          .context(InFilter(i))?;
+    for filter in &self.filters {
+      if !context.allows_filter(filter.position) {
+        continue;
       }
+
+      feed = filter.run(context, feed).await?;
     }
 
     Ok(feed)
