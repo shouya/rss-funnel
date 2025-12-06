@@ -7,7 +7,7 @@ use tokio::{
   sync::mpsc::{self, Receiver, Sender},
   time::sleep,
 };
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 use crate::Result;
 
@@ -29,6 +29,8 @@ impl Watcher {
     // succession when saving, so we debounce the events
     let rx = debounce(Duration::from_millis(500), rx);
 
+    info!("hot-reload watcher enabled for {}", path.display());
+
     Ok(Self {
       path: path.to_owned(),
       watcher: None,
@@ -48,6 +50,7 @@ impl Watcher {
 
     loop {
       self.reload_rx.recv().await.unwrap();
+      info!("config change detected, reloading");
       self.setup().await?;
       // the file is re-created, trigger a reload
       self.tx.send(()).await.unwrap();

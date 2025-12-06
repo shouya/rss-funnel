@@ -86,12 +86,7 @@ impl From<Vec<CachedFilter>> for FilterPipelineInner {
 
 impl FilterPipeline {
   pub async fn from_config(config: FilterPipelineConfig) -> Result<Self> {
-    let mut inner = FilterPipelineInner::from(Vec::new());
-
-    for (i, filter_config) in config.filter_configs.into_iter().enumerate() {
-      inner.replace_or_build(i, filter_config).await?;
-    }
-
+    let inner = FilterPipelineInner::from_config(config).await?;
     Ok(Self {
       inner: RwLock::new(inner),
     })
@@ -118,6 +113,17 @@ impl FilterPipeline {
 }
 
 impl FilterPipelineInner {
+  async fn from_config(config: FilterPipelineConfig) -> Result<Self> {
+    let mut filters = Vec::new();
+
+    for (i, filter_config) in config.filter_configs.into_iter().enumerate() {
+      let filter = CachedFilter::from_config(filter_config, i).await?;
+      filters.push(filter);
+    }
+
+    Ok(Self { filters })
+  }
+
   async fn replace_or_build(
     &mut self,
     position: usize,
@@ -128,7 +134,7 @@ impl FilterPipelineInner {
       return Ok(());
     }
 
-    info!("building filter: {}", config.name());
+    info!("rebuilding filter: {}", config.name());
     let filter = CachedFilter::from_config(config, position).await?;
 
     if self.filters.len() >= position {
