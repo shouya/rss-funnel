@@ -245,7 +245,7 @@ fn render_config_fragment(
     }
 
     @let filters = &config.filters;
-    @if filters.filters.is_empty() {
+    @if filters.is_empty() {
       "No filters"
     } @else {
       div {
@@ -261,7 +261,7 @@ fn render_config_fragment(
           hx-target="main"
           hx-select="main"
         {
-          @for (i, filter) in filters.filters.iter().enumerate() {
+          @for (i, filter) in filters.iter().enumerate() {
             li {
               div .filter-item.flex.flex-center {
                 span .filter-name title="Toggle"

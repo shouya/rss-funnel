@@ -54,7 +54,7 @@ impl OnTheFlyFilter {
     }
 
     let pipeline_config = parse_pipeline_config(&query)?;
-    let pipeline = pipeline_config.build().await?;
+    let pipeline = FilterPipeline::from_config(pipeline_config).await?;
 
     self.cache = Some(FilterPipelineCache { query, pipeline });
 

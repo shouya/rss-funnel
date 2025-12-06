@@ -103,7 +103,7 @@ pub struct EndpointService {
   config: EndpointServiceConfig,
   source: Source,
   on_the_fly_filter: Option<Arc<Mutex<OnTheFlyFilter>>>,
-  filters: Arc<FilterPipeline>,
+  filter_pipeline: Arc<FilterPipeline>,
   client: Arc<Client>,
 }
 
@@ -283,7 +283,7 @@ impl EndpointService {
     path: Arc<str>,
   ) -> Result<Self> {
     let cloned_config = config.clone();
-    let filters = config.filters.build().await?;
+    let filter_pipeline = FilterPipeline::from_config(config.filters).await?;
 
     let default_cache_ttl = Duration::from_secs(15 * 60);
     let client = config.client.unwrap_or_default().build(default_cache_ttl)?;
@@ -299,7 +299,7 @@ impl EndpointService {
       config: cloned_config,
       source,
       on_the_fly_filter,
-      filters: Arc::new(filters),
+      filter_pipeline: Arc::new(filter_pipeline),
       client: Arc::new(client),
     })
   }
@@ -315,7 +315,7 @@ impl EndpointService {
       .fetch_feed(context, Some(&self.client))
       .await
       .context(InSource(self.source))?;
-    let mut feed = self.filters.run(context, feed).await?;
+    let mut feed = self.filter_pipeline.run(context, feed).await?;
 
     if let (Some(on_the_fly_filter), Some(query)) =
       (self.on_the_fly_filter, param.query)
@@ -362,7 +362,7 @@ impl EndpointService {
     }
 
     if self.config.filters != config.filters {
-      self.filters.update(config.filters).await?;
+      self.filter_pipeline.update(config.filters).await?;
     }
 
     self.config = cloned_config;

@@ -84,7 +84,8 @@ impl FeedFilterConfig for MergeConfig {
     let client = client
       .unwrap_or_default()
       .build(Duration::from_secs(15 * 60))?;
-    let filters = filters.unwrap_or_default().build().await?;
+    let filter_pipeline =
+      FilterPipeline::from_config(filters.clone().unwrap_or_default()).await?;
     let sources = source
       .into_vec()
       .into_iter()
@@ -96,7 +97,7 @@ impl FeedFilterConfig for MergeConfig {
       client,
       parallelism,
       sources,
-      filters,
+      filter_pipeline,
     })
   }
 }
@@ -105,7 +106,7 @@ pub struct Merge {
   client: Client,
   parallelism: usize,
   sources: Vec<Source>,
-  filters: FilterPipeline,
+  filter_pipeline: FilterPipeline,
 }
 
 impl Merge {
@@ -137,7 +138,8 @@ impl FeedFilter for Merge {
 
     let mut subctx = ctx.subcontext();
     for new_feed in new_feeds {
-      let new_feed = self.filters.run(subctx.as_mut(), new_feed).await?;
+      let new_feed =
+        self.filter_pipeline.run(subctx.as_mut(), new_feed).await?;
       feed.merge(new_feed)?;
     }
     drop(subctx);
