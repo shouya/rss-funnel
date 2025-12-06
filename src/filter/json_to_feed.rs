@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
+use anyhow::Context;
+
 use crate::client::{Client, ClientConfig};
 use crate::error::{DynamicSourceUnspecified, Result};
 use crate::feed::{Feed, FeedFormat, Post};
@@ -163,17 +165,61 @@ impl FeedFilter for JsonToFeedFilter {
 impl ConfigFieldMap {
   fn parse(self) -> Result<ParsedFieldMap> {
     let field_map = ParsedFieldMap {
-      title: self.title.map(parse_field).transpose()?,
-      link: self.link.map(parse_field).transpose()?,
-      guid: self.guid.map(parse_field).transpose()?,
-      description: self.description.map(parse_field).transpose()?,
-      content_html: self.content_html.map(parse_field).transpose()?,
-      author: self.author.map(parse_field).transpose()?,
-      categories: self.categories.map(parse_field).transpose()?,
-      pub_date: self.pub_date.map(parse_field).transpose()?,
-      enclosure_url: self.enclosure_url.map(parse_field).transpose()?,
-      enclosure_type: self.enclosure_type.map(parse_field).transpose()?,
-      enclosure_length: self.enclosure_length.map(parse_field).transpose()?,
+      title: self
+        .title
+        .map(parse_field)
+        .transpose()
+        .context("error in map.title")?,
+      link: self
+        .link
+        .map(parse_field)
+        .transpose()
+        .context("error in map.link")?,
+      guid: self
+        .guid
+        .map(parse_field)
+        .transpose()
+        .context("error in map.guid")?,
+      description: self
+        .description
+        .map(parse_field)
+        .transpose()
+        .context("error in map.description")?,
+      content_html: self
+        .content_html
+        .map(parse_field)
+        .transpose()
+        .context("error in map.content_html")?,
+      author: self
+        .author
+        .map(parse_field)
+        .transpose()
+        .context("error in map.author")?,
+      categories: self
+        .categories
+        .map(parse_field)
+        .transpose()
+        .context("error in map.categories")?,
+      pub_date: self
+        .pub_date
+        .map(parse_field)
+        .transpose()
+        .context("error in map.pub_date")?,
+      enclosure_url: self
+        .enclosure_url
+        .map(parse_field)
+        .transpose()
+        .context("error in map.enclosure_url")?,
+      enclosure_type: self
+        .enclosure_type
+        .map(parse_field)
+        .transpose()
+        .context("error in map.enclosure_type")?,
+      enclosure_length: self
+        .enclosure_length
+        .map(parse_field)
+        .transpose()
+        .context("error in map.enclosure_length")?,
     };
 
     Ok(field_map)
@@ -182,19 +228,29 @@ impl ConfigFieldMap {
 
 impl ParsedFieldMap {
   fn select<'a>(&'a self, root: &'a Value) -> Result<FieldValues<'a>> {
-    // TODO: add context to the errors
     let field_values = FieldValues {
-      title: select_field(root, &self.title, false)?,
-      link: select_field(root, &self.link, false)?,
-      guid: select_field(root, &self.guid, true)?,
-      description: select_field(root, &self.description, true)?,
-      content_html: select_field(root, &self.content_html, true)?,
-      author: select_field(root, &self.author, true)?,
-      categories: select_field(root, &self.categories, true)?,
-      pub_date: select_field(root, &self.pub_date, true)?,
-      enclosure_url: select_field(root, &self.enclosure_url, true)?,
-      enclosure_type: select_field(root, &self.enclosure_type, true)?,
-      enclosure_length: select_field(root, &self.enclosure_length, true)?,
+      title: select_field(root, &self.title, false)
+        .context("error in map.title")?,
+      link: select_field(root, &self.link, false)
+        .context("error in map.link")?,
+      guid: select_field(root, &self.guid, true)
+        .context("error in map.guid")?,
+      description: select_field(root, &self.description, true)
+        .context("error in map.description")?,
+      content_html: select_field(root, &self.content_html, true)
+        .context("error in map.content_html")?,
+      author: select_field(root, &self.author, true)
+        .context("error in map.author")?,
+      categories: select_field(root, &self.categories, true)
+        .context("error in map.categories")?,
+      pub_date: select_field(root, &self.pub_date, true)
+        .context("error in map.pub_date")?,
+      enclosure_url: select_field(root, &self.enclosure_url, true)
+        .context("error in map.enclosure_url")?,
+      enclosure_type: select_field(root, &self.enclosure_type, true)
+        .context("error in map.enclosure_type")?,
+      enclosure_length: select_field(root, &self.enclosure_length, true)
+        .context("error in map.enclosure_length")?,
     };
 
     Ok(field_values)
@@ -341,9 +397,21 @@ impl FieldValues<'_> {
 impl ConfigFeedMetaMap {
   fn parse(self) -> Result<ParsedFeedMetaMap> {
     let feed_map = ParsedFeedMetaMap {
-      title: self.title.map(parse_field).transpose()?,
-      link: self.link.map(parse_field).transpose()?,
-      description: self.description.map(parse_field).transpose()?,
+      title: self
+        .title
+        .map(parse_field)
+        .transpose()
+        .context("error in feed.title")?,
+      link: self
+        .link
+        .map(parse_field)
+        .transpose()
+        .context("error in feed.link")?,
+      description: self
+        .description
+        .map(parse_field)
+        .transpose()
+        .context("error in feed.description")?,
     };
 
     Ok(feed_map)
@@ -353,9 +421,12 @@ impl ConfigFeedMetaMap {
 impl ParsedFeedMetaMap {
   fn select<'a>(&self, root: &'a Value) -> Result<FeedMetaValues<'a>> {
     let meta = FeedMetaMap {
-      title: select_field(root, &self.title, false)?,
-      link: select_field(root, &self.link, false)?,
-      description: select_field(root, &self.description, true)?,
+      title: select_field(root, &self.title, false)
+        .context("error in feed.title")?,
+      link: select_field(root, &self.link, false)
+        .context("error in feed.link")?,
+      description: select_field(root, &self.description, true)
+        .context("error in feed.description")?,
     };
 
     Ok(meta)
