@@ -5,10 +5,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::client::{Client, ClientConfig};
+use crate::error::Result;
 use crate::feed::{Feed, NormalizedPost};
 use crate::filter_pipeline::{FilterPipeline, FilterPipelineConfig};
 use crate::source::{SimpleSourceConfig, Source};
-use crate::{ConfigError, Error, Result, util::SingleOrVec};
+use crate::util::SingleOrVec;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -73,7 +74,7 @@ impl From<MergeConfig> for MergeFullConfig {
 impl FeedFilterConfig for MergeConfig {
   type Filter = Merge;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let MergeFullConfig {
       client,
       filters,
@@ -111,7 +112,7 @@ impl Merge {
   async fn fetch_sources(
     &self,
     ctx: &FilterContext,
-  ) -> Result<(Vec<Feed>, Vec<(Source, Error)>)> {
+  ) -> Result<(Vec<Feed>, Vec<(Source, anyhow::Error)>)> {
     let iter = stream::iter(self.sources.clone())
       .map(|source: Source| {
         let client = &self.client;
@@ -153,7 +154,7 @@ impl FeedFilter for Merge {
 
 fn post_from_error(
   source: Source,
-  error: Error,
+  error: anyhow::Error,
   ctx: &FilterContext,
 ) -> NormalizedPost {
   let source_url = source.full_url(ctx).map(|u| u.to_string());

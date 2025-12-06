@@ -3,8 +3,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::Result;
-use crate::{ConfigError, feed::Feed};
+use crate::error::Result;
+use crate::feed::Feed;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -21,7 +21,7 @@ pub struct SimplifyHtmlFilter;
 impl FeedFilterConfig for SimplifyHtmlConfig {
   type Filter = SimplifyHtmlFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(SimplifyHtmlFilter)
   }
 }

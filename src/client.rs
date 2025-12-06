@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{ConfigError, Error, Result, feed::Feed};
+use crate::{error::Result, feed::Feed};
 
 use self::cache::{Response, ResponseCache};
 
@@ -69,7 +69,7 @@ impl ClientConfig {
     self.cache_ttl.unwrap_or(default_cache_ttl)
   }
 
-  fn to_builder(&self) -> Result<reqwest::ClientBuilder, ConfigError> {
+  fn to_builder(&self) -> Result<reqwest::ClientBuilder> {
     let mut builder = reqwest::Client::builder();
 
     if let Some(user_agent) = &self.user_agent {
@@ -114,10 +114,7 @@ impl ClientConfig {
     Ok(builder)
   }
 
-  pub fn build(
-    &self,
-    default_cache_ttl: Duration,
-  ) -> Result<Client, ConfigError> {
+  pub fn build(&self, default_cache_ttl: Duration) -> Result<Client> {
     let reqwest_client = self.to_builder()?.build()?;
     let client = Client::new(
       self.get_cache_size(),
@@ -128,7 +125,7 @@ impl ClientConfig {
     Ok(client)
   }
 
-  pub fn to_yaml(&self) -> Result<String, ConfigError> {
+  pub fn to_yaml(&self) -> Result<String> {
     Ok(serde_yaml::to_string(self)?)
   }
 }
@@ -179,7 +176,7 @@ impl Client {
       Some("application/xml" | "text/xml") => {
         Feed::from_xml_content(resp.body())?
       }
-      Some(format) => Err(Error::UnsupportedFeedFormat(format.into()))?,
+      Some(format) => anyhow::bail!("unsupported feed format: {format}"),
       None => Feed::from_xml_content(resp.body())?,
     };
 

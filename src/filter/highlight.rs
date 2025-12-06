@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
-use crate::{ConfigError, Result, feed::Feed, util::fragment_root_node_id};
+use crate::{error::Result, feed::Feed, util::fragment_root_node_id};
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash,
@@ -33,7 +33,7 @@ enum KeywordsOrPatterns {
 }
 
 impl KeywordsOrPatterns {
-  fn into_patterns(self) -> Result<Vec<String>, ConfigError> {
+  fn into_patterns(self) -> Result<Vec<String>> {
     match self {
       Self::Keywords { keywords } => {
         let patterns = keywords
@@ -51,7 +51,7 @@ impl KeywordsOrPatterns {
 impl FeedFilterConfig for HighlightConfig {
   type Filter = Highlight;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let patterns = self.keywords.into_patterns()?;
     let bg_color = self.bg_color.unwrap_or_else(|| "#ffff00".into());
     let case_sensitive = self.case_sensitive.unwrap_or(false);
@@ -106,7 +106,7 @@ impl Highlight {
     patterns: &[T],
     bg_color: String,
     case_sensitive: bool,
-  ) -> Result<Self, ConfigError> {
+  ) -> Result<Self> {
     let regexset = RegexSetBuilder::new(patterns)
       .case_insensitive(!case_sensitive)
       .build()?;

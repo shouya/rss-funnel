@@ -16,7 +16,7 @@ use rquickjs::{
 };
 use url::Url;
 
-use crate::error::JsError;
+use crate::error::{JsError, JsResult};
 
 pub struct Runtime {
   context: rquickjs::AsyncContext,
@@ -55,7 +55,7 @@ where
 }
 
 impl Runtime {
-  pub async fn new() -> Result<Self, JsError> {
+  pub async fn new() -> JsResult<Self> {
     let runtime = rquickjs::AsyncRuntime::new()?;
     // limit memory usage to 32MB
     runtime.set_memory_limit(32 * 1024 * 1024).await;
@@ -96,7 +96,7 @@ impl Runtime {
       .await;
   }
 
-  pub async fn eval<V>(&self, code: &str) -> Result<V, JsError>
+  pub async fn eval<V>(&self, code: &str) -> JsResult<V>
   where
     V: for<'js> FromJs<'js> + Send,
   {
@@ -104,7 +104,7 @@ impl Runtime {
 
     self
       .context
-      .with(|ctx: Ctx<'_>| -> Result<V, _> {
+      .with(|ctx: Ctx<'_>| -> JsResult<V> {
         let res = ctx.eval(code.clone()).map_err(std::convert::Into::into);
         handle_exception_with_source(&ctx, &code, res)
       })
@@ -123,11 +123,7 @@ impl Runtime {
   }
 
   /// Automatically detect if the function is async and wait for the result
-  pub async fn call_fn<V, Args>(
-    &self,
-    name: &str,
-    args: Args,
-  ) -> Result<V, JsError>
+  pub async fn call_fn<V, Args>(&self, name: &str, args: Args) -> JsResult<V>
   where
     V: for<'js> FromJs<'js> + Send + 'static + std::fmt::Debug,
     Args: for<'js> IntoArgs<'js> + Send,
@@ -291,7 +287,11 @@ impl RemoteLoader {
 }
 
 impl Loader for RemoteLoader {
-  fn load<'js>(&mut self, ctx: &Ctx<'js>, name: &str) -> rquickjs::Result<Module<'js>> {
+  fn load<'js>(
+    &mut self,
+    ctx: &Ctx<'js>,
+    name: &str,
+  ) -> rquickjs::Result<Module<'js>> {
     let err = rquickjs::Error::new_loading(name);
     if !self.name_valid(name) {
       return Err(err);
@@ -354,8 +354,8 @@ impl std::fmt::Display for Exception {
 fn handle_exception_with_source<T>(
   ctx: &Ctx<'_>,
   source: &str,
-  result: Result<T, JsError>,
-) -> Result<T, JsError> {
+  result: JsResult<T>,
+) -> JsResult<T> {
   match result {
     Ok(v) => Ok(v),
     Err(JsError::Error(rquickjs::Error::Exception)) => {
@@ -368,10 +368,7 @@ fn handle_exception_with_source<T>(
   }
 }
 
-fn handle_exception<T>(
-  ctx: &Ctx<'_>,
-  result: Result<T, JsError>,
-) -> Result<T, JsError> {
+fn handle_exception<T>(ctx: &Ctx<'_>, result: JsResult<T>) -> JsResult<T> {
   match result {
     Ok(v) => Ok(v),
     Err(JsError::Error(rquickjs::Error::Exception)) => {

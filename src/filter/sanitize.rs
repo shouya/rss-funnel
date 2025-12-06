@@ -4,8 +4,8 @@ use regex::{Regex, RegexBuilder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::Result;
-use crate::{ConfigError, feed::Feed};
+use crate::error::Result;
+use crate::feed::Feed;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
 
@@ -34,32 +34,30 @@ pub struct SanitizeOpConfig {
 }
 
 impl SanitizeOpConfig {
-  fn into_op(self) -> Result<SanitizeOp, ConfigError> {
+  fn into_op(self) -> Result<SanitizeOp> {
     // must ensure that only one of the options is Some
     let num_selected = u8::from(self.remove.is_some())
       + u8::from(self.remove_regex.is_some())
       + u8::from(self.replace.is_some())
       + u8::from(self.replace_regex.is_some());
     if num_selected != 1 {
-      let message = format!(
+      anyhow::bail!(
         "Exactly one of {}, {}, {}, {} must be specified for `sanitize' filter",
-        "remove", "remove_regex", "replace", "replace_regex"
+        "remove",
+        "remove_regex",
+        "replace",
+        "replace_regex"
       );
-      return Err(ConfigError::Message(message.to_string()));
     }
 
     macro_rules! parse_regex {
       ($regex:expr) => {
-        RegexBuilder::new(&$regex)
-          .case_insensitive(true)
-          .build()
-          .map_err(ConfigError::from)?
+        RegexBuilder::new(&$regex).case_insensitive(true).build()?
       };
       ($regex:expr, $cs:expr) => {
         RegexBuilder::new(&$regex)
           .case_insensitive(!$cs.unwrap_or(false))
-          .build()
-          .map_err(ConfigError::from)?
+          .build()?
       };
     }
 
@@ -111,7 +109,7 @@ pub struct Sanitize {
 impl FeedFilterConfig for SanitizeConfig {
   type Filter = Sanitize;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     let mut ops = Vec::new();
     for conf in self.ops {
       ops.push(conf.into_op()?);

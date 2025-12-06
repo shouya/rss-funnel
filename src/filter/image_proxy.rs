@@ -6,7 +6,7 @@ use tracing::warn;
 use url::Url;
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{ConfigError, Error, Result, feed::Feed};
+use crate::{error::Result, feed::Feed};
 
 const IMAGE_PROXY_ROUTE: &str = "_image";
 
@@ -143,7 +143,7 @@ struct ExternalProxySettings {
 impl FeedFilterConfig for Config {
   type Filter = ImageProxy;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(ImageProxy { config: self })
   }
 }
@@ -266,7 +266,7 @@ fn rewrite_img_elem(
         new_sources.push(new_url);
       }
 
-      Ok::<_, Error>(new_sources.join(", "))
+      Ok::<_, anyhow::Error>(new_sources.join(", "))
     })
     .transpose()?;
 

@@ -11,7 +11,8 @@ use tokio::sync::RwLock;
 use tower::Service;
 use tracing::info;
 
-use crate::{ConfigError, cli::RootConfig};
+use crate::cli::RootConfig;
+use crate::error::{ConfigError, Result};
 
 use super::{EndpointConfig, endpoint::EndpointService};
 
@@ -31,12 +32,12 @@ struct Inner {
 }
 
 impl FeedService {
-  pub async fn new_otf() -> Result<Self, ConfigError> {
+  pub async fn new_otf() -> Result<Self> {
     let config = RootConfig::on_the_fly("/otf");
     Self::build(config, None).await
   }
 
-  pub async fn new(path: &std::path::Path) -> Result<Self, ConfigError> {
+  pub async fn new(path: &std::path::Path) -> Result<Self> {
     let config = RootConfig::load_from_file(path)?;
     Self::build(config, Some(path)).await
   }
@@ -46,14 +47,14 @@ impl FeedService {
   async fn build(
     root_config: RootConfig,
     config_path: Option<&std::path::Path>,
-  ) -> Result<Self, ConfigError> {
+  ) -> Result<Self> {
     let mut endpoints = HashMap::new();
     for endpoint_config in root_config.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
       let endpoint_service = endpoint_config.build().await?;
       info!("loaded endpoint: /{}", path);
       if endpoints.contains_key(&path) {
-        return Err(ConfigError::DuplicateEndpoint(path));
+        anyhow::bail!("duplicate endpoint: {path}");
       }
 
       endpoints.insert(path, endpoint_service);
@@ -129,7 +130,7 @@ impl FeedService {
     inner.config_error = None;
     let feed_defn = match RootConfig::load_from_file(&path) {
       Err(e) => {
-        inner.config_error = Some(e);
+        inner.config_error = Some(ConfigError(e));
         return false;
       }
       Ok(feed_defn) => feed_defn,
@@ -139,7 +140,8 @@ impl FeedService {
     for endpoint_config in feed_defn.endpoints.clone() {
       let path = endpoint_config.path_sans_slash().to_owned();
       if endpoints.contains_key(&path) {
-        inner.config_error = Some(ConfigError::DuplicateEndpoint(path));
+        inner.config_error =
+          Some(ConfigError(anyhow::anyhow!("duplicate endpoint: {path}")));
         return false;
       }
 
@@ -151,7 +153,7 @@ impl FeedService {
           endpoints.insert(path, endpoint);
         }
         Err(e) => {
-          inner.config_error = Some(e);
+          inner.config_error = Some(ConfigError(e));
           return false;
         }
       }
@@ -190,7 +192,7 @@ async fn load_endpoint(
   inner: &mut impl DerefMut<Target = Inner>,
   path: &str,
   config: EndpointConfig,
-) -> Result<EndpointService, ConfigError> {
+) -> Result<EndpointService> {
   match inner.endpoints.remove(path) {
     Some(endpoint) => {
       if endpoint.config_changed(&config.config) {

@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{FeedFilter, FeedFilterConfig, FilterContext};
-use crate::{ConfigError, Result, feed::Feed};
+use crate::{error::Result, feed::Feed};
 
 #[derive(
   JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash,
@@ -18,7 +18,7 @@ pub struct NoteFilterConfig {
 impl FeedFilterConfig for NoteFilterConfig {
   type Filter = NoteFilter;
 
-  async fn build(self) -> Result<Self::Filter, ConfigError> {
+  async fn build(self) -> Result<Self::Filter> {
     Ok(NoteFilter)
   }
 }

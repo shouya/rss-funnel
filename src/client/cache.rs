@@ -4,7 +4,7 @@ use mime::Mime;
 use reqwest::header::HeaderMap;
 use url::Url;
 
-use crate::{Error, Result, util::TimedLruCache};
+use crate::{Result, error::HttpStatusError, util::TimedLruCache};
 
 pub type ResponseCache = TimedLruCache<Url, Response>;
 
@@ -94,7 +94,7 @@ impl Response {
   pub fn error_for_status(self) -> Result<Self> {
     let status = self.inner.status;
     if status.is_client_error() || status.is_server_error() {
-      return Err(Error::HttpStatus(status, self.inner.url.clone()));
+      return Err(HttpStatusError(status, self.inner.url.clone()).into());
     }
 
     Ok(self)

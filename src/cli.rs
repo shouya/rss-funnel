@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-  ConfigError, Result,
+  error::Result,
   server::{self, EndpointConfig, ServerConfig},
   util::relative_path,
 };
@@ -100,14 +100,18 @@ impl RootConfig {
     }
   }
 
-  pub fn load_from_file(path: &Path) -> Result<Self, ConfigError> {
+  pub fn load_from_file(path: &Path) -> Result<Self> {
     let f = std::fs::File::open(path)?;
     let root_config: Self = serde_yaml::from_reader(f)?;
     Ok(root_config)
   }
 
   fn get_endpoint(&self, endpoint: &str) -> Option<EndpointConfig> {
-    self.endpoints.iter().find(|e| e.path == endpoint).cloned()
+    self
+      .endpoints
+      .iter()
+      .find(|e| *e.path == *endpoint)
+      .cloned()
   }
 
   fn endpoints(&self) -> impl Iterator<Item = &EndpointConfig> {
