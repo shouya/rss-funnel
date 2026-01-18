@@ -258,4 +258,23 @@ mod tests {
     let feed = fetch_endpoint(config, "").await;
     assert_eq!(feed.title(), "Modified Feed");
   }
+
+  #[tokio::test]
+  async fn test_modify_post_with_ext() {
+    let config = r#"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///atareao.xml
+      filters:
+        - modify_post: post.author = post.dublin_core_ext.creators[0] + ' (modified)';
+    "#;
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    for post in posts {
+      let author = post.author().unwrap();
+      assert!(author.ends_with(" (modified)"));
+      assert!(author.starts_with("atareao"));
+    }
+  }
 }
