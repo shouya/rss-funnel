@@ -381,6 +381,11 @@ impl Post {
     let link = self.link().map(String::from).unwrap_or_default();
     let body = self.first_body().map(String::from);
     let published = self.pub_date();
+    let categories = self
+      .categories()
+      .into_iter()
+      .map(String::from)
+      .collect::<Vec<_>>();
 
     NormalizedPost {
       title,
@@ -388,6 +393,7 @@ impl Post {
       link,
       body,
       date: published,
+      categories,
     }
   }
   pub fn set_pub_date(&mut self, date: DateTime<chrono::FixedOffset>) {
@@ -409,6 +415,21 @@ impl Post {
         .as_ref()
         .and_then(|s| DateTime::parse_from_rfc2822(s).ok()),
       Post::Atom(item) => Some(item.updated),
+    }
+  }
+
+  pub fn categories(&self) -> Vec<&str> {
+    match self {
+      Post::Rss(item) => item
+        .categories
+        .iter()
+        .map(|x| x.name.as_ref())
+        .collect::<Vec<_>>(),
+      Post::Atom(item) => item
+        .categories
+        .iter()
+        .map(|x| x.term.as_ref())
+        .collect::<Vec<_>>(),
     }
   }
 

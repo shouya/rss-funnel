@@ -16,6 +16,7 @@ pub struct NormalizedPost {
   pub link: String,
   pub body: Option<String>,
   pub date: Option<DateTime<FixedOffset>>,
+  pub categories: Vec<String>,
 }
 
 impl NormalizedPost {

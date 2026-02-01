@@ -118,6 +118,7 @@ enum Field {
   Body,
   #[deprecated(note = "use `body` instead")]
   Content,
+  Categories,
   #[default]
   Any,
 }
@@ -128,7 +129,13 @@ impl Field {
       Self::Title => post.title().into_iter().collect(),
       #[allow(deprecated)]
       Self::Body | Self::Content => post.bodies(),
-      Self::Any => post.title().into_iter().chain(post.bodies()).collect(),
+      Self::Categories => post.categories(),
+      Self::Any => post
+        .title()
+        .into_iter()
+        .chain(post.bodies())
+        .chain(post.categories())
+        .collect(),
     }
   }
 }
