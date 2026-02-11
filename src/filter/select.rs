@@ -320,8 +320,6 @@ mod test {
 
   #[tokio::test]
   async fn test_select_on_categories() {
-    use std::collections::HashSet;
-
     let config = r"
       !endpoint
       path: /feed.xml
