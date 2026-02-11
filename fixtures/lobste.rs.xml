@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Lobsters</title>
+    <link>https://lobste.rs/</link>
+    <atom:link href="https://lobste.rs/rss" rel="self"/>
+    <description></description>
+    <pubDate>Tue, 10 Feb 2026 09:09:47 -0600</pubDate>
+    <ttl>120</ttl>
+    <item>
+      <title>How I Cut My Google Search Dependence in Half</title>
+      <link>https://hister.org/posts/how-i-cut-my-google-search-dependence-in-half/</link>
+      <guid>https://lobste.rs/s/ogr30w</guid>
+      <author>hister.org by asciimoo</author>
+      <pubDate>Tue, 10 Feb 2026 09:09:47 -0600</pubDate>
+      <comments>https://lobste.rs/s/ogr30w/how_i_cut_my_google_search_dependence_half</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/ogr30w/how_i_cut_my_google_search_dependence_half"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>go</category>
+      <category>web</category>
+      <category>show</category>
+    </item>
+    <item>
+      <title>I Wrote a Scheme in 2025</title>
+      <link>https://maplant.com/2026-02-09-I-Wrote-a-Scheme-in-2025.html</link>
+      <guid>https://lobste.rs/s/elol3n</guid>
+      <author>maplant.com by mplant</author>
+      <pubDate>Tue, 10 Feb 2026 10:19:44 -0600</pubDate>
+      <comments>https://lobste.rs/s/elol3n/i_wrote_scheme_2025</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/elol3n/i_wrote_scheme_2025"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>lisp</category>
+    </item>
+    <item>
+      <title>Go 1.26 is released</title>
+      <link>https://go.dev/blog/go1.26</link>
+      <guid>https://lobste.rs/s/pybtso</guid>
+      <author>go.dev via achill</author>
+      <pubDate>Tue, 10 Feb 2026 14:32:53 -0600</pubDate>
+      <comments>https://lobste.rs/s/pybtso/go_1_26_is_released</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/pybtso/go_1_26_is_released"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>go</category>
+    </item>
+    <item>
+      <title>The Missing GitHub Status Page</title>
+      <link>https://mrshu.github.io/github-statuses/</link>
+      <guid>https://lobste.rs/s/00edzp</guid>
+      <author>mrshu.github.io via skade</author>
+      <pubDate>Tue, 10 Feb 2026 13:23:09 -0600</pubDate>
+      <comments>https://lobste.rs/s/00edzp/missing_github_status_page</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/00edzp/missing_github_status_page"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>vcs</category>
+    </item>
+    <item>
+      <title>cysqlite - a new sqlite driver</title>
+      <link>https://charlesleifer.com/blog/cysqlite---a-new-sqlite-driver/</link>
+      <guid>https://lobste.rs/s/gipvta</guid>
+      <author>charlesleifer.com by coleifer</author>
+      <pubDate>Tue, 10 Feb 2026 15:02:03 -0600</pubDate>
+      <comments>https://lobste.rs/s/gipvta/cysqlite_new_sqlite_driver</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/gipvta/cysqlite_new_sqlite_driver"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>python</category>
+      <category>databases</category>
+    </item>
+    <item>
+      <title>I Started Programming When I Was 7. I'm 50 Now, and the Thing I Loved Has Changed</title>
+      <link>https://www.jamesdrandall.com/posts/the_thing_i_loved_has_changed/</link>
+      <guid>https://lobste.rs/s/7iford</guid>
+      <author>jamesdrandall.com via repl</author>
+      <pubDate>Tue, 10 Feb 2026 11:26:23 -0600</pubDate>
+      <comments>https://lobste.rs/s/7iford/i_started_programming_when_i_was_7_i_m_50_now</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/7iford/i_started_programming_when_i_was_7_i_m_50_now"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>programming</category>
+      <category>vibecoding</category>
+    </item>
+    <item>
+      <title>postmarketOS at FOSDEM 2026 + Hackathon</title>
+      <link>https://postmarketos.org/blog/2026/02/10/fosdem-and-hackathon/</link>
+      <guid>https://lobste.rs/s/naa5fq</guid>
+      <author>postmarketos.org by achill</author>
+      <pubDate>Tue, 10 Feb 2026 09:12:16 -0600</pubDate>
+      <comments>https://lobste.rs/s/naa5fq/postmarketos_at_fosdem_2026_hackathon</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/naa5fq/postmarketos_at_fosdem_2026_hackathon"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>event</category>
+      <category>mobile</category>
+      <category>linux</category>
+    </item>
+    <item>
+      <title>GitButler CLI Is Really Good</title>
+      <link>https://matduggan.com/gitbutler-cli-is-really-good/</link>
+      <guid>https://lobste.rs/s/dlmxra</guid>
+      <author>matduggan.com by maduggan</author>
+      <pubDate>Tue, 10 Feb 2026 03:11:43 -0600</pubDate>
+      <comments>https://lobste.rs/s/dlmxra/gitbutler_cli_is_really_good</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/dlmxra/gitbutler_cli_is_really_good"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>vcs</category>
+    </item>
+    <item>
+      <title>Hylo: A Systems Programming Language All in on Value Semantics and Generic Programming</title>
+      <link>https://hylo-lang.org/</link>
+      <guid>https://lobste.rs/s/wcak3g</guid>
+      <author>hylo-lang.org via fanf</author>
+      <pubDate>Tue, 10 Feb 2026 17:47:35 -0600</pubDate>
+      <comments>https://lobste.rs/s/wcak3g/hylo_systems_programming_language_all_on</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/wcak3g/hylo_systems_programming_language_all_on"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>plt</category>
+    </item>
+    <item>
+      <title>Proposal: Add Hotness -.25 to Vibe Coding</title>
+      <link>https://lobste.rs/s/rqsjod/proposal_add_hotness_25_vibe_coding</link>
+      <guid>https://lobste.rs/s/rqsjod</guid>
+      <author> by veqq</author>
+      <pubDate>Mon, 09 Feb 2026 12:09:42 -0600</pubDate>
+      <comments>https://lobste.rs/s/rqsjod/proposal_add_hotness_25_vibe_coding</comments>
+      <description>&lt;p&gt;Without filters, vibecoding is 1/3 of the front page. This is bad.&lt;/p&gt;
+&lt;p&gt;Potentially -.35 if need be.&lt;/p&gt;
+</description>
+      <category>meta</category>
+    </item>
+    <item>
+      <title>What Functional Programmers Get Wrong About Systems</title>
+      <link>https://iankduncan.com/engineering/2026-02-09-what-functional-programmers-get-wrong-about-systems/</link>
+      <guid>https://lobste.rs/s/r2koiq</guid>
+      <author>iankduncan.com via typesanitizer</author>
+      <pubDate>Mon, 09 Feb 2026 21:02:47 -0600</pubDate>
+      <comments>https://lobste.rs/s/r2koiq/what_functional_programmers_get_wrong</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/r2koiq/what_functional_programmers_get_wrong"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>distributed</category>
+      <category>vibecoding</category>
+    </item>
+    <item>
+      <title>How a Bus Route Falls Apart (2025)</title>
+      <link>https://homesignalblog.wordpress.com/2025/06/29/how-a-bus-route-falls-apart/</link>
+      <guid>https://lobste.rs/s/qni92w</guid>
+      <author>homesignalblog.wordpress.com via ciferkey</author>
+      <pubDate>Tue, 10 Feb 2026 09:01:01 -0600</pubDate>
+      <comments>https://lobste.rs/s/qni92w/how_bus_route_falls_apart_2025</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/qni92w/how_bus_route_falls_apart_2025"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>programming</category>
+    </item>
+    <item>
+      <title>Discord Launches Teen-by-Default Settings Globally</title>
+      <link>https://discord.com/press-releases/discord-launches-teen-by-default-settings-globally</link>
+      <guid>https://lobste.rs/s/vrczh6</guid>
+      <author>discord.com via Joban</author>
+      <pubDate>Mon, 09 Feb 2026 09:39:47 -0600</pubDate>
+      <comments>https://lobste.rs/s/vrczh6/discord_launches_teen_by_default</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/vrczh6/discord_launches_teen_by_default"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>security</category>
+      <category>privacy</category>
+    </item>
+    <item>
+      <title>Setting Up Zed</title>
+      <link>https://ljb.fyi/setting-up-zed/</link>
+      <guid>https://lobste.rs/s/hhjrpk</guid>
+      <author>ljb.fyi by regulator</author>
+      <pubDate>Tue, 10 Feb 2026 14:33:41 -0600</pubDate>
+      <comments>https://lobste.rs/s/hhjrpk/setting_up_zed</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/hhjrpk/setting_up_zed"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>editors</category>
+    </item>
+    <item>
+      <title>Redefining Go Functions</title>
+      <link>https://pboyd.io/posts/redefining-go-functions/</link>
+      <guid>https://lobste.rs/s/oayzoz</guid>
+      <author>pboyd.io via carlana</author>
+      <pubDate>Tue, 10 Feb 2026 08:13:47 -0600</pubDate>
+      <comments>https://lobste.rs/s/oayzoz/redefining_go_functions</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/oayzoz/redefining_go_functions"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>go</category>
+    </item>
+    <item>
+      <title>SSH agent forwarding and tmux done right (2023)</title>
+      <link>https://blogsystem5.substack.com/p/ssh-agent-forwarding-and-tmux-done</link>
+      <guid>https://lobste.rs/s/t5fcfw</guid>
+      <author>blogsystem5.substack.com via Qyriad</author>
+      <pubDate>Tue, 10 Feb 2026 05:59:10 -0600</pubDate>
+      <comments>https://lobste.rs/s/t5fcfw/ssh_agent_forwarding_tmux_done_right_2023</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/t5fcfw/ssh_agent_forwarding_tmux_done_right_2023"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>practices</category>
+    </item>
+    <item>
+      <title>FreeBSD Home NAS, part 10: monitoring with VictoriaMetrics and Grafana</title>
+      <link>https://rtfm.co.ua/en/freebsd-home-nas-part-10-monitoring-with-victoriametrics-and-grafana/</link>
+      <guid>https://lobste.rs/s/9dfnqa</guid>
+      <author>rtfm.co.ua by setevoy</author>
+      <pubDate>Tue, 10 Feb 2026 06:18:06 -0600</pubDate>
+      <comments>https://lobste.rs/s/9dfnqa/freebsd_home_nas_part_10_monitoring_with</comments>
+      <description>&lt;p&gt;Monitoring a FreeBSD home NAS with VictoriaMetrics and Grafana: collecting system and ZFS metrics, building dashboards, and setting up basic alerting.&lt;/p&gt;
+&lt;p&gt;This post focuses on the core monitoring setup and includes a link to a follow-up post covering extended monitoring with additional exporters.&lt;/p&gt;
+&lt;p&gt;&lt;a href="https://lobste.rs/s/9dfnqa/freebsd_home_nas_part_10_monitoring_with"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>unix</category>
+      <category>freebsd</category>
+    </item>
+    <item>
+      <title>Fine, I'll Try AI</title>
+      <link>https://technobabble.bearblog.dev/fine-ill-try-ai/</link>
+      <guid>https://lobste.rs/s/9kb1xw</guid>
+      <author>technobabble.bearblog.dev by jdh</author>
+      <pubDate>Mon, 09 Feb 2026 18:11:15 -0600</pubDate>
+      <comments>https://lobste.rs/s/9kb1xw/fine_i_ll_try_ai</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/9kb1xw/fine_i_ll_try_ai"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>rant</category>
+      <category>vibecoding</category>
+    </item>
+    <item>
+      <title>Offpunk 3.0</title>
+      <link>https://ploum.net/2026-02-09-offpunk3.html</link>
+      <guid>https://lobste.rs/s/manrbz</guid>
+      <author>ploum.net by ploum</author>
+      <pubDate>Mon, 09 Feb 2026 04:35:55 -0600</pubDate>
+      <comments>https://lobste.rs/s/manrbz/offpunk_3_0</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/manrbz/offpunk_3_0"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>browsers</category>
+      <category>show</category>
+    </item>
+    <item>
+      <title>The Day the telnet Died</title>
+      <link>https://www.labs.greynoise.io/grimoire/2026-02-10-telnet-falls-silent/</link>
+      <guid>https://lobste.rs/s/kjbrep</guid>
+      <author>labs.greynoise.io via addison</author>
+      <pubDate>Tue, 10 Feb 2026 16:17:33 -0600</pubDate>
+      <comments>https://lobste.rs/s/kjbrep/day_telnet_died</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/kjbrep/day_telnet_died"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>security</category>
+      <category>networking</category>
+    </item>
+    <item>
+      <title>Electricity use of AI coding agents</title>
+      <link>https://www.simonpcouch.com/blog/2026-01-20-cc-impact/</link>
+      <guid>https://lobste.rs/s/gtjqqn</guid>
+      <author>simonpcouch.com via trey</author>
+      <pubDate>Mon, 09 Feb 2026 18:28:30 -0600</pubDate>
+      <comments>https://lobste.rs/s/gtjqqn/electricity_use_ai_coding_agents</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/gtjqqn/electricity_use_ai_coding_agents"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>vibecoding</category>
+    </item>
+    <item>
+      <title>Simplifying Vulkan one subsystem at a time</title>
+      <link>https://www.khronos.org/blog/simplifying-vulkan-one-subsystem-at-a-time</link>
+      <guid>https://lobste.rs/s/e5vqhs</guid>
+      <author>khronos.org via jmillikin</author>
+      <pubDate>Tue, 10 Feb 2026 08:46:30 -0600</pubDate>
+      <comments>https://lobste.rs/s/e5vqhs/simplifying_vulkan_one_subsystem_at_time</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/e5vqhs/simplifying_vulkan_one_subsystem_at_time"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>graphics</category>
+    </item>
+    <item>
+      <title>c-- (2008)</title>
+      <link>https://www.cs.tufts.edu/%7Enr/c--/</link>
+      <guid>https://lobste.rs/s/v59ykl</guid>
+      <author>cs.tufts.edu via veqq</author>
+      <pubDate>Mon, 09 Feb 2026 23:31:41 -0600</pubDate>
+      <comments>https://lobste.rs/s/v59ykl/c_2008</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/v59ykl/c_2008"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>compilers</category>
+      <category>plt</category>
+    </item>
+    <item>
+      <title>A fun Python puzzle with circular imports</title>
+      <link>https://utcc.utoronto.ca/~cks/space/blog/python/PythonCircularImportPuzzle</link>
+      <guid>https://lobste.rs/s/6os1a6</guid>
+      <author>utcc.utoronto.ca via runxiyu</author>
+      <pubDate>Tue, 10 Feb 2026 05:28:45 -0600</pubDate>
+      <comments>https://lobste.rs/s/6os1a6/fun_python_puzzle_with_circular_imports</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/6os1a6/fun_python_puzzle_with_circular_imports"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>python</category>
+    </item>
+    <item>
+      <title>browser.html - a web browser built with web technologies using Servo as web rendering engine</title>
+      <link>https://tangled.org/me.webbeef.org/browser.html</link>
+      <guid>https://lobste.rs/s/dcjrur</guid>
+      <author>tangled.org via op</author>
+      <pubDate>Mon, 09 Feb 2026 21:58:58 -0600</pubDate>
+      <comments>https://lobste.rs/s/dcjrur/browser_html_web_browser_built_with_web</comments>
+      <description>&lt;p&gt;&lt;a href="https://lobste.rs/s/dcjrur/browser_html_web_browser_built_with_web"&gt;Comments&lt;/a&gt;&lt;/p&gt;</description>
+      <category>browsers</category>
+    </item>
+  </channel>
+</rss>

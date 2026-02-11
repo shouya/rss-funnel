@@ -176,6 +176,7 @@ fn post_from_error(
     author: Some("rss-funnel".to_owned()),
     body: Some(body),
     date: Some(chrono::Utc::now().fixed_offset()),
+    categories: Vec::new(),
   }
 }
 

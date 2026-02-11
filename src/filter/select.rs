@@ -118,6 +118,7 @@ enum Field {
   Body,
   #[deprecated(note = "use `body` instead")]
   Content,
+  Categories,
   #[default]
   Any,
 }
@@ -128,7 +129,13 @@ impl Field {
       Self::Title => post.title().into_iter().collect(),
       #[allow(deprecated)]
       Self::Body | Self::Content => post.bodies(),
-      Self::Any => post.title().into_iter().chain(post.bodies()).collect(),
+      Self::Categories => post.categories(),
+      Self::Any => post
+        .title()
+        .into_iter()
+        .chain(post.bodies())
+        .chain(post.categories())
+        .collect(),
     }
   }
 }
@@ -204,7 +211,10 @@ impl FeedFilter for Select {
 #[cfg(test)]
 mod test {
   use super::*;
-  use crate::test_utils::{assert_filter_parse, fetch_endpoint};
+  use crate::{
+    feed::Post,
+    test_utils::{assert_filter_parse, fetch_endpoint},
+  };
 
   #[test]
   fn test_config_keep_only_full() {
@@ -306,5 +316,52 @@ mod test {
     let mut feed = fetch_endpoint(config, "").await;
     let posts = feed.take_posts();
     assert_eq!(posts.len(), 0);
+  }
+
+  #[tokio::test]
+  async fn test_select_on_categories() {
+    use std::collections::HashSet;
+
+    let config = r"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///lobste.rs.xml
+      filters: []
+    ";
+    let mut feed = fetch_endpoint(config, "").await;
+    let all_posts = feed.take_posts();
+    let num_posts_with_category = |posts: &[Post], category: &str| {
+      posts
+        .iter()
+        .filter(|post| {
+          post.categories().iter().any(|cat| cat.contains(category))
+        })
+        .count()
+    };
+
+    let config = r"
+      !endpoint
+      path: /feed.xml
+      source: fixture:///lobste.rs.xml
+      filters:
+        - keep_only:
+            field: categories
+            matches:
+              - go
+              - security
+    ";
+
+    let mut feed = fetch_endpoint(config, "").await;
+    let posts = feed.take_posts();
+    assert_ne!(posts.len(), 0);
+
+    assert_eq!(
+      num_posts_with_category(&all_posts, "go"),
+      num_posts_with_category(&posts, "go")
+    );
+    assert_eq!(
+      num_posts_with_category(&all_posts, "security"),
+      num_posts_with_category(&posts, "security")
+    );
   }
 }
