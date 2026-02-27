@@ -104,6 +104,13 @@ fn parse_single(param: &str) -> Result<FilterConfig> {
     anyhow::bail!("{message}");
   };
 
+  // try parse value as YAML; if it's a mapping (structured config), use it directly
+  if let Ok(yaml_value) = serde_yaml::from_str::<Value>(&value)
+    && yaml_value.is_mapping()
+  {
+    return FilterConfig::parse_yaml_value(name, yaml_value);
+  }
+
   // try parse value as number if possible
   if let Ok(num) = Number::from_str(&value) {
     let value = Value::Number(num);
@@ -139,5 +146,14 @@ mod test {
     // empty value are supported
     assert_parse("simplify_html", "simplify_html: {}");
     assert_parse("simplify_html=", "simplify_html: {}");
+    // structured YAML values (field-specific matching)
+    assert_parse(
+      "keep_only=%7Bfield%3A%20title%2C%20contains%3A%20foo%7D",
+      "keep_only: {field: title, contains: foo}",
+    );
+    assert_parse(
+      "discard=%7Bfield%3A%20categories%2C%20matches%3A%20'%5Cd%2B'%7D",
+      "discard: {field: categories, matches: '\\d+'}",
+    );
   }
 }
