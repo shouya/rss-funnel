@@ -3,6 +3,7 @@ pub(crate) mod full_text;
 pub(crate) mod highlight;
 pub(crate) mod html;
 pub(crate) mod image_proxy;
+pub(crate) mod inject_css;
 pub(crate) mod js;
 pub(crate) mod json_to_feed;
 pub(crate) mod limit;
@@ -338,4 +339,5 @@ define_filters!(
   Limit => limit::LimitConfig, "Limit the number of posts";
   Magnet => magnet::MagnetConfig, "Find magnet links in posts";
   ImageProxy => image_proxy::Config, "Rewrite image src to use proxy";
+  InjectCss => inject_css::InjectCssConfig, "Inject CSS styles into post bodies";
 );
